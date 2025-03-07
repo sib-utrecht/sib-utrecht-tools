@@ -1,0 +1,17 @@
+name: testing1
+description: A sample command-line application.
+version: 1.0.0
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ^3.4.0
+
+# Add regular dependencies here.
+dependencies:
+  aws_client: ^0.4.2
+  aws_signature_v4: ^0.6.3
+  # path: ^1.8.0
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0

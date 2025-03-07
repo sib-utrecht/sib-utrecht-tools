@@ -1,0 +1,24 @@
+{
+    "manifest_version": 3,
+    "name": "Cognito Forms counter",
+    "version": "1.3",
+    "description": "Voegt methode toe aan Cognito Forms om totale stemmen te tellen. Vraag Vincent om uitleg",
+    "content_scripts": [
+        {
+            "matches": [
+                "*://www.cognitoforms.com/*"
+            ],
+            "js": [
+                "cognitoFormsTweak.js"
+            ],
+            "run_at": "document_start"
+        }
+    ],
+    "host_permissions": [
+        "*://cognitoforms.com/*",
+        "*://*.cognitoforms.com/*"
+    ],
+    "permissions": [
+        "webRequest"
+    ]
+}
