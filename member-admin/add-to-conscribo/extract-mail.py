@@ -115,7 +115,7 @@ if html_message is not None:
         fields_contents[-1] = fields_contents[-1][:2]
 
     fields = {
-        parts[0]: ("\n".join(parts[1:]) if len(parts) > 1 else "")
+        parts[0].removesuffix(":"): ("\n".join(parts[1:]) if len(parts) > 1 else "")
         for parts in fields_contents
     }
 
