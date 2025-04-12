@@ -80,25 +80,39 @@ def parse_tsv_data(tsv_data : str):
     
     return data
 
-def main():
+def fetch_and_parse_tsv_data():
     """
     Main function to fetch and parse the TSV data.
     """
     tsv_data = get_tsv_data(tsv_url)
     parsed_data = parse_tsv_data(tsv_data)
+    return parsed_data
 
-    print("\n\n\nPrinting data")
+_parsed_data = None
+
+def get_parsed_data():
+    global _parsed_data
+
+    if _parsed_data is not None:
+        return _parsed_data
+
+    _parsed_data = fetch_and_parse_tsv_data()
+    return _parsed_data
     
-    # Print the parsed data
-    for entry in parsed_data:
-        print(json.dumps(entry, indent=4))
-
+def get_register_form_to_key() -> dict:
+    parsed_data = get_parsed_data()
+    
     register_form_to_key = {
         row["RegisterForm"]: row["Key"]
 
         for row in parsed_data
         if row.get("RegisterForm") and row.get("Key")
     }
+
+    return register_form_to_key
+
+def get_conscribo_to_key() -> dict:
+    parsed_data = get_parsed_data()
 
     conscribo_to_key = {
         row["Conscribo"]: row["Key"]
@@ -107,10 +121,25 @@ def main():
         if row.get("Conscribo") and row.get("Key")
     }
 
+    return conscribo_to_key
+
+
+
+
+def main():
+    parsed_data = get_parsed_data()    
+
+    print("\n\n\nPrinting data")
+    
+    # Print the parsed data
+    for entry in parsed_data:
+        print(json.dumps(entry, indent=4))
+
+
     print("\n\n\nPrinting register_form_to_key")
-    print(json.dumps(register_form_to_key, indent=4))
+    print(json.dumps(get_register_form_to_key(), indent=4))
     print("\n\n\nPrinting conscribo_to_key")
-    print(json.dumps(conscribo_to_key, indent=4))
+    print(json.dumps(get_conscribo_to_key(), indent=4))
 
 
 

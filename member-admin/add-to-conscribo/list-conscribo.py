@@ -3,6 +3,7 @@ import requests
 import json
 import keyring
 from getpass import getpass
+import canonical_key
 
 api_url = "https://api.secure.conscribo.nl/sib-utrecht"
 
@@ -103,3 +104,28 @@ print(result.ok)
 
 ans = result.json()
 print(json.dumps(ans, indent=2))
+
+# ans_canonical = dict()
+# for entry in ans.i
+
+to_canonical = canonical_key.get_conscribo_to_key()
+
+relations_dict : dict = ans["relations"]
+relations : list[dict] = relations_dict.values()
+
+for relation in relations:
+    canonical = dict()
+
+    for (key, value) in relation.items():
+        new_key = to_canonical.get(key, None)
+
+        if new_key is not None:
+            canonical[new_key] = value
+            continue
+
+        other = canonical.setdefault("other", dict())
+        other[key] = value
+        
+    print("\n")
+    print(json.dumps(canonical, indent=2))
+    print("\n\n")
