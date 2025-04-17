@@ -4,6 +4,8 @@ import json
 import keyring
 from getpass import getpass
 import canonical_key
+from canonical_key import flatten_dict
+
 import conscribo_auth
 from conscribo_auth import conscribo_post, conscribo_get, conscribo_patch
 
@@ -27,16 +29,6 @@ def get_group_members(group_id) -> set[str]:
     }
 
 
-def flatten_dict(a : dict) -> dict:
-    result = dict()
-
-    for key, value in a.items():
-        if isinstance(value, dict):
-            for sub_key, sub_value in flatten_dict(value).items():
-                result[f"{key}.{sub_key}"] = sub_value
-        else:
-            result[key] = value
-    return result
 
 
 # ans_canonical = dict()

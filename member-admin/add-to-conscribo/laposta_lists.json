@@ -1,0 +1,148 @@
+{
+    "data": [
+      {
+        "list": {
+          "account_id": "tlrp95dlvo",
+          "list_id": "ufofv5gure",
+          "created": "2025-02-12 01:02:33",
+          "modified": null,
+          "state": "active",
+          "name": "Valentijnsdingen (IC)",
+          "remarks": "",
+          "subscribe_notification_email": "",
+          "unsubscribe_notification_email": "",
+          "members": {
+            "active": 1,
+            "unsubscribed": 0,
+            "cleaned": 0
+          }
+        }
+      },
+      {
+        "list": {
+          "account_id": "tlrp95dlvo",
+          "list_id": "iwqwywca0o",
+          "created": "2025-01-21 12:40:55",
+          "modified": null,
+          "state": "active",
+          "name": "Uitschrijvingen",
+          "remarks": "",
+          "subscribe_notification_email": "",
+          "unsubscribe_notification_email": "",
+          "members": {
+            "active": 2,
+            "unsubscribed": 3,
+            "cleaned": 0
+          }
+        }
+      },
+      {
+        "list": {
+          "account_id": "tlrp95dlvo",
+          "list_id": "vjmo1ww9ue",
+          "created": "2025-01-10 16:14:04",
+          "modified": null,
+          "state": "active",
+          "name": "Donateurs (aanpassen na versturen!)",
+          "remarks": "",
+          "subscribe_notification_email": "",
+          "unsubscribe_notification_email": "",
+          "members": {
+            "active": 2,
+            "unsubscribed": 0,
+            "cleaned": 0
+          }
+        }
+      },
+      {
+        "list": {
+          "account_id": "tlrp95dlvo",
+          "list_id": "dkrvwo21vt",
+          "created": "2024-02-12 15:50:34",
+          "modified": null,
+          "state": "active",
+          "name": "SIB-members verjaardagsmail",
+          "remarks": "",
+          "subscribe_notification_email": "",
+          "unsubscribe_notification_email": "",
+          "members": {
+            "active": 154,
+            "unsubscribed": 6,
+            "cleaned": 0
+          }
+        }
+      },
+      {
+        "list": {
+          "account_id": "tlrp95dlvo",
+          "list_id": "luwhwmlq4d",
+          "created": "2023-10-20 22:20:26",
+          "modified": "2023-10-23 15:07:56",
+          "state": "active",
+          "name": "Re\u00fcnisten (alleen voor verjaardagsmail)",
+          "remarks": "",
+          "subscribe_notification_email": "",
+          "unsubscribe_notification_email": "",
+          "members": {
+            "active": 70,
+            "unsubscribed": 0,
+            "cleaned": 1
+          }
+        }
+      },
+      {
+        "list": {
+          "account_id": "tlrp95dlvo",
+          "list_id": "hwngtaebp0",
+          "created": "2022-06-02 14:05:26",
+          "modified": "2022-06-02 14:05:34",
+          "state": "active",
+          "name": "Informatiepakketten",
+          "remarks": "",
+          "subscribe_notification_email": "",
+          "unsubscribe_notification_email": "",
+          "members": {
+            "active": 11,
+            "unsubscribed": 0,
+            "cleaned": 0
+          }
+        }
+      },
+      {
+        "list": {
+          "account_id": "tlrp95dlvo",
+          "list_id": "s0j3zv9wry",
+          "created": "2021-09-01 20:06:37",
+          "modified": null,
+          "state": "active",
+          "name": "SIB-members",
+          "remarks": "",
+          "subscribe_notification_email": "",
+          "unsubscribe_notification_email": "",
+          "members": {
+            "active": 146,
+            "unsubscribed": 82,
+            "cleaned": 10
+          }
+        }
+      },
+      {
+        "list": {
+          "account_id": "tlrp95dlvo",
+          "list_id": "szktmg1wta",
+          "created": "2021-09-01 19:12:42",
+          "modified": null,
+          "state": "active",
+          "name": "Lijst om te testen",
+          "remarks": "",
+          "subscribe_notification_email": "",
+          "unsubscribe_notification_email": "",
+          "members": {
+            "active": 1,
+            "unsubscribed": 2,
+            "cleaned": 0
+          }
+        }
+      }
+    ]
+  }

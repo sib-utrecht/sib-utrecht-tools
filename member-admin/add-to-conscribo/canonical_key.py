@@ -135,6 +135,30 @@ def get_key_to_conscribo() -> dict:
 
     return key_to_conscribo
 
+def get_laposta_to_key() -> dict:
+    parsed_data = get_parsed_data()
+
+    laposta_to_key = {
+        row["Laposta"]: row["Key"]
+
+        for row in parsed_data
+        if row.get("Laposta") and row.get("Key")
+    }
+
+    return laposta_to_key
+
+def flatten_dict(a : dict) -> dict:
+    result = dict()
+
+    for key, value in a.items():
+        if isinstance(value, dict):
+            for sub_key, sub_value in flatten_dict(value).items():
+                result[f"{key}.{sub_key}"] = sub_value
+        else:
+            result[key] = value
+    return result
+
+
 
 
 def main():

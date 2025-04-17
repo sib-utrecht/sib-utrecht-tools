@@ -3,8 +3,6 @@ import requests
 import json
 import keyring
 from getpass import getpass
-import canonical_key
-import conscribo_auth
 
 api_url = "https://api.secure.conscribo.nl/sib-utrecht"
 
