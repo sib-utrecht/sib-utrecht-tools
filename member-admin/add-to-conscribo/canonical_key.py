@@ -99,7 +99,7 @@ def get_parsed_data():
     _parsed_data = fetch_and_parse_tsv_data()
     return _parsed_data
     
-def get_register_form_to_key() -> dict:
+def get_register_form_to_key() -> dict[str, str]:
     parsed_data = get_parsed_data()
     
     register_form_to_key = {
