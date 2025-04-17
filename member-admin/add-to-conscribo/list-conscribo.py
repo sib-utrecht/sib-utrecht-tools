@@ -4,128 +4,140 @@ import json
 import keyring
 from getpass import getpass
 import canonical_key
+import conscribo_auth
+from conscribo_auth import conscribo_post, conscribo_get
+from conscribo_list_relations import list_relations_persoon, get_group_members, update_relation
+from time import sleep
 
-api_url = "https://api.secure.conscribo.nl/sib-utrecht"
+conscribo_auth.do_auth()
 
-session_id = None
+# print(json.dumps(conscribo_get(
+#         f"/relations/fieldDefinitions/persoon"
+# ), indent=2))
 
-username = "member-admin-bot"
+# https://secure.conscribo.nl/sib-utrecht/?module=entityOverview&groupId=7
+entity_group_uitschrijving_aangevraagd = get_group_members("7")
 
-def prompt_credentials():
-    password = getpass(f"Password for {username}: ")
+# print(json.dumps(list(entity_group_uitschrijving_aangevraagd), indent=2))
 
-    # keyring.set_password('sib-conscribo', "script1-username", username)
-    # keyring.set_password('sib-conscribo', "script1-password", password)
-    keyring.set_password('sib-conscribo', "member-admin-bot", password)
+# https://secure.conscribo.nl/sib-utrecht/?module=entityOverview&groupId=14
+donateurs = get_group_members("14")
 
+# https://secure.conscribo.nl/sib-utrecht/?module=entityOverview&groupId=13
+externen = get_group_members("13")
 
-"""
+# https://secure.conscribo.nl/sib-utrecht/?module=entityOverview&groupId=19
+overige_externen_voor_incassos = get_group_members("19")
 
-Returns the session id of the authenticated user.
-"""
-def authenticate() -> str:
-    global session_id
+groups = {
+    "donateurs": donateurs,
+    "externen": externen,  # donateurs and overige externen are also contained in this group
+    "overige_externen_voor_incassos":
+        overige_externen_voor_incassos,
+}
 
-    # username = keyring.get_password('sib-conscribo', "script1-username")
-    # password = keyring.get_password('sib-conscribo', "script1-password")
-    password = keyring.get_password('sib-conscribo', "member-admin-bot")
+print(json.dumps({k: ",".join(v) for (k,v) in groups.items()}, indent=2))
 
-    if username is None or password is None:
-        prompt_credentials()
-        return authenticate()
-    
-    print(f"Password length: {len(password)}")
+# print(json.dumps(entity_group_uitschrijving_aangevraagd, indent=2))
+print("\n\n")
 
-    auth_session_response = requests.post(
-        f"{api_url}/sessions/",
-        headers={
-            "X-Conscribo-API-Version": "1.20240610",
-        },
-        json={
-            "userName": username,
-            "passPhrase": password,
-        }
-    )
+# result = requests.post(
+#     f"{api_url}/relations/filters/",
+#     headers={
+#         "X-Conscribo-SessionId": session_id,
+#         "X-Conscribo-API-Version": "1.20240610",
+#     },
+#     json={
+#         "requestedFields": fieldNames,
+#         "filters": [
+#             # {
+#             #     "fieldName": "code",
+#             #     "operator": "=",
+#             #     "value": [329],  # Vincent
+#             # }
+#         ]
+#     },
+# )
 
-    print(f"Auth session ok: {auth_session_response.ok}")
+# print(result)
+# print(result.ok)
 
-    auth_session = auth_session_response.json()
-
-    for (k, v) in (auth_session.get("responseMessages") or dict()).items():
-        for message in v:
-            print(f"{k}: {json.dumps(message)}")
-
-
-    if not auth_session_response.ok or auth_session["status"] != 200:
-        print(f"Failed to authenticate, status: {auth_session_response.status_code}|{auth_session['status']}.")
-        raise Exception("Failed to authenticate")
-        
-    user_display_name = auth_session["userDisplayName"]
-    session_id = auth_session["sessionId"]
-
-    return session_id
-
-authenticate()
-
-print(f"Session id length: {len(session_id)}")
-
-fieldDefinitions = requests.get(
-    f"{api_url}/relations/fieldDefinitions/persoon",
-    headers={
-        "X-Conscribo-SessionId": session_id,
-        "X-Conscribo-API-Version": "1.20240610",
-    },
-).json()["fields"]
-
-fieldNames = [field["fieldName"] for field in fieldDefinitions]
+# ans = result.json()
+# print(json.dumps(ans, indent=2))
 
 
+# relations_dict : dict = ans["relations"]
+# relations : list[dict] = relations_dict.values()
 
-result = requests.post(
-    f"{api_url}/relations/filters/",
-    headers={
-        "X-Conscribo-SessionId": session_id,
-        "X-Conscribo-API-Version": "1.20240610",
-    },
-    json={
-        "requestedFields": fieldNames,
-        "filters": [
-            {
-                "fieldName": "code",
-                "operator": "=",
-                "value": [329],  # Vincent
-            }
-        ]
-    },
-)
+relations = list_relations_persoon()
 
-print(result)
-print(result.ok)
+with open("conscribo_leden_en_externen_2025-04-17_1255.json", "w") as f:
+    json.dump(relations, f, indent=2)
 
-ans = result.json()
-print(json.dumps(ans, indent=2))
+exit(0)
 
-# ans_canonical = dict()
-# for entry in ans.i
 
-to_canonical = canonical_key.get_conscribo_to_key()
-
-relations_dict : dict = ans["relations"]
-relations : list[dict] = relations_dict.values()
+pronouns_map = dict()
 
 for relation in relations:
-    canonical = dict()
+    conscribo_id = relation["conscribo_id"]
 
-    for (key, value) in relation.items():
-        new_key = to_canonical.get(key, None)
+    expected_member = int(relation["conscribo_id"]) < 2000
+    in_groups = [
+        group_name
+        for group_name, group_members in groups.items()
+        if conscribo_id in group_members
+    ]
 
-        if new_key is not None:
-            canonical[new_key] = value
-            continue
+    # if expected_member != (len(in_groups) == 0):
+    #     print(
+    #         f"For {relation['other']['selector']}:\n"
+    #         f"  Expected member: {expected_member}\n"
+    #         f"  In groups: {in_groups}\n")
+    #     continue
 
-        other = canonical.setdefault("other", dict())
-        other[key] = value
-        
-    print("\n")
-    print(json.dumps(canonical, indent=2))
-    print("\n\n")
+    # continue
+
+    if int(relation["conscribo_id"]) >= 2000:
+        continue
+
+    if len(in_groups) > 0:
+        continue
+
+    
+    selector_name = relation["other"]["selector"]
+    pronouns = relation.get("pronouns", None) or ""
+    aanhef = relation["other"]["aanhef"]
+
+    if conscribo_id in [150]:
+        continue
+
+    # if aanhef != "Dhr.":
+    #     continue
+
+    if len(pronouns) == 0:
+        if aanhef == "Dhr.":
+            pronouns = "he/him"
+        elif aanhef == "Mevr.":
+            pronouns = "she/her"
+
+        print(f"Updating pronouns of {selector_name} to {pronouns}")
+
+        update_relation({
+            "conscribo_id": conscribo_id,
+            "pronouns": pronouns,
+        })
+
+        sleep(2)
+        # break
+
+    # print(f"{selector_name:<26} | {aanhef:<5} | {repr(pronouns)}")
+    # pronouns_map[relation["conscribo_id"]] = pronouns
+
+
+    # print("\n")
+    # print(json.dumps(canonical, indent=2))
+    # print("\n\n")
+
+# print(json.dumps(pronouns_map, indent=2))
+

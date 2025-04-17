@@ -40,8 +40,8 @@ def get_tsv_data(url):
     Fetches the TSV data from the given URL.
     """
     response = requests.get(url)
-    print(f"Status code: {response.status_code}")
-    print(f"Response text: {response.text[:100]}...")  # Print first 100 characters of the response
+    # print(f"Status code: {response.status_code}")
+    # print(f"Response text: {response.text[:100]}...")  # Print first 100 characters of the response
 
     if response.status_code == 200:
         return response.text
@@ -123,6 +123,17 @@ def get_conscribo_to_key() -> dict:
 
     return conscribo_to_key
 
+def get_key_to_conscribo() -> dict:
+    parsed_data = get_parsed_data()
+
+    key_to_conscribo = {
+        row["Key"]: row["Conscribo"]
+
+        for row in parsed_data
+        if row.get("Key") and row.get("Conscribo")
+    }
+
+    return key_to_conscribo
 
 
 
