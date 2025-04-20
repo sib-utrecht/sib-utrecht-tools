@@ -47,7 +47,7 @@ def laposta_get(url : str, parameters = None) -> dict:
         url += "?" + parameters
 
     response = requests.get(
-        f"{api_url}/{url.removeprefix('/')}",
+        f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
         auth=(
             api_key,
             ""
