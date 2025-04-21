@@ -2,6 +2,8 @@ from laposta_auth import laposta_get, laposta_post, laposta_patch, laposta_delet
 import json
 import canonical_key
 from canonical_key import flatten_dict
+from grist_update_relation_source import set_relation_records_as_source
+from time import sleep
 
 # print(json.dumps(laposta_get("/v2/list"), indent=2))
 
@@ -54,8 +56,13 @@ possible_relation_states = [
 
 
 member_newsletter_members = get_list_members(member_newsletter_list_id)
+sleep(2)
 
 member_birthday_members = get_list_members(member_birthday_list_id)
+sleep(2)
+
+alumni_birthday_members = get_list_members(alumni_birthday_list_id)
+
 
 by_email = dict()
 
@@ -81,14 +88,21 @@ for member in member_newsletter_members:
     # active = member["laposta_state"] == "active"
     # print(json.dumps(member, indent=2))
 
+for relation in alumni_birthday_members:
+    relation = relation_to_canonical(relation)
+    email_obj = by_email.setdefault(relation["email"], dict())
+    email_obj["birthday_alumnus"] = relation
+
 def transform_by_email_entry(entry : dict) -> dict:
     newsletter : dict | None = entry.get("newsletter", None)
     birthday : dict | None = entry.get("birthday", None)
+    birthday_alumnus : dict | None = entry.get("birthday_alumnus", None)
 
     base = {
-        "email": (newsletter or birthday)["email"],
+        "email": (newsletter or birthday or birthday_alumnus)["email"],
         "send_birthday": False,
         "send_newsletter": False,
+        "send_birthday_alumnus": False,
     }
 
     first_names = set()
@@ -106,6 +120,17 @@ def transform_by_email_entry(entry : dict) -> dict:
         base["date_of_birth"] = birthday.get("date_of_birth", None)
         base["birthday_subscription_state"] = birthday.get("laposta_state", None)
 
+    if birthday_alumnus is not None:
+        base["send_birthday_alumnus"] = True
+
+        prev_date_of_birth = base.get("date_of_birth")
+        base["date_of_birth"] = birthday_alumnus.get("date_of_birth", None)
+
+        if len({prev_date_of_birth, base["date_of_birth"]} - {None, ""}) > 1:
+            base["date_of_birth"] = None
+        
+        base["birthday_alumnus_subscription_state"] = birthday_alumnus.get("laposta_state", None)
+
     first_names -= {None}
     last_names -= {None}
 
@@ -117,7 +142,13 @@ def transform_by_email_entry(entry : dict) -> dict:
 
     return base
 
+entries = []
+
 for k, v in by_email.items():
     # print(k)
     # print(json.dumps(v, indent=2))
-    print(json.dumps(transform_by_email_entry(v), indent=2))
+    transformed = transform_by_email_entry(v)
+    entries.append(transformed)
+    # print(json.dumps(transformed, indent=2))
+
+set_relation_records_as_source("Laposta", entries)

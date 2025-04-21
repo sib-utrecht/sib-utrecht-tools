@@ -71,8 +71,8 @@ print("\n\n")
 
 relations = list_relations_persoon()
 
-with open("conscribo_leden_en_externen_2025-04-17_1255.json", "w") as f:
-    json.dump(relations, f, indent=2)
+# with open("conscribo_leden_en_externen_2025-04-17_1255.json", "w") as f:
+#     json.dump(relations, f, indent=2)
 
 exit(0)
 

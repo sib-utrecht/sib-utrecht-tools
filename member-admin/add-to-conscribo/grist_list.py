@@ -1,5 +1,7 @@
 from grist_auth import grist_get, grist_put, grist_post
 import json
+import datetime
+from time import sleep
 
 relations_doc = "rYgNbGRQ2pdW"
 table_name = ""
@@ -16,7 +18,7 @@ print(json.dumps(recs, indent=2))
 
 records = [
     {
-        "email": "vincent.kuhlmann+test@hotmail.com",
+        "email": "test3@example.org",
         "send_birthday": False,
         "send_newsletter": True,
         "newsletter_subscription_state": "active",
@@ -24,7 +26,7 @@ records = [
         "last_name": "Coolman",
     },
     {
-        "email": "secretaris@sib-utrecht.nl",
+        "email": "test2@example.org",
         "send_birthday": True,
         "send_newsletter": True,
         "newsletter_subscription_state": "active",
@@ -37,15 +39,21 @@ records = [
 
 grist_put(
     f"/docs/{relations_doc}/tables/Laposta/records",
-    query={"allow_empty_require": "true"},
+    query={
+        "allow_empty_require": "true",
+        "onmany": "all",
+        "noadd": "true",
+    },
     body={
         "records": [
             {
-                "require": dict(),
-                "fields":
-                {
-                    "requires_update": "true",
-                },
+                # "require": {"sync_state": "Synced"},
+                # "fields": {
+                #     # "requires_update": True,
+                #     "sync_state": "Deleted"
+                # },
+                "require": {},
+                "fields": {"tracked": False},
             },
         ],
     },
@@ -67,22 +75,148 @@ grist_put(
 # exit(0)
 
 
+# grist_put(
+#     f"/docs/{relations_doc}/tables/Laposta/records",
+#     query={
+#         "allow_empty_require": "true",
+#         "onmany": "all",
+#         "noadd": "true",
+#     },
+#     body={
+#         "records": [
+#             {
+#                 "require": {"sync_state": "Pending change"},
+#                 "fields": {"sync_state": "Overwritten"},
+#             },
+#         ],
+#     },
+# )
+
+# sleep(2)
+
 grist_put(
     f"/docs/{relations_doc}/tables/Laposta/records",
     body={
         "records": [
             {
                 "require": {
-                    "email": record["email"],
+                    # "email": record["email"],
+                    "synced_as": record["email"],
+
                     # "modified": ""
+                    # "sync_state": "Deleted",
+                    "is_synced": True,
                 },
                 "fields": {
-                    "first_name": "Aaaa"
-                    # **record,
+                    **record,
+                    # "requires_update": False,
                     # "modified": ""
+                    # "sync_state": "Synced",
+                    "last_synced_at": None,
+                    # "last_synced_at": datetime.datetime.now().isoformat(),
+                    "tracked": True,
+                    # "synced_as": record["email"]
+                    # "last_synced_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    # "last_synced_at": "-"
                 },
             }
             for record in records
         ]
     },
 )
+
+# sleep(5)
+
+# grist_put(
+#     f"/docs/{relations_doc}/tables/Laposta/records",
+#     query={
+#         "onmany": "all",
+#         "noadd": "true",
+#     },
+#     body={
+#         "records": [
+#             {
+#                 "require": {"tracked": True},
+#                 "fields": {
+#                     # "last_synced_at": None,
+#                     "last_synced_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+#                     # "sync_state": "Synced",
+#                 },
+#             }
+#         ]
+#     },
+# )
+
+# sleep(2)
+
+# grist_put(
+#     f"/docs/{relations_doc}/tables/Laposta/records",
+#     query={
+#         "onmany": "all",
+#         "noadd": "true",
+#     },
+#     body={
+#         "records": [
+#             {
+#                 "require": {"tracked": True},
+#                 "fields": {
+#                     # "last_synced_at": None,
+#                     "last_synced_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+#                     # "sync_state": None
+#                 },
+#             }
+#         ]
+#     },
+# )
+
+# last_synced_at = $last_synced_at
+# if $last_synced_at is None:
+#   return "Pending change"
+
+# is_synced = ($last_synced_at == "-" or ($last_synced_at - $modified).total_seconds() > -5)
+# tracked = $tracked
+
+# if tracked and is_synced:
+#   return "Synced"
+  
+# if tracked:
+#   return "Pending change"
+
+# if is_synced and not tracked:
+#   return "Deleted"
+  
+# return "Overwritten"
+
+
+
+
+# Last synced at (on data cleaning):
+# #IF($tracked, NOW(), None)
+
+# if $tracked:
+#   return NOW()
+  
+# return None
+# 
+#
+
+
+
+# grist_put(
+#     f"/docs/{relations_doc}/tables/Laposta/records",
+#     query={
+#         "onmany": "all",
+#     },
+#     body={
+#         "records": [
+#             {
+#                 "require": {
+#                     "requires_update": True
+#                 },
+#                 "fields": {
+#                     "outdated": True
+#                 },
+#             }
+#         ]
+#     },
+# )

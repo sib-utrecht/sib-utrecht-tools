@@ -74,9 +74,9 @@ def grist_put(url : str, body : dict | list, query : dict = None) -> dict:
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json; charset=utf-8"
         },
-        data=json.dumps(body)
+        data=json.dumps(body).encode("utf-8")
     )
     if response.status_code != 200:
         error_msg = None
@@ -104,9 +104,9 @@ def grist_post(url : str, body : dict | list, query : dict = None) -> dict:
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json; charset=utf-8"
         },
-        data=json.dumps(body)
+        data=json.dumps(body).encode("utf-8")
     )
 
     if response.status_code != 200:
@@ -163,9 +163,9 @@ def grist_patch(url : str, body : dict | list, query : dict = None) -> dict:
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json; charset=utf-8"
         },
-        data=json.dumps(body)
+        data=json.dumps(body).encode("utf-8")
     )
 
     if response.status_code != 200:
