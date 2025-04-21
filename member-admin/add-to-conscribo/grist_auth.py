@@ -64,6 +64,8 @@ def grist_get(url : str, parameters = None) -> dict:
     return response.json()
 
 def grist_put(url : str, body : dict | list, query : dict = None) -> dict:
+    print(f"Grist: Doing put on {url}")
+    
     api_key = get_grist_api_key()
 
     if query is not None:

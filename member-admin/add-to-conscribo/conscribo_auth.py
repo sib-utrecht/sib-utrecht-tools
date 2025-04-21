@@ -75,11 +75,17 @@ def do_auth():
     print(f"Session id length: {len(session_id)}")
 
 
-def conscribo_get(url: str) -> dict:
+def get_conscribo_session_id():
     global session_id
 
     if session_id is None:
         session_id = authenticate()
+
+    return session_id
+
+
+def conscribo_get(url: str) -> dict:
+    session_id = get_conscribo_session_id()
 
     return requests.get(
         f"{api_url}/{url.removeprefix('/')}",
@@ -90,6 +96,7 @@ def conscribo_get(url: str) -> dict:
     ).json()
 
 def conscribo_post(url : str, json : dict) -> dict:
+    session_id = get_conscribo_session_id()
 
     return requests.post(
         f"{api_url}/{url.removeprefix('/')}",
@@ -102,6 +109,7 @@ def conscribo_post(url : str, json : dict) -> dict:
 
 
 def conscribo_patch(url : str, json : dict) -> dict:
+    session_id = get_conscribo_session_id()
 
     return requests.patch(
         f"{api_url}/{url.removeprefix('/')}",

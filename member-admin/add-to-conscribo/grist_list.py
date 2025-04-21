@@ -6,10 +6,10 @@ from time import sleep
 relations_doc = "rYgNbGRQ2pdW"
 table_name = ""
 
-orgs = grist_get("/orgs")
-print(orgs)
-print("\n")
-print(json.dumps(orgs))
+# orgs = grist_get("/orgs")
+# print(orgs)
+# print("\n")
+# print(json.dumps(orgs))
 
 recs = grist_get(f"/docs/{relations_doc}/tables/Laposta/records")
 print(json.dumps(recs, indent=2))

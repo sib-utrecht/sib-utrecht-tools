@@ -123,6 +123,20 @@ def get_conscribo_to_key() -> dict:
 
     return conscribo_to_key
 
+
+def get_conscribo_alumnus_to_key() -> dict:
+    parsed_data = get_parsed_data()
+
+    conscribo_to_key = {
+        row["ConscriboAlumni"]: row["Key"]
+
+        for row in parsed_data
+        if row.get("ConscriboAlumni") and row.get("Key")
+    }
+
+    return conscribo_to_key
+
+
 def get_key_to_conscribo() -> dict:
     parsed_data = get_parsed_data()
 

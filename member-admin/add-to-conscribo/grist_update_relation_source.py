@@ -17,14 +17,56 @@ if force_batch:
     batch_interval = 2
 
 
-orgs = grist_get("/orgs")
-print(orgs)
-print("\n")
-print(json.dumps(orgs))
+# orgs = grist_get("/orgs")
+# print(orgs)
+# print("\n")
+# print(json.dumps(orgs))
+
+def match_keys_case_insensitive(table_name : str, records : list[dict]) -> list[dict]:
+    columns_response = grist_get(f"/docs/{relations_doc}/tables/{table_name}/columns")
+    column_ids = [
+        column_desc["id"]
+        for column_desc in columns_response["columns"]
+    ]
+    column_lower_to_id = {
+        v.lower(): v
+        for v in column_ids
+    }
+
+    excluded_records = set()
+
+    def project_record(record : dict[str]) -> dict[str]:
+        nonlocal excluded_records
+
+        new_record = {}
+
+        for k, v in record.items():
+            newK = column_lower_to_id.get(k.lower(), None)
+
+            if newK is None:
+                excluded_records.add(k)
+                continue
+
+            new_record[newK] = v
+
+        return new_record
+
+    projected_records = [
+        project_record(record)
+        for record in records
+    ]
+
+    if len(excluded_records) > 0:
+        print(f"Warning: the following keys were not found in table "
+              f"{table_name}: {', '.join(sorted(excluded_records))}")
+
+    return projected_records
 
 def set_relation_records_as_source(table_name : str, records : list[dict]):
     if not re.fullmatch(r"^[a-zA-Z0-9_]+$", table_name):
         raise ValueError(f"Invalid table name {repr(table_name)}")
+    
+    records = match_keys_case_insensitive(table_name, records)
 
     # recs = grist_get(f"/docs/{relations_doc}/tables/{table_name}/records")
     # print(json.dumps(recs, indent=2))
@@ -55,7 +97,7 @@ def set_relation_records_as_source(table_name : str, records : list[dict]):
     print(f"Amount of records to sync to {table_name}: {len(records)}")
 
     grist_put(
-        f"/docs/{relations_doc}/tables/Laposta/records",
+        f"/docs/{relations_doc}/tables/{table_name}/records",
         query={
             "allow_empty_require": "true",
             "onmany": "all",
@@ -65,7 +107,7 @@ def set_relation_records_as_source(table_name : str, records : list[dict]):
             "records": [
                 {
                     "require": {},
-                    "fields": {"tracked": False},
+                    "fields": {"is_tracked": False},
                 },
             ],
         },
@@ -82,7 +124,7 @@ def set_relation_records_as_source(table_name : str, records : list[dict]):
         nextrecords = nextrecords[batch_size:]
 
         grist_put(
-            f"/docs/{relations_doc}/tables/Laposta/records",
+            f"/docs/{relations_doc}/tables/{table_name}/records",
             body={
                 "records": [
                     {
@@ -97,7 +139,7 @@ def set_relation_records_as_source(table_name : str, records : list[dict]):
                             # In case the server is overloaded, this value is still used
                             "last_synced_at": "2050-01-01T00:00Z",
                             "modified": "2025-01-01T00:00Z",
-                            "tracked": True,
+                            "is_tracked": True,
                         },
                     }
                     for record in records

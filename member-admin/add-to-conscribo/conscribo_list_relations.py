@@ -64,6 +64,37 @@ def relation_to_canonical(relation):
 
     return canonical
 
+
+def relation_to_canonical_alumnus(relation):
+    canonical = dict()
+    to_canonical = canonical_key.get_conscribo_alumnus_to_key()
+
+    flattened_relation = flatten_dict(relation)
+
+    for (key, value) in flattened_relation.items():
+        new_key = to_canonical.get(key, None)
+
+        if new_key is not None:
+            canonical[new_key] = value
+            continue
+
+        other = canonical.setdefault("other", dict())
+        other[key] = value
+
+    # pronouns = canonical.get("pronouns", None)
+    # if pronouns is not None and isinstance(pronouns, int):
+    #     pronouns = {
+    #         0: None,
+    #         1: "hij/hem",
+    #         2: "zij/haar",
+    #         4: "die/diens",
+    #         8: "anders:",
+    #     }.get(pronouns, pronouns)
+    #     canonical["pronouns"] = pronouns
+
+    return canonical
+
+
 def update_relation(canonical):
     canonical = flatten_dict(canonical)
     to_conscribo = canonical_key.get_key_to_conscribo()
@@ -107,6 +138,7 @@ def list_relations_persoon():
     result = conscribo_post(
         "/relations/filters/",
         json={
+            "entityType": "persoon",
             "requestedFields": fieldNames,
             "filters": [
                 # {
@@ -124,3 +156,35 @@ def list_relations_persoon():
     ]
 
     return relations
+
+def list_relations_alumnus():
+    fieldDefinitions = conscribo_get(
+        f"/relations/fieldDefinitions/re__nisten"
+    )["fields"]
+
+    fieldNames = [field["fieldName"] for field in fieldDefinitions]
+
+    result = conscribo_post(
+        "/relations/filters/",
+        json={
+            "entityType": "re__nisten",
+            "requestedFields": fieldNames,
+            "filters": [
+                # {
+                #     "fieldName": "code",
+                #     "operator": "=",
+                #     "value": [329],  # Vincent
+                # }
+            ]
+        },
+    )
+
+    relations = [
+        relation_to_canonical_alumnus(relation)
+        for relation in result["relations"].values()
+    ]
+
+    return relations
+
+
+
