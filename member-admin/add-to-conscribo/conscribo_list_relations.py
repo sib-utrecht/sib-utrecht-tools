@@ -157,6 +157,18 @@ def list_relations_persoon():
 
     return relations
 
+def list_relations_members():
+    personen = list_relations_persoon()
+
+    members = [
+        person
+        for person in personen
+        if int(person["conscribo_id"]) < 2000
+    ]
+
+    return members
+
+
 def list_relations_alumnus():
     fieldDefinitions = conscribo_get(
         f"/relations/fieldDefinitions/re__nisten"

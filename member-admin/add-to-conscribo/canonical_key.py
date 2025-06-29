@@ -111,6 +111,30 @@ def get_register_form_to_key() -> dict[str, str]:
 
     return register_form_to_key
 
+def get_cognito_to_key() -> dict:
+    parsed_data = get_parsed_data()
+
+    cognito_to_key = {
+        row["Cognito"]: row["Key"]
+
+        for row in parsed_data
+        if row.get("Cognito") and row.get("Key")
+    }
+
+    return cognito_to_key
+
+def get_key_to_cognito() -> dict:
+    parsed_data = get_parsed_data()
+
+    key_to_cognito = {
+        row["Key"]: row["Cognito"]
+
+        for row in parsed_data
+        if row.get("Key") and row.get("Cognito")
+    }
+
+    return key_to_cognito
+
 def get_conscribo_to_key() -> dict:
     parsed_data = get_parsed_data()
 
