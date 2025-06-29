@@ -6,6 +6,7 @@ from getpass import getpass
 import urllib.parse
 
 api_url = "https://grist.sib-utrecht.nl/api"
+relations_doc = "rYgNbGRQ2pdW"
 
 grist_api_key = None
 
