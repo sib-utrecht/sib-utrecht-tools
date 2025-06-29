@@ -9,25 +9,29 @@ from urllib.parse import urlparse, urlencode
 # Url as in browser
 url = "https://docs.google.com/spreadsheets/d/1l-DQhGXPq3QlMPor1aZk2Cw_VpxaHUZWDPFnt9Cd0Hg/edit?gid=0#gid=0"
 
-id_regex = regex.Regex(r"/d/(?P<spreadsheet_id>[a-zA-Z0-9-_]{10,})/")
-spreatsheet_id = id_regex.search(url).group("spreadsheet_id")
+def get_tsv_url(url):
+    id_regex = regex.Regex(r"/d/(?P<spreadsheet_id>[a-zA-Z0-9-_]{10,})/")
+    spreatsheet_id = id_regex.search(url).group("spreadsheet_id")
 
-# tsv_url = url.replace("/edit", "/gviz/tq?tqx=out:tsv&sheet=Sheet1")
+    # tsv_url = url.replace("/edit", "/gviz/tq?tqx=out:tsv&sheet=Sheet1")
 
-tsv_url_object = urlparse(url)
-tsv_url_object = tsv_url_object._replace(
-    path=tsv_url_object.path.replace("/edit", "/export"),
-    query=tsv_url_object.query + f"&format=tsv&id={spreatsheet_id}"
-)
-tsv_url = tsv_url_object.geturl()
+    tsv_url_object = urlparse(url)
+    tsv_url_object = tsv_url_object._replace(
+        path=tsv_url_object.path.replace("/edit", "/export"),
+        query=tsv_url_object.query + f"&format=tsv&id={spreatsheet_id}"
+    )
+    tsv_url = tsv_url_object.geturl()
 
-# tsv_url = url.replace("/edit", f"/export")
-# parsed = urlparse(tsv_url)
-# parsed = parsed._replace()
-# print(f"Parsed URL: {parsed}")
-# tsv_url = parsed.geturl()
+    # tsv_url = url.replace("/edit", f"/export")
+    # parsed = urlparse(tsv_url)
+    # parsed = parsed._replace()
+    # print(f"Parsed URL: {parsed}")
+    # tsv_url = parsed.geturl()
 
-print(f"TSV URL: {tsv_url}")
+    # print(f"TSV URL: {tsv_url}")
+    return tsv_url
+
+tsv_url = get_tsv_url(url)
 
 # parsed = 
 

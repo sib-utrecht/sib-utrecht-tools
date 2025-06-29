@@ -3,11 +3,11 @@ import requests
 import json
 import keyring
 from getpass import getpass
-import canonical_key
-from canonical_key import flatten_dict
+from ..canonical import canonical_key
+from ..canonical.canonical_key import flatten_dict
 
-import conscribo_auth
-from conscribo_auth import conscribo_post, conscribo_get, conscribo_patch
+from . import conscribo_auth
+from .conscribo_auth import conscribo_post, conscribo_get, conscribo_patch
 
 def get_group_members(group_id) -> set[str]:
     ans = conscribo_get(
