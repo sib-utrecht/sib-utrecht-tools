@@ -4,11 +4,19 @@ import json
 import keyring
 from getpass import getpass
 
+from traitlets import Any
+
 api_url = "https://api.secure.conscribo.nl/sib-utrecht"
 
 session_id = None
 
 username = "member-admin-bot"
+
+# Define ApiRequestError for better error handling
+class ApiRequestError(Exception):
+    def __init__(self, message, status_code=None):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 def prompt_credentials():
@@ -87,25 +95,52 @@ def get_conscribo_session_id():
 def conscribo_get(url: str) -> dict:
     session_id = get_conscribo_session_id()
 
-    return requests.get(
+    res = requests.get(
         f"{api_url}/{url.removeprefix('/')}",
         headers={
             "X-Conscribo-SessionId": session_id,
             "X-Conscribo-API-Version": "1.20240610",
         },
-    ).json()
+    )
+
+    if not res.ok:
+        raise ApiRequestError(f"Failed to get {url}: {res.text}", status_code=res.status_code)
+
+    return res.json()
+
+def conscribo_delete(url: str, params : None | dict[str, Any]) -> dict:
+    session_id = get_conscribo_session_id()
+
+    res = requests.delete(
+        f"{api_url}/{url.removeprefix('/')}",
+        headers={
+            "X-Conscribo-SessionId": session_id,
+            "X-Conscribo-API-Version": "1.20240610",
+        },
+        params=params,
+    )
+
+    if not res.ok:
+        raise ApiRequestError(f"Failed to delete {url}: {res.text}", status_code=res.status_code)
+
+    return res.json()
 
 def conscribo_post(url : str, json : dict) -> dict:
     session_id = get_conscribo_session_id()
 
-    return requests.post(
+    res = requests.post(
         f"{api_url}/{url.removeprefix('/')}",
         headers={
             "X-Conscribo-SessionId": session_id,
             "X-Conscribo-API-Version": "1.20240610",
         },
         json=json,
-    ).json()
+    )
+    
+    if not res.ok:
+        raise ApiRequestError(f"Failed to post to {url}: {res.text}", status_code=res.status_code)
+    
+    return res.json()
 
 
 def conscribo_patch(url : str, json : dict) -> dict:

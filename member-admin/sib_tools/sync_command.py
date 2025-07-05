@@ -24,6 +24,12 @@ def handle_sync(args: Namespace):
 
         sync_conscribo_to_cognito_groups(dry_run=args.dry_run)
         return
+    
+    if args.dest == "cognito-groups-to-conscribo":
+        from .sync.cognito_to_conscribo_groups import sync_cognito_to_conscribo_groups
+
+        sync_cognito_to_conscribo_groups(dry_run=args.dry_run)
+        return
 
     raise ValueError(f"Unknown destination: {args.dest}")
 
@@ -33,7 +39,7 @@ def add_parse_args(parser: ArgumentParser):
     parser.add_argument(
         "dest",
         type=str,
-        choices=["cognito", "laposta", "cognito-groups"],
+        choices=["cognito", "laposta", "cognito-groups", "cognito-groups-to-conscribo"],
         help="Destination service to sync members to.",
     )
 

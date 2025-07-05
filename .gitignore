@@ -4,4 +4,5 @@ conscribo_groups.json
 # canva_bootstrap*.json
 cognito_sync.log
 laposta_sync.log
+*.log
 .env
