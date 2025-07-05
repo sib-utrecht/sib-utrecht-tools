@@ -3,13 +3,13 @@ import requests
 import json
 import keyring
 from getpass import getpass
-import canonical_key
-import conscribo_auth
-from conscribo_auth import conscribo_post, conscribo_get
-from conscribo_list_relations import list_relations_persoon, get_group_members, update_relation
+from ..canonical import canonical_key
+from . import auth
+from .auth import conscribo_post, conscribo_get
+from .list_relations import list_relations_persoon, get_group_members, update_relation
 from time import sleep
 
-conscribo_auth.do_auth()
+auth.do_auth()
 
 # print(json.dumps(conscribo_get(
 #         f"/relations/fieldDefinitions/persoon"

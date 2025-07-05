@@ -4,9 +4,7 @@ import json
 import keyring
 from getpass import getpass
 import urllib.parse
-
-api_url = "https://grist.sib-utrecht.nl/api"
-relations_doc = "rYgNbGRQ2pdW"
+from .constants import relations_doc, api_url
 
 grist_api_key = None
 

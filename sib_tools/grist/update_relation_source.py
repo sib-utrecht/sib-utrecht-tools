@@ -1,10 +1,10 @@
-from grist_auth import grist_get, grist_put, grist_post
+from .auth import grist_get, grist_put, grist_post
+from .constants import relations_doc
 import json
 import datetime
 from time import sleep
 import re
 
-relations_doc = "rYgNbGRQ2pdW"
 table_name = ""
 
 force_batch = False

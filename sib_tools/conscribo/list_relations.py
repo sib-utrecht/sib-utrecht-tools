@@ -6,8 +6,7 @@ from getpass import getpass
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 
-from . import conscribo_auth
-from .conscribo_auth import conscribo_post, conscribo_get, conscribo_patch
+from .auth import conscribo_post, conscribo_get, conscribo_patch
 
 group_wil_geen_email_van_ons_ontvangen = 36
 
