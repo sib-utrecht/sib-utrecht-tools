@@ -9,6 +9,16 @@ from .constants import api_url, username
 
 session_id = None
 
+# Add logging for Conscribo
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+handler = logging.FileHandler("conscribo_api.log")
+handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s"))
+logger.addHandler(handler)
+
 # Define ApiRequestError for better error handling
 class ApiRequestError(Exception):
     def __init__(self, message, status_code=None):
@@ -41,7 +51,7 @@ def authenticate() -> str:
         prompt_credentials()
         return authenticate()
 
-    print(f"Password length: {len(password)}")
+    logger.debug(f"Password length: {len(password)}")
 
     auth_session_response = requests.post(
         f"{api_url}/sessions/",
@@ -54,16 +64,16 @@ def authenticate() -> str:
         },
     )
 
-    print(f"Auth session ok: {auth_session_response.ok}")
+    logger.debug(f"Auth session ok: {auth_session_response.ok}")
 
     auth_session = auth_session_response.json()
 
     for k, v in (auth_session.get("responseMessages") or dict()).items():
         for message in v:
-            print(f"{k}: {json.dumps(message)}")
+            logger.info(f"{k}: {json.dumps(message)}")
 
     if not auth_session_response.ok or auth_session["status"] != 200:
-        print(
+        logger.error(
             f"Failed to authenticate, status: {auth_session_response.status_code}|{auth_session['status']}."
         )
         raise Exception("Failed to authenticate")
@@ -76,8 +86,7 @@ def authenticate() -> str:
 
 def do_auth():
     authenticate()
-
-    print(f"Session id length: {len(session_id)}")
+    logger.debug(f"Session id length: {len(session_id)}")
 
 
 def get_conscribo_session_id():

@@ -1,6 +1,6 @@
 import argparse
 from argparse import ArgumentParser
-from . import sync_command, list_command, api_command
+from . import sync_command, list_command, api_command, check_command
 from .command_exception import CommandException
 
 def main(args=None):
@@ -35,6 +35,13 @@ def main(args=None):
         subparser.add_parser(
             "api",
             help="Issue a raw API command (e.g. 'GET /relations/groups/')"
+        )
+    )
+
+    check_command.add_parse_args(
+        subparser.add_parser(
+            "check",
+            help="Check data consistency and integrity."
         )
     )
 

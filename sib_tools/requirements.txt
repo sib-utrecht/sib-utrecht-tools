@@ -1,0 +1,7 @@
+requests
+keyring
+getpass
+beaupy
+regex
+
+
