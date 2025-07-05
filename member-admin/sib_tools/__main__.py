@@ -1,6 +1,6 @@
 import argparse
 from argparse import ArgumentParser
-from . import sync_command
+from . import sync_command, list_command, api_command
 from .command_exception import CommandException
 
 def main(args=None):
@@ -21,6 +21,20 @@ def main(args=None):
             "sync",
             help="Synchronize members to other services (e.g. Laposta, or website accounts).",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
+    )
+
+    list_command.add_parse_args(
+        subparser.add_parser(
+            "list",
+            help="List information"
+        )
+    )
+
+    api_command.add_parse_args(
+        subparser.add_parser(
+            "api",
+            help="Issue a raw API command (e.g. 'GET /relations/groups/')"
         )
     )
 

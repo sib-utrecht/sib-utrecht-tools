@@ -1,6 +1,7 @@
 import argparse
 from argparse import ArgumentParser, Namespace
 
+
 def handle_sync(args: Namespace):
     """
     Handle the sync command based on the provided arguments.
@@ -8,22 +9,31 @@ def handle_sync(args: Namespace):
     """
     if args.dest == "cognito":
         from .sync.conscribo_to_cognito import sync_conscribo_to_cognito
+
         sync_conscribo_to_cognito(dry_run=args.dry_run)
         return
-    
+
     if args.dest == "laposta":
         from .sync.conscribo_to_laposta import sync_conscribo_to_laposta
+
         sync_conscribo_to_laposta(dry_run=args.dry_run)
         return
-    
+
+    if args.dest == "cognito-groups":
+        from .sync.conscribo_to_cognito_groups import sync_conscribo_to_cognito_groups
+
+        sync_conscribo_to_cognito_groups(dry_run=args.dry_run)
+        return
+
     raise ValueError(f"Unknown destination: {args.dest}")
+
 
 def add_parse_args(parser: ArgumentParser):
     parser.set_defaults(func=handle_sync)
     parser.add_argument(
         "dest",
         type=str,
-        choices=["cognito", "laposta"],
+        choices=["cognito", "laposta", "cognito-groups"],
         help="Destination service to sync members to.",
     )
 

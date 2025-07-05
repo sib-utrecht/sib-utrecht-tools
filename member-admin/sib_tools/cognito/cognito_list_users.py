@@ -19,6 +19,40 @@ cognito_to_canonical_dict = canonical_key.get_cognito_to_key()
 print(cognito_to_canonical_dict)
 print("\n" * 2)
 
+def cognito_list_groups():
+    response = cognito_client.list_groups(
+        UserPoolId=user_pool_id,
+    )
+
+    groups = response.get("Groups", [])
+    while "NextToken" in response:
+        response = cognito_client.list_groups(
+            UserPoolId=user_pool_id,
+            NextToken=response["NextToken"],
+        )
+        groups.extend(response.get("Groups", []))
+        sleep(0.1)
+
+    return groups
+
+def cognito_list_users_in_group(group_name):
+    response = cognito_client.list_users_in_group(
+        UserPoolId=user_pool_id,
+        GroupName=group_name,
+    )
+
+    users = response.get("Users", [])
+    while "NextToken" in response:
+        response = cognito_client.list_users_in_group(
+            UserPoolId=user_pool_id,
+            GroupName=group_name,
+            PaginationToken=response["NextToken"],
+        )
+        users.extend(response.get("Users", []))
+        sleep(0.1)
+
+    return users
+
 
 def cognito_user_meta_to_canonical(user):
     to_canonical = cognito_to_canonical_dict

@@ -11,6 +11,16 @@ from .conscribo_auth import conscribo_post, conscribo_get, conscribo_patch
 
 group_wil_geen_email_van_ons_ontvangen = 36
 
+
+
+ans = conscribo_get(
+    f"/relations/groups/"
+)
+entity_groups = ans["entityGroups"]
+
+# print(json.dumps(entity_groups, indent=2))
+
+
 def get_group_members(group_id) -> set[str]:
     ans = conscribo_get(
         f"/relations/groups/{group_id}/"
