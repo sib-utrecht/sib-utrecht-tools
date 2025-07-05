@@ -9,6 +9,8 @@ from ..canonical.canonical_key import flatten_dict
 from . import conscribo_auth
 from .conscribo_auth import conscribo_post, conscribo_get, conscribo_patch
 
+group_wil_geen_email_van_ons_ontvangen = 36
+
 def get_group_members(group_id) -> set[str]:
     ans = conscribo_get(
         f"/relations/groups/{group_id}/"
@@ -29,7 +31,8 @@ def get_group_members(group_id) -> set[str]:
     }
 
 
-
+def get_block_email_members():
+    return get_group_members(group_wil_geen_email_van_ons_ontvangen)
 
 # ans_canonical = dict()
 # for entry in ans.i

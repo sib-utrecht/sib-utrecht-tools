@@ -20,7 +20,7 @@ logging.basicConfig(filename="cognito_sync.log", level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 
-def sync_conscribo_to_cognito():
+def sync_conscribo_to_cognito(dry_run=True):
     cognito_users = list_all_cognito_users()
     
     print(f"Users count: {len(cognito_users)}")
@@ -70,9 +70,6 @@ def sync_conscribo_to_cognito():
     for conscribo_id in conscribo_only:
         print(f"{conscribo_id}: {json.dumps(conscribo_by_id[conscribo_id], indent=2)}")
     print()
-
-    dry_run = True
-
 
     def prune_users():
         logging.info(f"Dry run: {dry_run}")

@@ -8,15 +8,13 @@ def handle_sync(args: Namespace):
     """
     if args.dest == "cognito":
         from .sync.conscribo_to_cognito import sync_conscribo_to_cognito
-        sync_conscribo_to_cognito()
+        sync_conscribo_to_cognito(dry_run=args.dry_run)
         return
     
     if args.dest == "laposta":
-        raise NotImplementedError(
-            "Syncing to Laposta is not implemented yet. Please check back later."
-        )
-        # from .sync.conscribo_to_laposta import sync_conscribo_to_laposta
-        # sync_conscribo_to_laposta(args.dry_run)
+        from .sync.conscribo_to_laposta import sync_conscribo_to_laposta
+        sync_conscribo_to_laposta(dry_run=args.dry_run)
+        return
     
     raise ValueError(f"Unknown destination: {args.dest}")
 

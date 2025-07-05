@@ -177,6 +177,18 @@ def get_key_to_conscribo() -> dict:
 
     return key_to_conscribo
 
+def get_key_to_laposta() -> dict:
+    parsed_data = get_parsed_data()
+
+    key_to_laposta = {
+        row["Key"]: row["Laposta"]
+
+        for row in parsed_data
+        if row.get("Key") and row.get("Laposta")
+    }
+
+    return key_to_laposta
+
 def get_laposta_to_key() -> dict:
     parsed_data = get_parsed_data()
 
@@ -200,7 +212,21 @@ def flatten_dict(a : dict) -> dict:
             result[key] = value
     return result
 
+def expand_dict(a : dict, base : dict | None = None) -> dict:
+    result = base or dict()
 
+    for key, value in a.items():
+        parts = key.split(".")
+        current = result
+
+        for part in parts[:-1]:
+            if part not in current:
+                current[part] = dict()
+            current = current[part]
+
+        current[parts[-1]] = value
+
+    return result
 
 
 def main():
