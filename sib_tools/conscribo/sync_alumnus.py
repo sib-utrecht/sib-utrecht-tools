@@ -5,9 +5,8 @@ import json
 # import conscribo_auth
 # from conscribo_auth import conscribo_post, conscribo_get
 # from grist_auth import grist_post, grist_patch
-from .list_relations import (
+from .relations import (
     list_relations_alumnus,
-    get_group_members,
     update_relation,
 )
 from ..grist.update_relation_source import set_relation_records_as_source, relations_doc

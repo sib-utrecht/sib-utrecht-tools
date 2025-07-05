@@ -1,6 +1,7 @@
 from . import auth
-from .list_relations import list_relations_persoon, get_group_members, update_relation
-from . import list_relations
+from .relations import list_relations_persoon, update_relation
+from .groups import get_group_members
+from . import groups
 from time import sleep
 import logging
 import sys
@@ -21,9 +22,9 @@ def check_numbering():
     logging.info(f"Fetched {len(relations)} relations from Conscribo.")
     logging.info("")
 
-    donateurs = list_relations.donateurs
-    externen = list_relations.externen
-    overige_externen_voor_incassos = list_relations.overige_externen_voor_incassos
+    donateurs = groups.donateurs
+    externen = groups.externen
+    overige_externen_voor_incassos = groups.overige_externen_voor_incassos
 
     logging.info("\x1b[94mPreparation done.\x1b[0m\n")
 

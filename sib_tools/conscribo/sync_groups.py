@@ -6,7 +6,7 @@ from getpass import getpass
 from ..canonical import canonical_key
 from . import auth
 from .auth import conscribo_post, conscribo_get
-from .list_relations import list_relations_persoon, get_group_members, update_relation
+from .relations import list_relations_persoon, update_relation
 from ..grist.auth import grist_patch, grist_delete, grist_get, relations_doc, grist_post
 # from ..grist.list import relations_doc
 from time import sleep

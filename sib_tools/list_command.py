@@ -31,7 +31,7 @@ def add_parse_cognito_group(parser: ArgumentParser):
 
 def add_parse_conscribo_group(parser: ArgumentParser):
     def handle_conscribo_group(args: Namespace):
-        from .conscribo.list_relations import get_group_members
+        from .conscribo.groups import get_group_members
 
         group_id = args.conscribo_group_id
         members = get_group_members(group_id)

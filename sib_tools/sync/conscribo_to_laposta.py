@@ -4,7 +4,7 @@ import json
 import logging
 import sys
 
-from ..conscribo.list_relations import (
+from ..conscribo.relations import (
     get_block_email_members,
     list_relations_members,
     list_relations_alumnus,

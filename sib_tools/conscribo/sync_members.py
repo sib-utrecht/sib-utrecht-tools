@@ -7,9 +7,8 @@ import keyring
 # from . import auth
 # from .auth import conscribo_post, conscribo_get
 # from ..grist.auth import grist_post, grist_patch
-from .list_relations import (
+from .relations import (
     list_relations_persoon,
-    get_group_members,
     update_relation,
 )
 from time import sleep

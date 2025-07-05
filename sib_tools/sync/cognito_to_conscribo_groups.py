@@ -5,9 +5,9 @@ from time import sleep
 
 from sib_tools.utils import increase_indent
 
-from ..conscribo.list_relations import list_relations_members
-from ..conscribo.list_groups import list_entity_groups
-from ..conscribo.list_groups import add_relations_to_group, remove_relations_from_group
+from ..conscribo.relations import list_relations_members
+from ..conscribo.groups import list_entity_groups
+from ..conscribo.groups import add_relations_to_group, remove_relations_from_group
 
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
