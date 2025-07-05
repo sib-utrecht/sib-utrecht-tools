@@ -9,15 +9,14 @@ from ..laposta.laposta_auth import (
 )
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
-
-
-account_id = "tlrp95dlvo"
-member_birthday_list_id = "dkrvwo21vt"
-member_newsletter_list_id = "s0j3zv9wry"
-
-alumni_birthday_list_id = "luwhwmlq4d"
-
-test_list_id = "szktmg1wta"
+from .constants import (
+    account_id,
+    member_birthday_list_id,
+    member_newsletter_list_id,
+    alumni_birthday_list_id,
+    test_list_id,
+    possible_relation_states,
+)
 
 
 def get_list(list_id):
@@ -57,9 +56,6 @@ def relation_to_canonical(relation):
         canonical["date_of_birth"] = canonical["date_of_birth"][:10]
 
     return canonical
-
-
-possible_relation_states = ["active", "unsubscribed", "unconfirmed", "cleaned"]
 
 
 def get_list_members(list_id):
@@ -106,7 +102,7 @@ def get_aggregated_relations():
             "send_birthday": False,
             "send_newsletter": False,
             "send_birthday_alumnus": False,
-            "laposta_member_ids": dict()
+            "laposta_member_ids": dict(),
         }
 
         first_names = set()
@@ -120,15 +116,23 @@ def get_aggregated_relations():
             base["newsletter_subscription_state"] = newsletter.get(
                 "laposta_state", None
             )
-            base["laposta_member_ids"][member_newsletter_list_id] = newsletter.get("laposta_member_id", None)
-            base["conscribo_id"] = newsletter.get("conscribo_id", None) or base.get("conscribo_id")
+            base["laposta_member_ids"][member_newsletter_list_id] = newsletter.get(
+                "laposta_member_id", None
+            )
+            base["conscribo_id"] = newsletter.get("conscribo_id", None) or base.get(
+                "conscribo_id"
+            )
 
         if birthday is not None:
             base["send_birthday"] = True
             base["date_of_birth"] = birthday.get("date_of_birth", None)
             base["birthday_subscription_state"] = birthday.get("laposta_state", None)
-            base["laposta_member_ids"][member_birthday_list_id] = birthday.get("laposta_member_id", None)
-            base["conscribo_id"] = birthday.get("conscribo_id", None) or base.get("conscribo_id")
+            base["laposta_member_ids"][member_birthday_list_id] = birthday.get(
+                "laposta_member_id", None
+            )
+            base["conscribo_id"] = birthday.get("conscribo_id", None) or base.get(
+                "conscribo_id"
+            )
 
         if birthday_alumnus is not None:
             base["send_birthday_alumnus"] = True
@@ -142,8 +146,12 @@ def get_aggregated_relations():
             base["birthday_alumnus_subscription_state"] = birthday_alumnus.get(
                 "laposta_state", None
             )
-            base["laposta_member_ids"][alumni_birthday_list_id] = birthday_alumnus.get("laposta_member_id", None)
-            base["conscribo_id"] = birthday_alumnus.get("conscribo_id", None) or base.get("conscribo_id")
+            base["laposta_member_ids"][alumni_birthday_list_id] = birthday_alumnus.get(
+                "laposta_member_id", None
+            )
+            base["conscribo_id"] = birthday_alumnus.get(
+                "conscribo_id", None
+            ) or base.get("conscribo_id")
 
         first_names -= {None}
         last_names -= {None}

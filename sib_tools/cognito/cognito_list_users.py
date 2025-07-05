@@ -6,13 +6,12 @@ import sys
 
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
+from .constants import user_pool_id
 
 # Print account id
 # print(boto3.client("sts").get_caller_identity()["Account"])
 
 cognito_client = boto3.client("cognito-idp", region_name="eu-central-1") 
-
-user_pool_id = "eu-central-1_Ecd3uxa0G"
 
 cognito_to_canonical_dict = canonical_key.get_cognito_to_key()
 

@@ -1,13 +1,10 @@
+from .constants import api_url
 import keyring.credentials
 import requests
 import json
 import keyring
 from getpass import getpass
 import urllib.parse
-
-# https://api.laposta.nl/doc/index.nl.php
-
-api_url = "https://api.laposta.nl/"
 
 laposta_api_key = None
 

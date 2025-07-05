@@ -5,12 +5,9 @@ import keyring
 from getpass import getpass
 
 from traitlets import Any
-
-api_url = "https://api.secure.conscribo.nl/sib-utrecht"
+from .constants import api_url, username
 
 session_id = None
-
-username = "member-admin-bot"
 
 # Define ApiRequestError for better error handling
 class ApiRequestError(Exception):
