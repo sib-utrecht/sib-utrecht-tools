@@ -1,3 +1,4 @@
+import os
 from .constants import api_url
 import keyring.credentials
 import requests
@@ -5,6 +6,9 @@ import json
 import keyring
 from getpass import getpass
 import urllib.parse
+from dotenv import load_dotenv
+
+load_dotenv()
 
 laposta_api_key = None
 
@@ -16,6 +20,11 @@ def prompt_credentials():
 
 def authenticate() -> str:
     global laposta_api_key
+
+    # Try environment variable first
+    laposta_api_key = os.environ.get("LAPOSTA_API_KEY")
+    if laposta_api_key:
+        return laposta_api_key
 
     laposta_api_key = keyring.get_password("laposta", "api-key")
 

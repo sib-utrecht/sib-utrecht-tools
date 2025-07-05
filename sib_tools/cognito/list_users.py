@@ -7,16 +7,25 @@ import sys
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 from .constants import user_pool_id
+from .auth import get_cognito_credentials
 
 # Print account id
 # print(boto3.client("sts").get_caller_identity()["Account"])
 
-cognito_client = boto3.client("cognito-idp", region_name="eu-central-1") 
 
+def create_cognito_client():
+    a, b, c = get_cognito_credentials()
+    return boto3.client(
+        "cognito-idp",
+        region_name="eu-central-1",
+        aws_access_key_id=a,
+        aws_secret_access_key=b,
+        aws_session_token=c,
+    )
+
+
+cognito_client = create_cognito_client()
 cognito_to_canonical_dict = canonical_key.get_cognito_to_key()
-
-print(cognito_to_canonical_dict)
-print("\n" * 2)
 
 
 def cognito_user_meta_to_canonical(user):
@@ -24,7 +33,7 @@ def cognito_user_meta_to_canonical(user):
 
     flattened_user = flatten_dict(user)
     canonical = dict()
-    for (key, value) in flattened_user.items():
+    for key, value in flattened_user.items():
         new_key = to_canonical.get(key, None)
 
         if new_key is not None:
@@ -35,6 +44,7 @@ def cognito_user_meta_to_canonical(user):
         other[key] = value
 
     return canonical
+
 
 def cognito_user_to_canonical(user):
     username = user.get("Username")
@@ -50,19 +60,17 @@ def cognito_user_to_canonical(user):
     user["UserCreateDate"] = str(usercreatedate)
     user["UserLastModifiedDate"] = str(userlastmodifieddate)
 
-    cleaned_user = {
-        "meta": user,
-        **canonical
-    }
+    cleaned_user = {"meta": user, **canonical}
 
     return cleaned_user
+
 
 def canonical_to_cognito_user(user):
     to_cognito = canonical_key.get_key_to_cognito()
 
     flattened_user = flatten_dict(user)
     attributes = []
-    for (key, value) in flattened_user.items():
+    for key, value in flattened_user.items():
         new_key = to_cognito.get(key, None)
 
         if key == "email_verified":
@@ -72,10 +80,7 @@ def canonical_to_cognito_user(user):
             # logging.warning(f"[canonical_to_cognito_user] Key {key} not found in Cognito mapping, skipping.")
             continue
 
-        attributes.append({
-            "Name": new_key,
-            "Value": value
-        })
+        attributes.append({"Name": new_key, "Value": value})
 
         # other = user.setdefault("other", dict())
         # other[key] = value

@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import keyring.credentials
 import requests
 import json
@@ -28,9 +31,6 @@ class ApiRequestError(Exception):
 
 def prompt_credentials():
     password = getpass(f"Password for {username}: ")
-
-    # keyring.set_password('sib-conscribo', "script1-username", username)
-    # keyring.set_password('sib-conscribo', "script1-password", password)
     keyring.set_password("sib-conscribo", "member-admin-bot", password)
 
 
@@ -42,14 +42,16 @@ Returns the session id of the authenticated user.
 
 def authenticate() -> str:
     global session_id
-
-    # username = keyring.get_password('sib-conscribo', "script1-username")
-    # password = keyring.get_password('sib-conscribo', "script1-password")
-    password = keyring.get_password("sib-conscribo", "member-admin-bot")
-
-    if username is None or password is None:
-        prompt_credentials()
-        return authenticate()
+    # Try environment variable first
+    password = os.environ.get("CONSCRIBO_PASSWORD")
+    user = os.environ.get("CONSCRIBO_USERNAME", username)
+    if password:
+        logger.debug("Using password from CONSCRIBO_PASSWORD env var.")
+    else:
+        password = keyring.get_password("sib-conscribo", "member-admin-bot")
+        if password is None:
+            prompt_credentials()
+            return authenticate()
 
     logger.debug(f"Password length: {len(password)}")
 
@@ -59,7 +61,7 @@ def authenticate() -> str:
             "X-Conscribo-API-Version": "1.20240610",
         },
         json={
-            "userName": username,
+            "userName": user,
             "passPhrase": password,
         },
     )

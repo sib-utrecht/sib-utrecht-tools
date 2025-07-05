@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import keyring.credentials
 import requests
 import json
@@ -15,7 +18,10 @@ def prompt_credentials():
 
 def authenticate() -> str:
     global grist_api_key
-
+    # Try environment variable first
+    grist_api_key = os.environ.get("GRIST_API_KEY")
+    if grist_api_key:
+        return grist_api_key
     grist_api_key = keyring.get_password("grist", "member-admin-bot") or ""
 
     if len(grist_api_key) == 0:

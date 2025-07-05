@@ -3,5 +3,6 @@ keyring
 getpass
 beaupy
 regex
+python-dotenv
 
 
