@@ -21,7 +21,7 @@ def handle_list(args: Namespace):
 
 def add_parse_conscribo_query(parser: ArgumentParser):
     def handle_conscribo_query(args: Namespace):
-        from .conscribo.conscribo_auth import conscribo_get, conscribo_post
+        from .conscribo.auth import conscribo_get, conscribo_post
 
         if args.method == "GET":
             ans = conscribo_get(args.path)

@@ -5,20 +5,20 @@ from time import sleep
 
 from sib_tools.utils import increase_indent
 
-from ..conscribo.conscribo_list_relations import list_relations_members
-from ..conscribo.conscribo_list_groups import list_entity_groups
-from ..conscribo.conscribo_list_groups import add_relations_to_group, remove_relations_from_group
+from ..conscribo.list_relations import list_relations_members
+from ..conscribo.list_groups import list_entity_groups
+from ..conscribo.list_groups import add_relations_to_group, remove_relations_from_group
 
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
-from ..cognito.cognito_list_users import (
+from ..cognito.list_users import (
     list_all_cognito_users,
     cognito_user_to_canonical,
     canonical_to_cognito_user,
     cognito_client,
     user_pool_id,
 )
-from ..cognito.cognito_groups import (
+from ..cognito.groups import (
     cognito_list_groups,
     cognito_list_users_in_group,
     cognito_list_users_in_group_canonical,

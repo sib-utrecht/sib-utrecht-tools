@@ -1,7 +1,7 @@
 import json
 from time import sleep
 
-from ..laposta.laposta_auth import (
+from ..laposta.auth import (
     laposta_get,
     laposta_post,
     laposta_patch,

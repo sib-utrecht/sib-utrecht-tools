@@ -4,7 +4,7 @@ import json
 import logging
 import sys
 
-from .cognito_list_users import (
+from .list_users import (
     list_all_cognito_users,
     cognito_user_to_canonical,
     canonical_to_cognito_user,

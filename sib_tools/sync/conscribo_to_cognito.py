@@ -4,10 +4,10 @@ import json
 import logging
 import sys
 
-from ..conscribo.conscribo_list_relations import list_relations_members
+from ..conscribo.list_relations import list_relations_members
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
-from ..cognito.cognito_list_users import (
+from ..cognito.list_users import (
     list_all_cognito_users,
     cognito_user_to_canonical,
     canonical_to_cognito_user,

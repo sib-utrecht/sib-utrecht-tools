@@ -4,14 +4,14 @@ import json
 import logging
 import sys
 
-from ..conscribo.conscribo_list_relations import (
+from ..conscribo.list_relations import (
     get_block_email_members,
     list_relations_members,
     list_relations_alumnus,
 )
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict, get_key_to_laposta, expand_dict
-from ..laposta import laposta_auth
+from ..laposta import auth
 from ..laposta import list_members
 from ..laposta.list_members import get_aggregated_relations
 from datetime import datetime
@@ -369,7 +369,7 @@ def sync_conscribo_to_laposta(dry_run=True):
             if dry_run:
                 continue
 
-            response = laposta_auth.laposta_post(
+            response = auth.laposta_post(
                 f"/v2/member",
                 payload,
             )
@@ -395,7 +395,7 @@ def sync_conscribo_to_laposta(dry_run=True):
             if dry_run:
                 continue
 
-            response = laposta_auth.laposta_delete(
+            response = auth.laposta_delete(
                 url
             )
             logging.debug(f"Response: {json.dumps(response)}")
