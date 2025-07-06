@@ -149,12 +149,52 @@ def get_for_postal_code(postal_code) -> AddressOuput:
         addresses=formatted_addresses,
     )
 
+def color_selector(selector):
+    """
+    Colorize the selector for better visibility in logs.
+
+    Args:
+        selector: The selector string to colorize
+
+    Returns:
+        Colorized selector string
+    """
+    return f"\x1b[93m{selector}\x1b[0m" if selector else "No selector"
+
+def color_fix_suggestion(suggestion):
+    """
+    Colorize the fix suggestion for better visibility in logs.
+
+    Args:
+        suggestion: The fix suggestion message to colorize
+
+    Returns:
+        Colorized fix suggestion message
+    """
+    return f"\x1b[32m{suggestion}\x1b[0m" if suggestion else "No fix suggestion"
+
+def color_wrong_value(value):
+    """
+    Colorize the wrong value for better visibility in logs.
+
+    Args:
+        value: The value to colorize
+
+    Returns:
+        Colorized value string
+    """
+    return f"\x1b[31m{value or 'missing'}\x1b[0m"
 
 def check_address(
     relation, report_if_empty=True, report_if_correct=True, report_if_external=False,
     relation_type="Relation"
 ):
     selector = relation["other"]["selector"]
+    selector_colored = color_selector(selector)
+    
+    def format_problem_found(problem):
+        return f"\x1b[31mProblem found: {problem}\x1b[0m\n"
+
 
     if is_external_number(relation["conscribo_id"]):
         if report_if_external:
@@ -162,48 +202,74 @@ def check_address(
                 f"Skipping address check for external relation: {selector} ({relation['conscribo_id']})"
             )
         return True
+    
+
+    street_name = relation.get("street")
+    place_name = relation.get("place")
+
+    missing_value = color_wrong_value("missing")
 
     postal_code = relation.get("postal_code")
-    if postal_code is None:
-        if report_if_empty:
-            logging.warning(
-                f"\x1b[33mProblem found: \x1b[0m {relation_type} \x1b[93m'{selector}'\x1b[0m has no postal code."
-            )
-        return True
-
     house_number = relation.get("house_number_full")
     if house_number is None:
         house_number = relation.get("house_number_decimal")
-
         if house_number is None:
             if report_if_empty:
                 logging.warning(
-                    f"\x1b[33mProblem found: \x1b[0m {relation_type} \x1b[93m'{selector}'\x1b[0m has no house number."
+                    format_problem_found("Missing house number.") +
+                    f"  Name: {selector_colored}\n"
+                    f"  Street: {street_name or '-'}\n"
+                    f"  House number: {missing_value}\n"
+                    f"  Postal code: {postal_code or '-'}\n"
+                    f"  Place: {place_name or '-'}\n"
                 )
             return True
         house_number += relation.get("house_number_addition", "")
 
-    street_name = relation.get("street")
-    place_name = relation.get("place")
+
+    if postal_code is None:
+        if report_if_empty:
+            logging.warning(
+                format_problem_found("Missing postal code.") +
+                f"  Name: {selector_colored}\n"
+                f"  Street: {street_name or '-'}\n"
+                f"  House number: {house_number or '-'}\n"
+                f"  Postal code: {missing_value}\n"
+                f"  Place: {place_name or '-'}\n"
+            )
+        return True
+
 
     address_output = get_for_postal_code(postal_code)
 
     if street_name not in address_output.street_names:
         logging.warning(
-            f"\x1b[33mProblem found: \x1b[0m {relation_type} \x1b[93m'{selector}'\x1b[0m has street name '{street_name}', "
-            f"expected one of the following based on postal code '{postal_code}': "
+            format_problem_found("Invalid street name.") +
+            f"  Name: {selector_colored}\n"
+            f"  Street: {color_wrong_value(street_name)}\n"
+            f"  House number: {house_number or '-'}\n"
+            f"  Postal code: {postal_code or '-'}\n"
+            f"  Place: {place_name or '-'}\n"
+            f"  Expected street name:"
         )
         for street in address_output.street_names or ["--no street names found--"]:
-            logging.warning(f"    - {street}")
+            logging.warning(f"    - {color_fix_suggestion(street)}")
+        logging.warning("")
         return True
 
     if place_name not in address_output.place_names:
         logging.warning(
-            f"\x1b[33mProblem found: \x1b[0m {relation_type} \x1b[93m'{selector}'\x1b[0m has place name '{place_name}', "
-            f"expected one of the following based on postal code '{postal_code}': "
+            format_problem_found("Invalid place name.") +
+            f"  Name: {selector_colored}\n"
+            f"  Street: {street_name or '-'}\n"
+            f"  House number: {house_number or '-'}\n"
+            f"  Postal code: {postal_code or '-'}\n"
+            f"  Place: {color_wrong_value(place_name)}\n"
+            f"  Expected place name:"
         )
         for place in address_output.place_names or ["--no place names found--"]:
-            logging.warning(f"    - {place}")
+            logging.warning(f"    - {color_fix_suggestion(place)}")
+        logging.warning("")
         return True
 
     valid_house_numbers = [
@@ -214,17 +280,27 @@ def check_address(
 
     if house_number not in valid_house_numbers:
         logging.warning(
-            f"\x1b[33mProblem found: \x1b[0m {relation_type} \x1b[93m'{relation['other']['selector']}'\x1b[0m has house number '{house_number}', "
-            f"expected one of the following based on postal code '{postal_code}' and street name '{street_name}': "
+            format_problem_found("Invalid house number.") +
+            f"  Name: {selector_colored}\n"
+            f"  Street: {street_name or '-'}\n"
+            f"  House number: {color_wrong_value(house_number)}\n"
+            f"  Postal code: {postal_code or '-'}\n"
+            f"  Place: {place_name or '-'}\n"
+            f"  Expected house number:"
         )
-        logging.warning(f"   - {', '.join(valid_house_numbers)}")
-        # for addr in address_output.addresses:
-        #     if addr["street_name"] == street_name:
-        #         logging.warning(f"    - {addr['number']} ({addr['place_name']})")
+        logging.warning(f"    - {', '.join(color_fix_suggestion(num) for num in valid_house_numbers)}")
+        logging.warning("")
         return True
 
     if report_if_correct:
-        logging.info(f"\x1b[32mAddress for '{selector}' is correct \x1b[0m")
+        logging.info(
+            f"\x1b[32mAddress for '{selector_colored}'\x1b[32m is correct\x1b[0m\n"
+            # f"  Name: {selector}\n"
+            # f"  Street: {street_name}\n"
+            # f"  House number: {house_number}\n"
+            # f"  Postal code: {postal_code}\n"
+            # f"  Place: {place_name}\n"
+        )
 
     # logging.debug(f"Address output for {selector}: {address_output}")
 
