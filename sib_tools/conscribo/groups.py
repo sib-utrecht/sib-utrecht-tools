@@ -8,7 +8,6 @@ from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 from . import auth
 from .auth import conscribo_post, conscribo_get, conscribo_patch, conscribo_delete
-from .relations import entity_groups
 
 group_wil_geen_email_van_ons_ontvangen = 36
 
