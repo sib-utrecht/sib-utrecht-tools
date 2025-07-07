@@ -6,3 +6,4 @@ cognito_sync.log
 laposta_sync.log
 *.log
 .env
+balance_*.json

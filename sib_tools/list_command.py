@@ -5,6 +5,7 @@ from sib_tools.conscribo.relations import list_relations_alumnus
 import json
 import beaupy
 from time import sleep
+from datetime import datetime, timezone
 
 from sib_tools.conscribo.finance import (
     list_conscribo_transactions,
@@ -76,6 +77,7 @@ def handle_list_balance_diff(args: Namespace):
     debet_per_account = dict()
     credit_per_account = dict()
     account_id = None
+    fetch_date = datetime.now(timezone.utc).isoformat()
 
     offset = 0
     limit = 100
@@ -113,11 +115,29 @@ def handle_list_balance_diff(args: Namespace):
         offset += limit
         print(f"Processed {offset} transactions")
         sleep(1)
+    
+    if args.output:
+        print(f"Storing results to {args.output}...")
+        with open(args.output, "w") as f:
+            json.dump(
+                {
+                    "from_date": args.start_date,
+                    "to_date": args.end_date,
+                    "debet_per_account": debet_per_account,
+                    "credit_per_account": credit_per_account,
+                },
+                f,
+                indent=2,
+            )
+        print("Results stored to balance_diff.json")
 
     if args.raw:
         print(
             json.dumps(
                 {
+                    "fetch_date": fetch_date,
+                    "from_date": args.start_date,
+                    "to_date": args.end_date,
                     "debet_per_account": debet_per_account,
                     "credit_per_account": credit_per_account,
                 },
@@ -230,6 +250,13 @@ def add_parse_args(parser: ArgumentParser):
         "--raw",
         action="store_true",
         help="If set, print raw JSON output instead of a formatted tree",
+    )
+    balance_diff_parser.add_argument(
+        "--output",
+        type=str,
+        required=False,
+        default=None,
+        help="Output file to store the balance difference results",
     )
     # balance_diff_parser.add_argument(
     #     "--account-id",
