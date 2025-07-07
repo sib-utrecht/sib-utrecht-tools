@@ -3,6 +3,7 @@ import logging
 import sys
 import re
 import requests
+from typing import TYPE_CHECKING
 
 from . import auth
 from .relations import list_relations_persoon, update_relation, list_relations_alumnus
@@ -12,6 +13,9 @@ from .check_numbering import check_relation_number_correct
 from dataclasses import dataclass
 from .check_address import check_address
 from .check_numbering import is_external_number
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 should_be_nonempty = [
     "conscribo_id",
@@ -30,77 +34,70 @@ should_be_nonempty = [
 ]
 
 
-def check_relations_for_empty_fields(relations):
+def check_relations_for_empty_fields(relations, logger: 'Logger'):
     members_per_empty_fields = {}
 
     for relation in relations:
         if is_external_number(relation["conscribo_id"]):
             continue
 
-        empty_fields = check_relation_fields_nonempty(relation, report=False)
+        empty_fields = check_relation_fields_nonempty(relation, logger, report=False)
 
         for field in empty_fields:
             members_per_empty_fields.setdefault(field, []).append(
                 relation["other"]["selector"]
             )
 
-    logging.info("")
+    logger.info("")
     for field, selectors in sorted(
         members_per_empty_fields.items(), key=lambda x: should_be_nonempty.index(x[0])
     ):
-        logging.warning(f"\x1b[33mProblem found: \x1b[0m")
-        logging.info(f"  Found {len(selectors)} members with empty '{field}':")
+        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.info(f"  Found {len(selectors)} members with empty '{field}':")
         for selector in selectors:
-            logging.info(f"    - {selector}")
-        logging.info("")
+            logger.info(f"    - {selector}")
+        logger.info("")
 
 
-def check_relation_fields_nonempty(relation, report=True):
+def check_relation_fields_nonempty(relation, logger: 'Logger', report=True):
     empty_fields = [field for field in should_be_nonempty if not relation.get(field)]
 
     if report and len(empty_fields) > 0:
-        logging.warning(f"\x1b[33mProblem found: \x1b[0m")
-        logging.warning(
+        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning(
             f"  Member \x1b[93m'{relation['other']['selector']}'\x1b[0m has no {', '.join(empty_fields)}."
         )
-        logging.warning("")
+        logger.warning("")
 
     return empty_fields
 
 
-def check_basic():
-    logging.basicConfig(
-        filename="conscribo_check_basic.log",
-        level=logging.DEBUG,
-        format="[%(asctime)s] %(levelname)s: %(message)s",
-    )
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-
-    logging.info("\x1b[94mPreparing...\x1b[0m")
+def check_basic(logger: 'Logger'):
+    logger.info("\x1b[94mPreparing...\x1b[0m")
 
     auth.do_auth()
 
     personen = list_relations_persoon()
     alumni = list_relations_alumnus()
 
-    logging.info(f"Fetched {len(personen)} persons from Conscribo.")
-    logging.info(f"Fetched {len(alumni)} alumni from Conscribo.")
-    logging.info("")
+    logger.info(f"Fetched {len(personen)} persons from Conscribo.")
+    logger.info(f"Fetched {len(alumni)} alumni from Conscribo.")
+    logger.info("")
 
-    logging.info("\x1b[94mPreparation done.\x1b[0m\n")
+    logger.info("\x1b[94mPreparation done.\x1b[0m\n")
 
     correct = 0
     wrong = 0
 
     personen_by_membership_end = {}
 
-    check_relations_for_empty_fields(personen)
+    check_relations_for_empty_fields(personen, logger)
 
     for relation in personen:
         if relation["conscribo_id"] == "666":
             continue  # Skip the test user
 
-        check_relation_number_correct(relation)
+        check_relation_number_correct(relation, logger)
 
         if relation["membership_end"] is not None:
             personen_by_membership_end.setdefault(
@@ -109,28 +106,19 @@ def check_basic():
 
         selector = relation["other"]["selector"]
 
-    logging.info("")
+    logger.info("")
     for membership_end, entry_members in sorted(
         personen_by_membership_end.items(), key=lambda x: x[0]
     ):
-        logging.info(f"\x1b[94mInfo:\x1b[0m")
-        logging.info(
+        logger.info(f"\x1b[94mInfo:\x1b[0m")
+        logger.info(
             f"  Found {len(entry_members)} members with membership end \x1b[94m{membership_end}\x1b[0m:"
         )
         for relation in entry_members:
             selector = relation["other"]["selector"]
-            logging.info(f"    - {selector}")
-        logging.info("")
+            logger.info(f"    - {selector}")
+        logger.info("")
 
-    # logging.info("\x1b[94mChecking addresses...\x1b[0m")
-    # logging.info("  To not overuse the API, this will take a while.")    
-    # for relation in personen:
-    #     check_address(relation, report_if_empty=True)
-    # logging.info("\x1b[94mAddress check done.\x1b[0m\n")
-    logging.info("To check addresses, run `sib-tools check conscribo-addresses`.")
+    logger.info("To check addresses, run `sib-tools check conscribo-addresses`.")
 
-    logging.info("")
-    logging.info(
-        f"Processed {len(personen)} members: {correct} correct, {wrong} wrong."
-    )
-    logging.info("")
+    logger.info("")

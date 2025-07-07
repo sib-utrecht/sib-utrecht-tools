@@ -6,6 +6,7 @@ import requests
 import os
 import json
 import hashlib
+from typing import TYPE_CHECKING
 
 from . import auth
 from .relations import list_relations_persoon, update_relation, list_relations_alumnus
@@ -15,6 +16,9 @@ from .check_numbering import check_relation_number_correct
 from dataclasses import dataclass
 from .check_numbering import is_external_number
 from .file_cache import file_cache, make_cache_key
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 
 @dataclass
@@ -186,36 +190,29 @@ def color_wrong_value(value):
     return f"\x1b[31m{value or 'missing'}\x1b[0m"
 
 def check_address(
-    relation, report_if_empty=True, report_if_correct=True, report_if_external=False,
+    relation, logger: 'Logger', report_if_empty=True, report_if_correct=True, report_if_external=False,
     relation_type="Relation"
 ):
     selector = relation["other"]["selector"]
     selector_colored = color_selector(selector)
-    
     def format_problem_found(problem):
         return f"\x1b[31mProblem found: {problem}\x1b[0m\n"
-
-
     if is_external_number(relation["conscribo_id"]):
         if report_if_external:
-            logging.debug(
+            logger.debug(
                 f"Skipping address check for external relation: {selector} ({relation['conscribo_id']})"
             )
         return True
-    
-
     street_name = relation.get("street")
     place_name = relation.get("place")
-
     missing_value = color_wrong_value("missing")
-
     postal_code = relation.get("postal_code")
     house_number = relation.get("house_number_full")
     if house_number is None:
         house_number = relation.get("house_number_decimal")
         if house_number is None:
             if report_if_empty:
-                logging.warning(
+                msg = (
                     format_problem_found("Missing house number.") +
                     f"  Name: {selector_colored}\n"
                     f"  Street: {street_name or '-'}\n"
@@ -223,13 +220,13 @@ def check_address(
                     f"  Postal code: {postal_code or '-'}\n"
                     f"  Place: {place_name or '-'}\n"
                 )
+                for line in msg.rstrip().split("\n"):
+                    logger.warning(line)
             return True
         house_number += relation.get("house_number_addition", "")
-
-
     if postal_code is None:
         if report_if_empty:
-            logging.warning(
+            msg = (
                 format_problem_found("Missing postal code.") +
                 f"  Name: {selector_colored}\n"
                 f"  Street: {street_name or '-'}\n"
@@ -237,13 +234,12 @@ def check_address(
                 f"  Postal code: {missing_value}\n"
                 f"  Place: {place_name or '-'}\n"
             )
+            for line in msg.rstrip().split("\n"):
+                logger.warning(line)
         return True
-
-
     address_output = get_for_postal_code(postal_code)
-
     if street_name not in address_output.street_names:
-        logging.warning(
+        msg = (
             format_problem_found("Invalid street name.") +
             f"  Name: {selector_colored}\n"
             f"  Street: {color_wrong_value(street_name)}\n"
@@ -252,13 +248,14 @@ def check_address(
             f"  Place: {place_name or '-'}\n"
             f"  Expected street name:"
         )
+        for line in msg.rstrip().split("\n"):
+            logger.warning(line)
         for street in address_output.street_names or ["--no street names found--"]:
-            logging.warning(f"    - {color_fix_suggestion(street)}")
-        logging.warning("")
+            logger.warning(f"    - {color_fix_suggestion(street)}")
+        logger.warning("")
         return True
-
     if place_name not in address_output.place_names:
-        logging.warning(
+        msg = (
             format_problem_found("Invalid place name.") +
             f"  Name: {selector_colored}\n"
             f"  Street: {street_name or '-'}\n"
@@ -267,19 +264,19 @@ def check_address(
             f"  Place: {color_wrong_value(place_name)}\n"
             f"  Expected place name:"
         )
+        for line in msg.rstrip().split("\n"):
+            logger.warning(line)
         for place in address_output.place_names or ["--no place names found--"]:
-            logging.warning(f"    - {color_fix_suggestion(place)}")
-        logging.warning("")
+            logger.warning(f"    - {color_fix_suggestion(place)}")
+        logger.warning("")
         return True
-
     valid_house_numbers = [
         addr["number"]
         for addr in address_output.addresses
         if addr["street_name"] == street_name
     ]
-
     if house_number not in valid_house_numbers:
-        logging.warning(
+        msg = (
             format_problem_found("Invalid house number.") +
             f"  Name: {selector_colored}\n"
             f"  Street: {street_name or '-'}\n"
@@ -288,67 +285,54 @@ def check_address(
             f"  Place: {place_name or '-'}\n"
             f"  Expected house number:"
         )
-        logging.warning(f"    - {', '.join(color_fix_suggestion(num) for num in valid_house_numbers)}")
-        logging.warning("")
+        for line in msg.rstrip().split("\n"):
+            logger.warning(line)
+        logger.warning(f"    - {', '.join(color_fix_suggestion(num) for num in valid_house_numbers)}")
+        logger.warning("")
         return True
-
     if report_if_correct:
-        logging.info(
-            f"\x1b[32mAddress for '{selector_colored}'\x1b[32m is correct\x1b[0m\n"
-            # f"  Name: {selector}\n"
-            # f"  Street: {street_name}\n"
-            # f"  House number: {house_number}\n"
-            # f"  Postal code: {postal_code}\n"
-            # f"  Place: {place_name}\n"
+        logger.info(
+            f"\x1b[32mAddress for '{selector_colored}'\x1b[32m is correct\x1b[0m"
         )
+        logger.info("")
+    # logger.debug(f"Address output for {selector}: {address_output}")
 
-    # logging.debug(f"Address output for {selector}: {address_output}")
-
-
-def check_addresses(include_alumni=True, include_members=True):
-    logging.basicConfig(
-        filename="conscribo_check_basic.log",
-        level=logging.DEBUG,
-        format="[%(asctime)s] %(levelname)s: %(message)s",
-    )
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-
-    logging.info("\x1b[94mPreparing...\x1b[0m")
-
+def check_addresses(logger: 'Logger', include_alumni=True, include_members=True):
+    logger.info("\x1b[94mPreparing...\x1b[0m")
     auth.do_auth()
-
     if include_members:
         personen = list_relations_persoon()
-        logging.info(f"Fetched {len(personen)} persons from Conscribo.")
-        logging.info("")
+        logger.info(f"Fetched {len(personen)} persons from Conscribo.")
+        logger.info("")
     else:
         personen = []
-
-    logging.info("\x1b[94mPreparation done.\x1b[0m\n")
-
-    logging.info("\x1b[94mChecking addresses...\x1b[0m")
-    logging.info("  To not overuse the API, this will take a while.")
+    logger.info("\x1b[94mPreparation done.\x1b[0m")
+    logger.info("")
+    logger.info("\x1b[94mChecking addresses...\x1b[0m")
+    logger.info("  To not overuse the API, this will take a while.")
     if include_members:
-        logging.info("Checking for members...")
+        logger.info("Checking for members...")
         for relation in personen:
             check_address(
                 relation,
+                logger,
                 report_if_empty=True,
                 report_if_correct=True,
                 report_if_external=False,
                 relation_type="Member",
             )
-        logging.info("")
+        logger.info("")
     if include_alumni:
-        logging.info("Checking for alumni...")
+        logger.info("Checking for alumni...")
         alumni = list_relations_alumnus()
-        logging.info(f"Fetched {len(alumni)} alumni from Conscribo.")    
+        logger.info(f"Fetched {len(alumni)} alumni from Conscribo.")    
         for relation in alumni:
             check_address(
                 relation,
+                logger,
                 report_if_empty=True,
                 report_if_correct=True,
                 report_if_external=True,
                 relation_type="Alumnus",
             )
-    logging.info("\x1b[94mAddress check done.\x1b[0m\n")
+    logger.info("\x1b[94mAddress check done.\x1b[0m\n")

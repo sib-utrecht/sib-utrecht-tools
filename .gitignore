@@ -7,3 +7,4 @@ laposta_sync.log
 *.log
 .env
 balance_*.json
+dump*.html

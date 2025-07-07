@@ -3,6 +3,7 @@ from getpass import getpass
 import boto3
 import keyring
 from dotenv import load_dotenv
+import botocore.exceptions
 
 load_dotenv()
 
@@ -25,19 +26,24 @@ def clear_if_invalid():
     global cognito_access_key, cognito_secret_key, cognito_session_token
 
     import boto3
-    sts = boto3.client('sts')
-    
-    try: 
+    sts = boto3.client('sts',
+        aws_access_key_id=cognito_access_key,
+        aws_secret_access_key=cognito_secret_key,
+        aws_session_token=cognito_session_token,
+        region_name="eu-central-1" 
+    )
+
+    try:
         caller_identity = sts.get_caller_identity()
         # If we reach here, the session token is valid
         print(f"Authenticated as {caller_identity['Arn']}")
         print(f"Caller identity: {caller_identity}")
 
-    except boto3.exceptions.ClientError:
+    except (botocore.exceptions.ClientError, botocore.exceptions.NoCredentialsError):
         print(f"AWS Session token is invalid or has expired")
-        keyring.set_password("aws-cognito", "access-key-id", None)
-        keyring.set_password("aws-cognito", "secret-access-key", None)
-        keyring.set_password("aws-cognito", "session-token", None)
+        keyring.delete_password("aws-cognito", "access-key-id")
+        keyring.delete_password("aws-cognito", "secret-access-key")
+        keyring.delete_password("aws-cognito", "session-token")
 
         cognito_access_key = None
         cognito_secret_key = None

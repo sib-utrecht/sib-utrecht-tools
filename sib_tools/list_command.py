@@ -121,6 +121,7 @@ def handle_list_balance_diff(args: Namespace):
         with open(args.output, "w") as f:
             json.dump(
                 {
+                    "fetch_date": fetch_date,
                     "from_date": args.start_date,
                     "to_date": args.end_date,
                     "debet_per_account": debet_per_account,

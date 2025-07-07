@@ -5,6 +5,9 @@ from . import groups
 from time import sleep
 import logging
 import sys
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from logging import Logger
 
 def is_external_number(conscribo_id):
     """
@@ -14,7 +17,7 @@ def is_external_number(conscribo_id):
     return int(conscribo_id) >= 2000 or conscribo_id == "666"
 
 
-def check_relation_number_correct(relation):
+def check_relation_number_correct(relation, logger: 'Logger'):
     conscribo_id = relation["conscribo_id"]
 
     donateurs = groups.donateurs
@@ -39,58 +42,51 @@ def check_relation_number_correct(relation):
     selector = relation["other"]["selector"]
 
     if is_member:
-        logging.warning(f"\x1b[33mProblem found: \x1b[0m")
-        logging.warning(f"  Member \x1b[93m'{selector}'\x1b[0m has inconsistent conscribo_id: {conscribo_id}. ")
-        logging.warning("  Explanation: Member ids should be < 2000.")
-        logging.warning("  The relation is presumed to be a member, since it is not in any of the external groups: ")
-        logging.warning(f"    - Externen, Overige externen voor incassos, Donateurs")
-        logging.warning("")
+        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning(f"  Member \x1b[93m'{selector}'\x1b[0m has inconsistent conscribo_id: {conscribo_id}. ")
+        logger.warning("  Explanation: Member ids should be < 2000.")
+        logger.warning("  The relation is presumed to be a member, since it is not in any of the external groups: ")
+        logger.warning(f"    - Externen, Overige externen voor incassos, Donateurs")
+        logger.warning("")
         return False
 
     if is_external:
-        logging.warning(f"\x1b[33mProblem found: \x1b[0m")
-        logging.warning(f"  External \x1b[93m'{selector}'\x1b[0m has inconsistent conscribo_id: {conscribo_id}.")
-        logging.warning("  Explanation: External ids should be >= 2000.")
-        logging.warning("  The relation is presumed to be an external, since it is in these external groups: ")
-        logging.warning(f"    - {', '.join(external_groups)}")
-        logging.warning("")
+        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning(f"  External \x1b[93m'{selector}'\x1b[0m has inconsistent conscribo_id: {conscribo_id}.")
+        logger.warning("  Explanation: External ids should be >= 2000.")
+        logger.warning("  The relation is presumed to be an external, since it is in these external groups: ")
+        logger.warning(f"    - {', '.join(external_groups)}")
+        logger.warning("")
         return False
     
     return False
 
 
-def check_numbering():
-    logging.basicConfig(
-        filename="conscribo_check_numbering.log",
-        level=logging.DEBUG,
-        format="[%(asctime)s] %(levelname)s: %(message)s",
-    )
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-
-    logging.info("\x1b[94mPreparing...\x1b[0m")
+def check_numbering(logger: 'Logger'):
+    logger.info("\x1b[94mPreparing...\x1b[0m")
 
     auth.do_auth()
 
     relations = list_relations_persoon()
-    logging.info(f"Fetched {len(relations)} relations from Conscribo.")
-    logging.info("")
+    logger.info(f"Fetched {len(relations)} relations from Conscribo.")
+    logger.info("")
 
-    logging.info("\x1b[94mPreparation done.\x1b[0m\n")
+    logger.info("\x1b[94mPreparation done.\x1b[0m\n")
 
     correct = 0
     wrong = 0
 
     for relation in relations:
         try:
-            if check_relation_number_correct(relation):
+            if check_relation_number_correct(relation, logger):
                 correct += 1
             else:
                 wrong += 1
         except Exception as e:
             wrong += 1
-            logging.error(f"Error processing relation {relation['conscribo_id']}: {e}")
+            logger.error(f"Error processing relation {relation['conscribo_id']}: {e}")
         
 
-    logging.info("")
-    logging.info(f"Processed {len(relations)} relations: {correct} correct, {wrong} wrong.")
-    logging.info("")
+    logger.info("")
+    logger.info(f"Processed {len(relations)} relations: {correct} correct, {wrong} wrong.")
+    logger.info("")
