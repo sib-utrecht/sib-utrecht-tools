@@ -2,41 +2,36 @@ import argparse
 from argparse import ArgumentParser, Namespace
 import json
 
-def handle_list(args: Namespace):
-    """
-    Handle the list command based on the provided arguments.
-    This function will be called when the list command is executed.
-    """
-    if args.dest == "cognito":
-        from .sync.conscribo_to_cognito import sync_conscribo_to_cognito
-        sync_conscribo_to_cognito(dry_run=args.dry_run)
-        return
-    
-    if args.dest == "laposta":
-        from .sync.conscribo_to_laposta import sync_conscribo_to_laposta
-        sync_conscribo_to_laposta(dry_run=args.dry_run)
-        return
-    
-    raise ValueError(f"Unknown destination: {args.dest}")
-
 def add_parse_conscribo_query(parser: ArgumentParser):
     def handle_conscribo_query(args: Namespace):
         from .conscribo.auth import conscribo_get, conscribo_post
 
-        if args.method == "GET":
+        if args.method == "get":
             ans = conscribo_get(args.path)
+            print(json.dumps(ans, indent=2))
+
+        if args.method == "post":
+            if not args.json:
+                print("JSON data is required for POST requests.")
+                return
+            ans = conscribo_post(args.path, args.json)
             print(json.dumps(ans, indent=2))
 
     parser.add_argument(
         "method",
         type=str,
-        choices=["GET"],
+        choices=["get", "post"],
         help="The HTTP method to perform."
     )
     parser.add_argument(
         "path",
         type=str,
         help="The path to query."
+    )
+    parser.add_argument(
+        "--json",
+        type=json.loads,
+        help="JSON data to include in the request body."
     )
 
     parser.set_defaults(func=handle_conscribo_query)

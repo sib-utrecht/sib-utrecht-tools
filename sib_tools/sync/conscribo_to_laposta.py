@@ -5,10 +5,11 @@ import logging
 import sys
 
 from ..conscribo.relations import (
-    get_block_email_members,
     list_relations_members,
     list_relations_alumnus,
 )
+from ..conscribo.groups import get_block_email_members
+
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict, get_key_to_laposta, expand_dict
 from ..laposta import auth
