@@ -1,10 +1,13 @@
 canva/old/canva_bootstrap*.json
 canva/old/
 conscribo_groups.json
-# canva_bootstrap*.json
+# Canva files with tokens
+canva_bootstrap*.json
 cognito_sync.log
 laposta_sync.log
 *.log
 .env
 balance_*.json
 dump*.html
+# Voting emails
+voting/*.eml
