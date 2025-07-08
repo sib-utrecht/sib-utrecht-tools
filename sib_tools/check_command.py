@@ -6,6 +6,7 @@ import io
 from html import escape
 import re
 import importlib
+from datetime import datetime, timezone
 
 
 def mail_results(
@@ -53,19 +54,26 @@ def handle_check(args: Namespace):
     )
     logger.addHandler(file_handler)
     stream_handler = logging.StreamHandler(sys.stdout)
-    # stream_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s"))
+    if getattr(args, "print_timestamps", False):
+        stream_handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
     logger.addHandler(stream_handler)
 
     log_stream = io.StringIO()
     memory_handler = logging.StreamHandler(log_stream)
-    # memory_handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s", "%Y-%m-%d %H:%M:%S"))
-    memory_handler.setFormatter(
-        logging.Formatter("\x1b[90m[%(asctime)s]\x1b[0m %(message)s")
-    )
+    if getattr(args, "print_timestamps", False):
+        memory_handler.setFormatter(
+            logging.Formatter("\x1b[90m[%(asctime)s]\x1b[0m %(message)s")
+        )
+    else:
+        memory_handler.setFormatter(logging.Formatter("%(message)s"))
     logger.addHandler(memory_handler)
 
-    logger.info(f"Running health check: {args.healthcheck}")
-    logger.info("Arguments: " + str(args))
+    logger.info(f"\x1b[90mRunning health check: {args.healthcheck}\x1b[0m")
+    logger.info(
+        f"\x1b[90mCurrent time: {datetime.now().astimezone().isoformat().replace('T', ' ').replace('+', ' | Timezone: UTC+')}\x1b[0m"
+    )
+    logger.info(f"\x1b[90mCommand arguments: {args}\x1b[0m")
+    logger.info("")
     try:
         if args.healthcheck == "selftest":
             check_selftest(logger)
@@ -88,7 +96,12 @@ def handle_check(args: Namespace):
         else:
             raise ValueError(f"Unknown health check: {args.healthcheck}")
     finally:
+        logger.info("")
+        logger.info(
+            f"\x1b[90mFinished at: {datetime.now().astimezone().isoformat().replace('T', ' ').replace('+', ' | Timezone: UTC+')}\x1b[0m"
+        )
         logger.removeHandler(memory_handler)
+
 
     if args.output_to_html or args.mail_output:
         log_contents = log_stream.getvalue()
@@ -129,10 +142,17 @@ def add_parse_args(parser: ArgumentParser):
             action="store_true",
             help="Mail the HTML output to info@example.org using AWS SES",
         )
+        parser.add_argument(
+            "--print-timestamps",
+            action="store_true",
+            help="Show timestamps in log output (stdout and HTML)",
+        )
         return parser
 
     # Add selftest check
-    create_subparser("selftest", help="Show ANSI color palette for self-test and debug.")
+    create_subparser(
+        "selftest", help="Show ANSI color palette for self-test and debug."
+    )
 
     conscribo_parser = create_subparser(
         "conscribo-numbering",
