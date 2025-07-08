@@ -31,6 +31,12 @@ def handle_sync(args: Namespace):
         sync_cognito_to_conscribo_groups(dry_run=args.dry_run)
         return
 
+    if args.dest == "google-groups":
+        from .sync.conscribo_to_google_groups import sync_conscribo_to_google_groups
+
+        sync_conscribo_to_google_groups(dry_run=args.dry_run, group=getattr(args, 'group', 'alumni'))
+        return
+
     raise ValueError(f"Unknown destination: {args.dest}")
 
 
@@ -39,7 +45,7 @@ def add_parse_args(parser: ArgumentParser):
     parser.add_argument(
         "dest",
         type=str,
-        choices=["cognito", "laposta", "cognito-groups", "cognito-groups-to-conscribo"],
+        choices=["cognito", "laposta", "cognito-groups", "cognito-groups-to-conscribo", "google-groups"],
         help="Destination service to sync members to.",
     )
 
@@ -54,5 +60,11 @@ def add_parse_args(parser: ArgumentParser):
         "--dry-run",
         action="store_true",
         help="If set, will not actually add members, just print what would be done.",
+    )
+    parser.add_argument(
+        "--group",
+        choices=["members", "alumni"],
+        default="alumni",
+        help="(Only applies to 'google-groups') Which group to sync: 'members' or 'alumni' (default: alumni)",
     )
     return parser

@@ -16,6 +16,11 @@ from sib_tools.conscribo.list_accounts import (
     print_list_accounts,
     build_account_options,
 )
+from sib_tools.google.auth import (
+    list_groups_directory_api,
+    list_groups_settings_api,
+    list_group_members_api,
+)
 
 #  ./sib-tools.sh list conscribo-transactions 2025-01-01 2025-07-07
 
@@ -115,7 +120,7 @@ def handle_list_balance_diff(args: Namespace):
         offset += limit
         print(f"Processed {offset} transactions")
         sleep(1)
-    
+
     if args.output:
         print(f"Storing results to {args.output}...")
         with open(args.output, "w") as f:
@@ -146,8 +151,10 @@ def handle_list_balance_diff(args: Namespace):
             )
         )
         return
-    
-    accounts = list_conscribo_accounts(date=args.end_date or args.start_date or None)["accounts"]
+
+    accounts = list_conscribo_accounts(date=args.end_date or args.start_date or None)[
+        "accounts"
+    ]
 
     # Print a tree with the details
     tree = build_account_options(accounts)
@@ -178,16 +185,60 @@ def handle_list_balance_diff(args: Namespace):
     # print(f"Credit per account keys: {json.dumps(list(credit_per_account.keys()))}")
     # print(f"Included accounts: {json.dumps(list(included_accounts))}")
 
-    orphaned_accounts = (set(debet_per_account.keys()) | set(credit_per_account.keys())) - included_accounts
+    orphaned_accounts = (
+        set(debet_per_account.keys()) | set(credit_per_account.keys())
+    ) - included_accounts
 
     for orphaned_account in orphaned_accounts:
-        print(f"{orphaned_account} | € {debet_per_account.get(orphaned_account, 0):.2f} debet | € {credit_per_account.get(orphaned_account, 0):.2f} credit")
+        print(
+            f"{orphaned_account} | € {debet_per_account.get(orphaned_account, 0):.2f} debet | € {credit_per_account.get(orphaned_account, 0):.2f} credit"
+        )
 
     total_credit = sum(credit_per_account.values())
     total_debet = sum(debet_per_account.values())
 
     print(f"Total | € {total_debet:.2f} debet | € {total_credit:.2f} credit")
     print("Done")
+
+
+def handle_list_google_groups_directory(args: Namespace):
+    """List Google Groups using the Directory API and print as JSON."""
+    groups = list_groups_directory_api()
+    print(json.dumps(groups, indent=2))
+    print()
+
+
+def handle_list_google_groups_settings(args: Namespace):
+    """List Google Groups using the Groups Settings API and print as JSON."""
+    groups = list_groups_settings_api()
+    print(json.dumps(groups, indent=2))
+    print()
+
+
+def handle_list_google_groups_members(args: Namespace):
+    emails = args.email or ["members@sib-utrecht.nl", "alumni@sib-utrecht.nl"]
+    if isinstance(emails, str):
+        emails = [emails]
+
+    for email in emails:
+        print(f"For {email}:")
+        members = list_group_members_api(email)
+        if args.raw:
+            print(json.dumps(members, indent=2))
+        else:
+            if not members:
+                print("  (no members)")
+            for m in members:
+                address = m.get("email", "?")
+                role = m.get("role", "?").lower()
+                type_ = m.get("type", "?").lower()
+
+                # if role == "member" and type_ == "user":
+                #     print(f" - {address}")
+                #     continue
+                print(f" - {address} ({role}, {type_})")
+        print()
+    print()
 
 
 def add_parse_args(parser: ArgumentParser):
@@ -266,4 +317,29 @@ def add_parse_args(parser: ArgumentParser):
     #     help="Account ID to calculate the balance difference for",
     # )
     balance_diff_parser.set_defaults(func=handle_list_balance_diff)
+
+    google_groups_dir_parser = subparser.add_parser(
+        "google-groups-directory", help="List Google Groups using Directory API"
+    )
+    google_groups_dir_parser.set_defaults(func=handle_list_google_groups_directory)
+
+    google_groups_settings_parser = subparser.add_parser(
+        "google-groups-settings", help="List Google Groups using Groups Settings API"
+    )
+    google_groups_settings_parser.set_defaults(func=handle_list_google_groups_settings)
+
+    google_groups_members_parser = subparser.add_parser(
+        "google-groups-members", help="List members of one or more Google Groups"
+    )
+    google_groups_members_parser.add_argument(
+        "--email",
+        nargs="*",
+        help="Email(s) of the Google Group(s) to list members for. If omitted, lists members@sib-utrecht.nl and alumni@sib-utrecht.nl by default.",
+    )
+    google_groups_members_parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="If set, print raw JSON output instead of formatted lines."
+    )
+    google_groups_members_parser.set_defaults(func=handle_list_google_groups_members)
     return parser

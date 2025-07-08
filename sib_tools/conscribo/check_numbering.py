@@ -20,9 +20,11 @@ def is_external_number(conscribo_id):
 def check_relation_number_correct(relation, logger: 'Logger'):
     conscribo_id = relation["conscribo_id"]
 
-    donateurs = groups.donateurs
-    externen = groups.externen
-    overige_externen_voor_incassos = groups.overige_externen_voor_incassos
+    memberGroups = groups.get_groups()
+
+    donateurs = memberGroups.donateurs
+    externen = memberGroups.externen
+    overige_externen_voor_incassos = memberGroups.overige_externen_voor_incassos
 
     expected_member = int(relation["conscribo_id"]) < 2000
     external_groups = []
