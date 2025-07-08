@@ -65,10 +65,10 @@ def get_list_members(list_id):
 
 def get_aggregated_relations():
     member_newsletter_members = get_list_members(member_newsletter_list_id)
-    sleep(2)
+    sleep(1.5)
 
     member_birthday_members = get_list_members(member_birthday_list_id)
-    sleep(2)
+    sleep(1.5)
 
     alumni_birthday_members = get_list_members(alumni_birthday_list_id)
 

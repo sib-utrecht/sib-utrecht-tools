@@ -7,6 +7,8 @@ import sys
 from ..conscribo.relations import (
     list_relations_members,
     list_relations_alumnus,
+    list_relations_active_members,
+    list_relations_active_alumni,
 )
 from ..conscribo.groups import get_block_email_members
 
@@ -21,7 +23,11 @@ from datetime import datetime
 logging.basicConfig(filename="laposta_sync.log", level=logging.DEBUG,
                     format="[%(asctime)s] %(levelname)s: %(message)s")
 
-logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+# Only print INFO and above to stdout
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+# console_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s"))
+logging.getLogger().addHandler(console_handler)
 
 
 def match_laposta_with_conscribo(
@@ -34,6 +40,8 @@ def match_laposta_with_conscribo(
     laposta_members_by_email.pop("", None)
 
     members_by_email = {member.get("email"): member for member in members}
+    members_by_email.pop(None, None)
+    members_by_email.pop("", None)
     members_by_dob = {
         member.get("date_of_birth"): member
         for member in members
@@ -41,11 +49,14 @@ def match_laposta_with_conscribo(
     }
 
     alumni_by_email = {alumnus.get("email"): alumnus for alumnus in alumni}
+    alumni_by_email.pop(None, None)
+    alumni_by_email.pop("", None)
     alumni_by_dob = {
         alumnus.get("date_of_birth"): alumnus
         for alumnus in alumni
         if alumnus.get("date_of_birth")
     }
+    
 
     entries = []
 
@@ -162,10 +173,12 @@ def sync_conscribo_to_laposta(dry_run=True):
 
     print(f"Block email members: {json.dumps(list(block_email_members))}")
 
-    members = list_relations_members()
-    alumni = list_relations_alumnus()
+    members = list_relations_active_members()
+    alumni = list_relations_active_alumni()
     print(f"Conscribo members count: {len(members)}")
     print(f"Conscribo alumni count: {len(alumni)}")
+
+    # No need to filter members or alumni here, already filtered by abstraction
 
     entries = match_laposta_with_conscribo(laposta_members, members, alumni)
 
@@ -202,13 +215,13 @@ def sync_conscribo_to_laposta(dry_run=True):
         block_all = False
         if laposta_member is not None and laposta_member.get("conscribo_id") == "ignore":
             logging.warning(
-                f"Skipping entry with conscribo_id 'ignore': {json.dumps(entry, indent=2, default=str)}"
+                f"Skipping entry with conscribo_id 'ignore': {json.dumps([email, first_name, last_name])}"
             )
             continue
 
         if email is None or len(email) == 0:
             logging.warning(
-                f"Skipping entry with no email: {json.dumps(entry, indent=2, default=str)}"
+                f"Skipping entry with no email: {json.dumps([first_name, last_name, (conscribo_member or {}).get('other', {}).get('selector')])}"
             )
             continue
 
@@ -294,6 +307,8 @@ def sync_conscribo_to_laposta(dry_run=True):
             desired.get("date_of_birth", None),
         } - {None, ""}
 
+        force_readd = False
+
         if len(first_names) > 1 or len(last_names) > 1 or len(date_of_births) > 1:
             logging.warning(
                 f"Warning: Inconsistent names or date of birth for {laposta_member['email']}:"
@@ -304,9 +319,10 @@ def sync_conscribo_to_laposta(dry_run=True):
             logging.warning(
                 f"  Desired: {desired.get('first_name', '')} {desired.get('last_name', '')} ({desired.get('date_of_birth', '')})"
             )
+            force_readd = True
             # continue
 
-        if current_lists == desired_lists:
+        if current_lists == desired_lists and not force_readd:
             continue
 
         conscribo_id = desired.get("conscribo_id", None)
@@ -335,8 +351,39 @@ def sync_conscribo_to_laposta(dry_run=True):
         add_lists = set(desired_lists) - set(current_lists)
         remove_lists = set(current_lists) - set(desired_lists)
 
+        if force_readd:
+            remove_lists = set(current_lists)
+            add_lists = set(desired_lists)
+
+
+        for list_id in remove_lists:
+            logging.info(f"  Removing {desired['email']} from list {list_id}")
+            member_id = laposta_member["laposta_member_ids"].get(list_id, None)
+            # logging.debug(f"  Member ID for list {list_id}: {member_id}")
+
+            if member_id is None:
+                logging.error(
+                    f"  Member ID for list {list_id} not found for {desired['email']}. Skipping removal."
+                )
+                continue
+
+            
+            url = f"/v2/member/{member_id}?list_id={list_id}"
+            logging.debug(f"  Doing DELETE to Laposta: {url}")
+
+            if dry_run:
+                logging.debug("Dry run, not executing")
+                continue
+
+            response = auth.laposta_delete(
+                url
+            )
+            logging.debug(f"Response: {json.dumps(response)}")
+            sleep(2)
+
+
         for list_id in add_lists:
-            # logging.info(f"  Adding {desired['email']} to list {list_id}")
+            logging.info(f"  Adding {desired['email']} to list {list_id}")
             # if list_id == list_members.alumni_birthday_list_id:
             #     continue
 
@@ -368,6 +415,7 @@ def sync_conscribo_to_laposta(dry_run=True):
             logging.debug(f"  Doing POST to Laposta: {json.dumps(payload, indent=2)}")
 
             if dry_run:
+                logging.debug("Dry run, not executing")
                 continue
 
             response = auth.laposta_post(
@@ -376,28 +424,4 @@ def sync_conscribo_to_laposta(dry_run=True):
             )
 
             logging.debug(f"Response: {json.dumps(response)}")
-            sleep(3)
-
-        for list_id in remove_lists:
-            # logging.info(f"  Removing {desired['email']} from list {list_id}")
-            member_id = laposta_member["laposta_member_ids"].get(list_id, None)
-            # logging.debug(f"  Member ID for list {list_id}: {member_id}")
-
-            if member_id is None:
-                logging.error(
-                    f"  Member ID for list {list_id} not found for {desired['email']}. Skipping removal."
-                )
-                continue
-
-            
-            url = f"/v2/member/{member_id}?list_id={list_id}"
-            logging.debug(f"  Doing DELETE to Laposta: {url}")
-
-            if dry_run:
-                continue
-
-            response = auth.laposta_delete(
-                url
-            )
-            logging.debug(f"Response: {json.dumps(response)}")
-            sleep(3)
+            sleep(2)

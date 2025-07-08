@@ -187,3 +187,27 @@ def list_relations_alumnus():
     ]
 
     return relations
+
+
+def list_relations_active_members():
+    """
+    Returns members whose membership_end is None or in the future (active members).
+    """
+    import datetime
+    today = datetime.date.today().isoformat()
+    members = list_relations_members()
+    active_members = []
+    for member in members:
+        membership_end = member.get("membership_end")
+        if not membership_end or membership_end >= today:
+            active_members.append(member)
+    return active_members
+
+
+def list_relations_active_alumni():
+    """
+    Returns alumni whose requested_deregistration_alumnus is False or not set (active alumni).
+    """
+    alumni = list_relations_alumnus()
+    active_alumni = [alumnus for alumnus in alumni if not alumnus.get("requested_deregistration_alumnus", False)]
+    return active_alumni
