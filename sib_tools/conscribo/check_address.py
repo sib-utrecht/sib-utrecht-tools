@@ -299,7 +299,6 @@ def check_address(
 
 def check_addresses(logger: 'Logger', include_alumni=True, include_members=True):
     logger.info("\x1b[94mPreparing...\x1b[0m")
-    auth.do_auth()
     if include_members:
         personen = list_relations_persoon()
         logger.info(f"Fetched {len(personen)} persons from Conscribo.")

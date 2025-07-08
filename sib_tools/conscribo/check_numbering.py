@@ -65,8 +65,6 @@ def check_relation_number_correct(relation, logger: 'Logger'):
 def check_numbering(logger: 'Logger'):
     logger.info("\x1b[94mPreparing...\x1b[0m")
 
-    auth.do_auth()
-
     relations = list_relations_persoon()
     logger.info(f"Fetched {len(relations)} relations from Conscribo.")
     logger.info("")

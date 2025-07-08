@@ -22,6 +22,12 @@ handler = logging.FileHandler("conscribo_api.log")
 handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s"))
 logger.addHandler(handler)
 
+# Also print to console
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+logger.addHandler(console_handler)
+
 # Define ApiRequestError for better error handling
 class ApiRequestError(Exception):
     def __init__(self, message, status_code=None):
@@ -38,6 +44,28 @@ def prompt_credentials():
 
 Returns the session id of the authenticated user.
 """
+
+
+def validate_session(session_id: str) -> bool:
+    """
+    Checks if the session is still valid by calling /sessions/.
+    Returns True if valid, False otherwise.
+    """
+    try:
+        res = requests.get(
+            f"{api_url}/sessions/",
+            headers={
+                "X-Conscribo-SessionId": session_id,
+                "X-Conscribo-API-Version": "1.20240610",
+            },
+        )
+        if res.status_code == 400:
+            logger.info("Session invalid (400), need to re-authenticate.")
+            return False
+        return res.ok
+    except Exception as e:
+        logger.error(f"Error validating session: {e}")
+        return False
 
 
 def authenticate() -> str:
@@ -82,7 +110,8 @@ def authenticate() -> str:
 
     user_display_name = auth_session["userDisplayName"]
     session_id = auth_session["sessionId"]
-
+    # Cache session id in keyring
+    keyring.set_password("sib-conscribo", "session-id", session_id)
     return session_id
 
 
@@ -93,10 +122,20 @@ def do_auth():
 
 def get_conscribo_session_id():
     global session_id
-
-    if session_id is None:
-        session_id = authenticate()
-
+    if session_id is not None:
+        return session_id
+    # Try to get session id from keyring
+    cached_session_id = keyring.get_password("sib-conscribo", "session-id")
+    logger.info(f"Cached session id present: {cached_session_id is not None}")
+    if cached_session_id:
+        if validate_session(cached_session_id):
+            session_id = cached_session_id
+            logger.info("Using cached session id.")
+            return session_id
+        else:
+            logger.info("Cached session id invalid, re-authenticating.")
+    # Authenticate and cache new session id
+    session_id = authenticate()
     return session_id
 
 

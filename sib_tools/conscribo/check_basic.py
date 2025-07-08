@@ -75,8 +75,6 @@ def check_relation_fields_nonempty(relation, logger: 'Logger', report=True):
 def check_basic(logger: 'Logger'):
     logger.info("\x1b[94mPreparing...\x1b[0m")
 
-    auth.do_auth()
-
     personen = list_relations_persoon()
     alumni = list_relations_alumnus()
 
