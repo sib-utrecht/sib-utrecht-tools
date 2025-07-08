@@ -322,6 +322,10 @@ def sync_conscribo_to_laposta(dry_run=True):
             force_readd = True
             # continue
 
+        if laposta_member.get("email") != desired.get("email"):
+            logging.info(f"Updating email {laposta_member.get('email')} to {desired.get('email')}")
+            force_readd = True
+
         if current_lists == desired_lists and not force_readd:
             continue
 
@@ -357,13 +361,13 @@ def sync_conscribo_to_laposta(dry_run=True):
 
 
         for list_id in remove_lists:
-            logging.info(f"  Removing {desired['email']} from list {list_id}")
+            logging.info(f"  Removing {laposta_member['email']} from list {list_id}")
             member_id = laposta_member["laposta_member_ids"].get(list_id, None)
             # logging.debug(f"  Member ID for list {list_id}: {member_id}")
 
             if member_id is None:
                 logging.error(
-                    f"  Member ID for list {list_id} not found for {desired['email']}. Skipping removal."
+                    f"  Member ID for list {list_id} not found for {laposta_member['email']}. Skipping removal."
                 )
                 continue
 
