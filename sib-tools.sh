@@ -2,5 +2,5 @@
 
 set -e
 
-PYTHONPATH="$PWD/member-admin:$PYTHONPATH" \
+PYTHONPATH="$PWD:$PYTHONPATH" \
   python -m sib_tools "$@"

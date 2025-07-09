@@ -1,8 +1,10 @@
 requests
 keyring
-getpass
 beaupy
 regex
 python-dotenv
-
-
+traitlets
+google-auth
+google-api-python-client
+jsonpatch
+tabulate
