@@ -9,7 +9,7 @@ import importlib
 from datetime import datetime, timezone
 
 def handle_listen_email(args):
-    from .serve import run_email_listener
+    from .listen_sns_for_email import run_email_listener
 
     run_email_listener()
 

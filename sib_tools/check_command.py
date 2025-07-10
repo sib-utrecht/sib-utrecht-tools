@@ -8,7 +8,6 @@ import re
 import importlib
 from datetime import datetime, timezone
 
-
 def mail_results(
     contents: str,
     subject: str = "Health check report by sib-tools",
@@ -19,19 +18,13 @@ def mail_results(
     This function is a placeholder and should be implemented with actual mailing logic.
     """
     import boto3
+    from .aws.auth import get_ses_client
     from .cognito import auth as cognito_auth
 
     if logger is None:
         logger = logging.getLogger()
 
-    access_key, secret_key, session_token = cognito_auth.authenticate()
-    ses_client = boto3.client(
-        "ses",
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        aws_session_token=session_token,
-        region_name="eu-central-1",
-    )
+    ses_client = get_ses_client()
     ses_client.send_email(
         Source="member-admin-bot@sib-utrecht.nl",
         Destination={"ToAddresses": ["secretaris@sib-utrecht.nl"]},
