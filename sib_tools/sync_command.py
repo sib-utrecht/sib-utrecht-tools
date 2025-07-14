@@ -24,7 +24,7 @@ def handle_sync(args: Namespace):
 
         sync_conscribo_to_cognito_groups(dry_run=args.dry_run)
         return
-    
+
     if args.dest == "cognito-groups-to-conscribo":
         from .sync.cognito_to_conscribo_groups import sync_cognito_to_conscribo_groups
 
@@ -34,7 +34,16 @@ def handle_sync(args: Namespace):
     if args.dest == "google-groups":
         from .sync.conscribo_to_google_groups import sync_conscribo_to_google_groups
 
-        sync_conscribo_to_google_groups(dry_run=args.dry_run, group=getattr(args, 'group', 'alumni'))
+        sync_conscribo_to_google_groups(
+            dry_run=args.dry_run, group=getattr(args, "group", "alumni")
+        )
+        return
+
+    if args.dest == "google-contacts":
+        from .sync.conscribo_to_google_contacts import sync_conscribo_to_google_contacts
+
+        # Only consider contacts with label 'Member'
+        sync_conscribo_to_google_contacts(dry_run=args.dry_run)
         return
 
     raise ValueError(f"Unknown destination: {args.dest}")
@@ -45,7 +54,14 @@ def add_parse_args(parser: ArgumentParser):
     parser.add_argument(
         "dest",
         type=str,
-        choices=["cognito", "laposta", "cognito-groups", "cognito-groups-to-conscribo", "google-groups"],
+        choices=[
+            "cognito",
+            "laposta",
+            "cognito-groups",
+            "cognito-groups-to-conscribo",
+            "google-groups",
+            "google-contacts",
+        ],
         help="Destination service to sync members to.",
     )
 

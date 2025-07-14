@@ -241,6 +241,24 @@ def handle_list_google_groups_members(args: Namespace):
     print()
 
 
+def handle_list_google_contacts(args: Namespace):
+    """
+    List Google Contacts with a specific label (default: 'Member').
+    """
+    from sib_tools.google.contacts import list_google_contacts
+
+    label = args.label or "Member"
+    limit = args.limit if args.limit is not None else None
+    offset = args.offset if args.offset is not None else 0
+    raw = args.raw
+
+    contacts = list_google_contacts(
+        label_name=label, raw=raw, limit=limit, offset=offset
+    )
+    print(json.dumps(contacts, indent=2))
+    print()
+
+
 def add_parse_args(parser: ArgumentParser):
     parser.set_defaults(func=lambda args: parser.print_help())
     subparser = parser.add_subparsers(
@@ -339,7 +357,36 @@ def add_parse_args(parser: ArgumentParser):
     google_groups_members_parser.add_argument(
         "--raw",
         action="store_true",
-        help="If set, print raw JSON output instead of formatted lines."
+        help="If set, print raw JSON output instead of formatted lines.",
     )
     google_groups_members_parser.set_defaults(func=handle_list_google_groups_members)
+
+    google_contacts_parser = subparser.add_parser(
+        "google-contacts",
+        help="List Google Contacts with a specific label (default: 'Member')",
+    )
+    google_contacts_parser.add_argument(
+        "--label",
+        type=str,
+        required=False,
+        default="Member",
+        help="Label to filter contacts by (default: 'Member')",
+    )
+    google_contacts_parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="If set, print raw JSON output instead of canonicalized contacts.",
+    )
+    google_contacts_parser.add_argument(
+        "--limit", type=int, required=False, help="Limit the number of contacts shown."
+    )
+    google_contacts_parser.add_argument(
+        "--offset",
+        type=int,
+        required=False,
+        default=0,
+        help="Offset for pagination (default: 0)",
+    )
+    google_contacts_parser.set_defaults(func=handle_list_google_contacts)
+
     return parser

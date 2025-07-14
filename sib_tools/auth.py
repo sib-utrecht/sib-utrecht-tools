@@ -71,9 +71,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
         {
             "name": "Google",
             "key": "google",
-            "signin": lambda: google_auth.prompt_and_store_in_keyring(
-                "GOOGLE_ADMIN_EMAIL", "Enter your Google Workspace admin email: "
-            ),
+            "signin": google_auth.prompt_credentials,
             "check-available": google_auth.check_available,
             "signout": google_auth.signout,
         },

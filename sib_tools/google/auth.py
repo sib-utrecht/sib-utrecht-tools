@@ -19,6 +19,10 @@ import getpass
 import pathlib
 import json
 
+# Manage at https://console.cloud.google.com/
+# Manage at https://admin.google.com/ac/owl/domainwidedelegation
+
+
 # Scopes for Directory API and Groups Settings API
 directory_scopes = [
     "https://www.googleapis.com/auth/admin.directory.group.readonly",
@@ -57,6 +61,17 @@ def prompt_and_store_in_keyring(
 
 SERVICE_ACCOUNT_FILE = None
 ADMIN_EMAIL = None
+
+def prompt_credentials():
+    global SERVICE_ACCOUNT_FILE, ADMIN_EMAIL
+
+    ADMIN_EMAIL = prompt_and_store_in_keyring(
+        "GOOGLE_ADMIN_EMAIL", "Enter your Google Workspace admin email: "
+    )
+    SERVICE_ACCOUNT_FILE = prompt_and_store_in_keyring(
+        "GOOGLE_SERVICE_ACCOUNT_FILE",
+        "Enter the path to your Google service account JSON file: ",
+    )
 
 def ensure_credentials():
     global SERVICE_ACCOUNT_FILE
