@@ -243,11 +243,11 @@ def handle_list_google_groups_members(args: Namespace):
 
 def handle_list_google_contacts(args: Namespace):
     """
-    List Google Contacts with a specific label (default: 'Member').
+    List Google Contacts with a specific label.
     """
-    from sib_tools.google.contacts import list_google_contacts
+    from sib_tools.google.contacts import list_google_contacts, GOOGLE_CONTACTS_MEMBER_LABEL
 
-    label = args.label or "Member"
+    label = args.label or GOOGLE_CONTACTS_MEMBER_LABEL
     limit = args.limit if args.limit is not None else None
     offset = args.offset if args.offset is not None else 0
     raw = args.raw
@@ -363,14 +363,13 @@ def add_parse_args(parser: ArgumentParser):
 
     google_contacts_parser = subparser.add_parser(
         "google-contacts",
-        help="List Google Contacts with a specific label (default: 'Member')",
+        help="List Google Contacts with a specific label",
     )
     google_contacts_parser.add_argument(
         "--label",
         type=str,
         required=False,
-        default="Member",
-        help="Label to filter contacts by (default: 'Member')",
+        help="Label to filter contacts by",
     )
     google_contacts_parser.add_argument(
         "--raw",
