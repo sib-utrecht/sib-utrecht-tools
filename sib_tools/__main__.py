@@ -9,6 +9,10 @@ from . import (
     serve_command,
 )
 from .command_exception import CommandException
+import os
+import keyring
+from .auth import configure_keyring
+configure_keyring()
 
 
 def main(args=None):

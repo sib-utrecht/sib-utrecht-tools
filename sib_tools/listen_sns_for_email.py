@@ -14,10 +14,15 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.backends import default_backend
 import re
 import boto3
+import traceback
 from pathlib import Path
+
 
 from .aws.auth import get_s3_client
 from .email.process_elm_file import process_email
+
+from .auth import check_available_auth, configure_keyring
+configure_keyring()
 
 # Make sure you have install the following packages:
 # sudo pip install gunicorn
@@ -30,6 +35,10 @@ app = Flask(__name__)
 AUTOCONFIRM_SUBSCRIPTION = False
 
 mail_output_dir = Path.cwd() / "mails"
+
+# Do credentials check print
+print("Available credentials:")
+check_available_auth(non_interactive=True)
 
 
 @app.route("/sns-incoming", methods=["POST"])
@@ -72,7 +81,7 @@ def sns_incoming():
     if "Type" in data and data["Type"] == "Notification":
         # The message contains the header of the e-mail and where it is stored,
         # but not the body
-        message = data["Message"]
+        message = json.loads(data["Message"])
 
         mail = message.get("mail", {})
         receipt = message.get("receipt", {})
@@ -103,8 +112,8 @@ def sns_incoming():
             print("No action specified in receipt", file=sys.stderr)
             return "", 200
         
-        bucket_name = receipt.get("bucketName")
-        objectKey = receipt.get("objectKey")
+        bucket_name = action.get("bucketName")
+        objectKey = action.get("objectKey")
 
         if bucket_name is None or objectKey is None:
             print("Missing bucketName or objectKey in receipt", file=sys.stderr)
@@ -124,6 +133,7 @@ def sns_incoming():
         # Download the e-mail from the S3 bucket
         try:
             s3_client = get_s3_client()
+            mail_output_path.parent.mkdir(parents=True, exist_ok=True)
             s3_client.download_file(bucket_name, objectKey, mail_output_path)
 
             print(f"Downloaded e-mail to {mail_output_path}")
@@ -135,6 +145,7 @@ def sns_incoming():
 
         except Exception as e:
             print(f"Failed to process e-mail: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
         return "", 200
     return "", 400
 

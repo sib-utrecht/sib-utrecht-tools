@@ -139,6 +139,15 @@ def laposta_patch(url : str, body : dict[str]) -> dict[str]:
     )
     return response.json()
 
+def check_available():
+    return keyring.get_password("laposta", "api-key")
+
+def signout():
+    try:
+        keyring.delete_password("laposta", "api-key")
+    except keyring.errors.PasswordDeleteError:
+        pass
+
 
 
 

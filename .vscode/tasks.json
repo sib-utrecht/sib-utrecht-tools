@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Restart SIB Tools",
+			"type": "shell",
+			"command": "./restart.sh",
+			"group": "build",
+			"problemMatcher": [],
+			"args": []
+		}
+	]
+}

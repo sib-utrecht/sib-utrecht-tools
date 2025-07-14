@@ -6,6 +6,8 @@ __all__ = [
     "get_credentials",
     "list_groups_directory_api",
     "list_groups_settings_api",
+    "check_available",
+    "signout",
 ]
 
 import os
@@ -142,3 +144,20 @@ def list_group_members_api(group_email: str) -> list:
     except Exception as e:
         print(f"Error listing members for group {group_email}: {e}")
         return []
+
+
+def check_available():
+    """
+    Check if Google admin email is available in keyring.
+    """
+    return keyring.get_password("sib_tools_google", "GOOGLE_ADMIN_EMAIL")
+
+
+def signout():
+    """
+    Sign out of Google by removing admin email from keyring.
+    """
+    try:
+        keyring.delete_password("sib_tools_google", "GOOGLE_ADMIN_EMAIL")
+    except keyring.errors.PasswordDeleteError:
+        pass

@@ -201,3 +201,13 @@ def conscribo_patch(url : str, json : dict) -> dict:
         },
         json=json,
     ).json()
+
+
+def check_available():
+    return keyring.get_password("sib-conscribo", "member-admin-bot")
+
+def signout():
+    try:
+        keyring.delete_password("sib-conscribo", "member-admin-bot")
+    except keyring.errors.PasswordDeleteError:
+        pass

@@ -7,6 +7,7 @@ from html import escape
 import re
 import importlib
 from datetime import datetime, timezone
+from .auth import check_available_auth
 
 def mail_results(
     contents: str,
@@ -31,6 +32,7 @@ def mail_results(
         Message={"Subject": {"Data": subject}, "Body": {"Html": {"Data": contents}}},
     )
     logger.info("Mailed results via AWS SES to secretaris@sib-utrecht.nl.")
+
 
 
 def handle_check(args: Namespace):
@@ -86,6 +88,13 @@ def handle_check(args: Namespace):
                 include_alumni=args.include_alumni or args.only_alumni,
                 include_members=not args.only_alumni,
             )
+        elif getattr(args, "healthcheck", None) == "available-auth":
+            check_available_auth(
+                logger=logger,
+                non_interactive=getattr(args, "non_interactive", False),
+                signin_action=getattr(args, "signin_action", None),
+            )
+            return
         else:
             raise ValueError(f"Unknown health check: {args.healthcheck}")
     finally:
@@ -94,7 +103,6 @@ def handle_check(args: Namespace):
             f"\x1b[90mFinished at: {datetime.now().astimezone().isoformat().replace('T', ' ').replace('+', ' | Timezone: UTC+')}\x1b[0m"
         )
         logger.removeHandler(memory_handler)
-
 
     if args.output_to_html or args.mail_output:
         log_contents = log_stream.getvalue()
@@ -169,6 +177,20 @@ def add_parse_args(parser: ArgumentParser):
         "--only-alumni",
         action="store_true",
         help="Only check alumni addresses (exclude members)",
+    )
+    available_auth_parser = create_subparser(
+        "available-auth",
+        help="Check which services have credentials and interactively sign in if missing.",
+    )
+    available_auth_parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Do not prompt for sign-in, just log status.",
+    )
+    available_auth_parser.add_argument(
+        "--signin-action",
+        metavar="SERVICE:ACTION",
+        help="Perform a sign-in or rotate action directly, e.g. 'aws:rotate' or 'aws:signin'",
     )
     return parser
 

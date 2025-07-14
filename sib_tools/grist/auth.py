@@ -188,3 +188,12 @@ def grist_patch(url : str, body : dict | list, query : dict = None) -> dict:
 
         raise Exception(message)
     return response.json()
+
+def check_available():
+    return keyring.get_password("grist", "member-admin-bot")
+
+def signout():
+    try:
+        keyring.delete_password("grist", "member-admin-bot")
+    except keyring.errors.PasswordDeleteError:
+        pass

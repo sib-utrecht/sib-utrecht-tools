@@ -1,5 +1,6 @@
 requests
 keyring
+keyrings.cryptfile
 beaupy
 regex
 python-dotenv
@@ -8,3 +9,8 @@ google-auth
 google-api-python-client
 jsonpatch
 tabulate
+boto3
+flask
+beautifulsoup4
+gunicorn
+dkimpy
