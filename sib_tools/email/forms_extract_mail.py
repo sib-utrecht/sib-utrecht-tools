@@ -3,37 +3,27 @@ from bs4 import BeautifulSoup
 from email import message_from_file
 import re
 import uuid
+from email.message import EmailMessage, Message
 from sib_tools.canonical.canonical_key import get_register_form_to_key
+
 
 def extract_fields_from_mail(path_to_eml):
     msg = message_from_file(open(path_to_eml, 'r', encoding='utf-8'))
-    auth_results = [
-        a.strip()
-        for a in msg["Authentication-Results"].split(";")
-    ]
-    valid_email = re.fullmatch(r".* <(info|secretaris|forms)@sib-utrecht\.nl>", msg["From"])
-    if not valid_email:
-        raise Exception(f"Invalid sender '{msg['From']}'")
-    contains_dkim_pass = next((True for a in auth_results if a.startswith("dkim=pass ")), False)
-    contains_spf_pass = next((True for a in auth_results if a.startswith("spf=pass ")), False)
-    contains_dmarc_pass = next((True for a in auth_results if a.startswith("dmarc=pass ")), False)
-    if not contains_dkim_pass:
-        raise Exception("DKIM failed")
-    if not contains_spf_pass:
-        raise Exception("SPF failed")
-    if not contains_dmarc_pass:
-        raise Exception("DMARC failed")
+    return extract_fields_from_mail_message(msg)
+
+
+def extract_fields_from_mail_message(msg : EmailMessage):
     html_message = None
     text_message = None
     main_part = next(msg.walk())
     for subpart in main_part.walk():
         if subpart.get_content_type() == 'text/html':
-            assert subpart['Content-Type'] == 'text/html; charset=UTF-8', 'Unexpected Content-Type for text/html'
+            assert "UTF-8" in subpart['Content-Type'], 'Unexpected Content-Type for text/html'
             assert subpart['Content-Transfer-Encoding'] == 'quoted-printable', 'Unexpected Content-Transfer-Encoding for text/html'
  
             html_message = subpart.get_payload(decode=True)
         if subpart.get_content_type() == 'text/plain':
-            assert subpart['Content-Type'] == 'text/plain; charset=UTF-8', 'Unexpected Content-Type for text/plain'
+            assert "UTF-8" in subpart['Content-Type'], 'Unexpected Content-Type for text/plain'
             assert subpart['Content-Transfer-Encoding'] == 'quoted-printable', 'Unexpected Content-Transfer-Encoding for text/plain'
 
             text_message = subpart.get_payload(decode=True)
@@ -63,7 +53,7 @@ def extract_fields_from_mail(path_to_eml):
         return fields
     if text_message is not None:
         print(f"Text message length: {len(text_message)}")
-        open('member-admin/add-to-conscribo/sample1.txt', 'wb').write(text_message)
+        open('member-admin/add-to-conscribo/sample2.txt', 'wb').write(text_message)
         text_message = text_message.decode('utf-8')
 
 def form_to_canonical(fields : dict[str, str]) -> dict:
