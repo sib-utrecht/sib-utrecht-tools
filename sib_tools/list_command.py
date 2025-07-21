@@ -1,11 +1,13 @@
 import argparse
 from argparse import ArgumentParser, Namespace
 import sys
-from sib_tools.conscribo.relations import list_relations_alumnus
+from sib_tools.conscribo.relations import list_relations_alumnus, list_relations_members, list_relations_active_members
 import json
 import beaupy
+from unidecode import unidecode
 from time import sleep
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone
+
 
 from sib_tools.conscribo.finance import (
     list_conscribo_transactions,
@@ -22,6 +24,7 @@ from sib_tools.google.auth import (
     list_group_members_api,
 )
 
+
 #  ./sib-tools.sh list conscribo-transactions 2025-01-01 2025-07-07
 
 
@@ -35,6 +38,137 @@ def handle_list_alumnus(args: Namespace):
     else:
         print(json.dumps(alumni, indent=2))
         print()
+
+
+def handle_list_education(args: Namespace):
+    """List educational institution counts among members."""
+    active_date = args.date or date.today().isoformat()
+
+    print(f"Showing educational institution counts for active members as of {active_date}")
+
+    # members = list_relations_members()
+    members = list_relations_active_members(date=active_date)
+
+    # Count occurrences of educational institutions
+    education_counts = {}
+    total_members = len(members)
+
+    institution_mapper = {
+        "UU": "Universiteit Utrecht",
+        "HKU": "Hogeschool voor de Kunsten Utrecht",
+        "HU": "Hogeschool Utrecht",
+        "Utrecht University": "Universiteit Utrecht",
+        "Graduate School Life Science": "Universiteit Utrecht",
+        "Hogeschool van de Kunsten Utrecht": "Hogeschool voor de Kunsten Utrecht",
+    }
+
+    for member in members:
+        education = member.get("educational_institution") or "(empty)"
+        education = institution_mapper.get(education, education)
+        member["institution"] = education
+
+        education_counts[education] = education_counts.get(education, 0) + 1
+
+    # Sort by count (descending) then by name
+    sorted_education = sorted(education_counts.items(), key=lambda x: (-x[1], x[0]))
+
+    print(f"Educational Institution Statistics")
+    print(f"=================================")
+    print(f"Total members: {total_members}")
+    print(f"Unique educational institutions: {len(education_counts)}")
+    print()
+
+    if args.raw:
+        # Print raw JSON output
+        result = {
+            "total_members": total_members,
+            "unique_institutions": len(education_counts),
+            "institution_counts": dict(sorted_education),
+        }
+        print(json.dumps(result, indent=2))
+    elif args.csv:
+        # Print CSV output for spreadsheet analysis
+        print("Educational Institution,Count,Percentage")
+        for institution, count in sorted_education:
+            percentage = (count / total_members) * 100
+            # Escape commas in institution names by quoting
+            institution_escaped = f'"{institution}"' if ',' in institution else institution
+            print(f"{institution_escaped},{count},{percentage:.1f}")
+        
+        # If --list-people is also specified, print detailed member information
+        if args.list_people:
+            print()
+            columns = ["institution", "number", "first_name", "last_name", "date_of_birth", "study"]
+            print(",".join(columns))
+            
+            # Create a list of members with their institutions for sorting
+            members_with_institutions = []
+            for member in members:
+                institution = member.get("institution") or "(empty)"
+                first_name = member.get("first_name") or ""
+                last_name = member.get("last_name") or ""
+                date_of_birth = member.get("date_of_birth") or ""
+                study = member.get("study") or ""
+                
+                members_with_institutions.append({
+                    "institution": institution,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "date_of_birth": date_of_birth,
+                    "study": study,
+                    "institution_count": education_counts[institution]
+                })
+            
+            # Sort by institution count (descending), then by first name (ascending, diacritics removed)
+            members_with_institutions.sort(
+                key=lambda x: (
+                    -x["institution_count"],
+                    unidecode(x["first_name"]).lower(),
+                    unidecode(x["last_name"]).lower()
+                )
+            )
+            
+            # Print the CSV data
+            institution_group = None
+            count_for_institution = 0
+
+            for member in members_with_institutions:
+                institution = member.get("institution")
+
+                if institution != institution_group:
+                    count_for_institution = 0
+                    institution_group = institution
+
+                count_for_institution += 1
+
+                member["number"] = count_for_institution
+                
+                data = [
+                    member.get(col, "")
+                    for col in columns
+                ]
+
+                for k, v in list(enumerate(data)):
+                    v = str(v or "")
+                    # Escape any quotes
+                    v = v.replace('"', '""')
+
+                    # Escape any commas in the data by quoting
+                    if ',' in v or '"' in v:
+                        v = f'"{v}"'
+                    data[k] = v
+
+                print(",".join(data))
+
+    else:
+        # Print formatted output
+        print("Educational Institution Counts:")
+        print("--------------------------------")
+        for institution, count in sorted_education:
+            percentage = (count / total_members) * 100
+            print(f"{institution}: {count} ({percentage:.1f}%)")
+
+    print()
 
 
 def handle_list_accounts(args: Namespace):
@@ -274,6 +408,32 @@ def add_parse_args(parser: ArgumentParser):
         help="Conscribo ID of the alumnus to query",
     )
     alumnus_parser.set_defaults(func=handle_list_alumnus)
+
+    education_parser = subparser.add_parser(
+        "conscribo-education", help="List educational institution counts among members"
+    )
+    education_parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="If set, print raw JSON output instead of formatted counts",
+    )
+    education_parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="If set, print output in CSV format for spreadsheet analysis",
+    )
+    education_parser.add_argument(
+        "--date",
+        type=str,
+        required=False,
+        help="Date at which the member needed to be active (default: today) (YYYY-MM-DD)",
+    )
+    education_parser.add_argument(
+        "--list-people",
+        action="store_true",
+        help="When combined with --csv, also print detailed member information",
+    )
+    education_parser.set_defaults(func=handle_list_education)
 
     accounts_parser = subparser.add_parser(
         "conscribo-accounts", help="List Conscribo accounts for a given date"

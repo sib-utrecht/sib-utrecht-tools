@@ -46,6 +46,22 @@ def handle_sync(args: Namespace):
         sync_conscribo_to_google_contacts(dry_run=args.dry_run)
         return
 
+    if args.dest == "conscribo-list":
+        from .sync.sync_conscribo_to_conscribo_list import sync_active_members_to_group, sync_active_alumni_to_group
+
+        group_id = getattr(args, "group_id", None)
+        if group_id is None:
+            raise ValueError("group_id is required for conscribo-list destination")
+        
+        member_type = getattr(args, "member_type", "members")
+        if member_type == "members":
+            sync_active_members_to_group(group_id, dry_run=args.dry_run)
+        elif member_type == "alumni":
+            sync_active_alumni_to_group(group_id, dry_run=args.dry_run)
+        else:
+            raise ValueError(f"Unknown member_type: {member_type}")
+        return
+
     raise ValueError(f"Unknown destination: {args.dest}")
 
 
@@ -61,6 +77,7 @@ def add_parse_args(parser: ArgumentParser):
             "cognito-groups-to-conscribo",
             "google-groups",
             "google-contacts",
+            "conscribo-list",
         ],
         help="Destination service to sync members to.",
     )
@@ -82,5 +99,17 @@ def add_parse_args(parser: ArgumentParser):
         choices=["members", "alumni"],
         default="alumni",
         help="(Only applies to 'google-groups') Which group to sync: 'members' or 'alumni' (default: alumni)",
+    )
+    parser.add_argument(
+        "--group-id",
+        type=int,
+        default=53,
+        help="(Required for 'conscribo-list') The ID of the Conscribo group to sync to",
+    )
+    parser.add_argument(
+        "--member-type",
+        choices=["members", "alumni"],
+        default="members",
+        help="(Only applies to 'conscribo-list') Which member type to sync: 'members' or 'alumni' (default: members)",
     )
     return parser

@@ -177,6 +177,19 @@ def get_key_to_conscribo() -> dict:
 
     return key_to_conscribo
 
+def get_key_to_conscribo_alumnus() -> dict:
+    parsed_data = get_parsed_data()
+
+    key_to_conscribo_alumnus = {
+        row["Key"]: row["ConscriboAlumni"]
+
+        for row in parsed_data
+        if row.get("Key") and row.get("ConscriboAlumni")
+    }
+
+    return key_to_conscribo_alumnus
+
+
 def get_key_to_laposta() -> dict:
     parsed_data = get_parsed_data()
 

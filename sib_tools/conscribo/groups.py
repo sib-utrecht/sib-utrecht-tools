@@ -89,3 +89,71 @@ def remove_relations_from_group(
     )
 
 
+def set_group_members(
+    group_id: int,
+    canonical_members: list[dict],
+    dry_run: bool = True
+):
+    """
+    Set the members of a Conscribo group based on a list of canonical members.
+    
+    Args:
+        group_id: The ID of the Conscribo group
+        canonical_members: List of canonical member dictionaries
+        dry_run: If True, only show what would be changed without making actual changes
+    
+    This function will:
+    1. Get the current group members
+    2. Extract conscribo_ids from the canonical members
+    3. Add missing members to the group
+    4. Remove members that shouldn't be in the group
+    """
+    print(f"Setting members for group {group_id}")
+    
+    # Get current group members
+    current_members = get_group_members_cached(group_id)
+    print(f"Current group has {len(current_members)} members")
+    
+    # Extract conscribo_ids from canonical members
+    desired_member_ids = set()
+    for member in canonical_members:
+        conscribo_id = member.get("conscribo_id")
+        if conscribo_id:
+            desired_member_ids.add(str(conscribo_id))
+    
+    print(f"Target group should have {len(desired_member_ids)} members")
+    
+    # Determine what changes need to be made
+    members_to_add = desired_member_ids - current_members
+    members_to_remove = current_members - desired_member_ids
+    
+    print(f"Need to add {len(members_to_add)} members")
+    print(f"Need to remove {len(members_to_remove)} members")
+
+    print(f"Adding members: {list(members_to_add)}")
+    print(f"Removing members: {list(members_to_remove)}")
+    
+    if dry_run:
+        print("DRY RUN MODE - No actual changes will be made")
+        if members_to_add:
+            print(f"Would add members: {list(members_to_add)}")
+        if members_to_remove:
+            print(f"Would remove members: {list(members_to_remove)}")
+        return
+    
+    # Add missing members
+    if members_to_add:
+        print(f"Adding {len(members_to_add)} members to group {group_id}")
+        add_relations_to_group(group_id, list(members_to_add))
+    
+    # Remove extra members
+    if members_to_remove:
+        print(f"Removing {len(members_to_remove)} members from group {group_id}")
+        remove_relations_from_group(group_id, list(members_to_remove))
+    
+    if not members_to_add and not members_to_remove:
+        print("Group membership is already up to date")
+    else:
+        print(f"Group {group_id} membership updated successfully")
+
+

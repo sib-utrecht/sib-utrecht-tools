@@ -9,6 +9,9 @@ from ..canonical.canonical_key import flatten_dict
 from .constants import api_url
 from .auth import conscribo_post, conscribo_get, conscribo_patch
 
+ENTITY_TYPE_PERSON = "persoon"
+ENTITY_TYPE_ALUMNUS = "re__nisten"
+
 # print(json.dumps(entity_groups, indent=2))
 
 def list_filter_raw(fieldNames, filters):
@@ -121,6 +124,39 @@ def update_relation(canonical):
 
     print("\n\n")
 
+def create_relation_member(canonical):
+    canonical = flatten_dict(canonical)
+    to_conscribo = canonical_key.get_key_to_conscribo()
+
+    to_conscribo["house_number_full"] = to_conscribo.get("house_number_full") or "huisnr"
+
+    conscribo_relation = dict()
+
+    for k, v in canonical.items():
+        conscribo_key = to_conscribo.get(k, None)
+
+        if conscribo_key is None:
+            print(f"Missing translation for {k} to Conscribo field")
+            continue
+            # raise Exception(f"Missing translation for {k} to Conscribo field")
+
+        conscribo_relation[conscribo_key] = v
+
+    # Unflatten dict
+    conscribo_relation = canonical_key.expand_dict(conscribo_relation)
+
+    print(f"Creating Conscribo relation with\n{json.dumps(conscribo_relation, indent=4)}")
+
+    conscribo_post(
+        "/relations/",
+        json={
+            "entityType": canonical.get("conscribo_entity_type", ENTITY_TYPE_PERSON),
+            "fields": conscribo_relation,
+        },
+    )
+
+    print("\n\n")
+
 
 def list_relations_persoon():
     fieldDefinitions = conscribo_get(f"/relations/fieldDefinitions/persoon")["fields"]
@@ -189,17 +225,26 @@ def list_relations_alumnus():
     return relations
 
 
-def list_relations_active_members():
+def list_relations_active_members(date=None):
     """
     Returns members whose membership_end is None or in the future (active members).
     """
     import datetime
-    today = datetime.date.today().isoformat()
+    import re
+    cutoff_date = date or datetime.date.today().isoformat()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cutoff_date):
+        raise ValueError(f"Invalid date format: {cutoff_date}. Expected YYYY-MM-DD.")
+
+    # today = datetime.date.today().isoformat()
+
     members = list_relations_members()
     active_members = []
     for member in members:
+        if member.get("conscribo_id") == "666":
+            continue
+
         membership_end = member.get("membership_end")
-        if not membership_end or membership_end >= today:
+        if not membership_end or membership_end >= cutoff_date:
             active_members.append(member)
     return active_members
 
