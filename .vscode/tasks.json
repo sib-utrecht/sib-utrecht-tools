@@ -8,6 +8,24 @@
 			"group": "build",
 			"problemMatcher": [],
 			"args": []
+		},
+		{
+			"label": "Listen for email log",
+			"type": "shell",
+			"command": "journalctl -fu sib-tools-listen-email",
+			"group": "build"
+		},
+		{
+			"label": "Tail Incoming Email Log",
+			"type": "shell",
+			"command": "tail -f sib_tools_incoming_email.log",
+			"group": "build"
+		},
+		{
+			"label": "Tail All Incoming Logs",
+			"type": "shell",
+			"command": "tail -f sib_tools_incoming_email.log sib_tools_check.log sns_incoming.log conscribo_api.log",
+			"group": "build"
 		}
 	]
 }

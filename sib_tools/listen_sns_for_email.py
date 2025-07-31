@@ -19,7 +19,7 @@ from pathlib import Path
 
 
 from .aws.auth import get_s3_client
-from .email.process_elm_file import process_email
+from .email.email_handler import handle_incoming_email
 
 from .auth import check_available_auth, configure_keyring
 configure_keyring()
@@ -86,11 +86,16 @@ def sns_incoming():
         mail = message.get("mail", {})
         receipt = message.get("receipt", {})
 
+        # For a forwarded e-mail, the 'source' may be 
+        # "info+caf_=register=automations.sib-utrecht.nl@sib-utrecht.nl"
+
         is_valid = (
-            (
-                mail.get("source") == "info@sib-utrecht.nl"
-                or mail.get("source") == "secretaris@sib-utrecht.nl"
-            )
+            # (
+            #     mail.get("source") in ["info@sib-utrecht.nl",
+            #     "secretaris@sib-utrecht.nl",
+            #     "forms@sib-utrecht.nl"]
+            # )
+            mail.get("source").endswith("@sib-utrecht.nl")
             and receipt.get("spfVerdict", {}).get("status") == "PASS"
             and receipt.get("dkimVerdict", {}).get("status") == "PASS"
             and receipt.get("dmarcVerdict", {}).get("status") == "PASS"
@@ -141,7 +146,7 @@ def sns_incoming():
                 log_file.write(f"Mail output path: {mail_output_path}\n")
 
             # Process the downloaded e-mail
-            process_email(mail_output_path)
+            handle_incoming_email(mail_output_path)
 
         except Exception as e:
             print(f"Failed to process e-mail: {e}", file=sys.stderr)

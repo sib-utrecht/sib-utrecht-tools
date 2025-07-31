@@ -1,7 +1,10 @@
 #!/bin/sh
 
-if ! GUNICORN_PATH=$(command -v gunicorn); then
-    echo "Error: gunicorn is not installed or not in PATH. Please install it with 'pip install gunicorn' and try again." >&2
+# Set venv path
+VENV_PATH="$PWD/.venv"
+GUNICORN_PATH="$VENV_PATH/bin/gunicorn"
+if [ ! -x "$GUNICORN_PATH" ]; then
+    echo "Error: gunicorn is not installed in $VENV_PATH. Please install it with '. $VENV_PATH/bin/activate && pip install gunicorn' and try again." >&2
     exit 1
 fi
 
@@ -25,6 +28,7 @@ WorkingDirectory=$WORKDIR
 ExecStart=$GUNICORN_PATH -w 1 -b 0.0.0.0:8087 sib_tools.listen_sns_for_email:app
 Restart=always
 Environment=PYTHONUNBUFFERED=1
+Environment=PATH=$VENV_PATH/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Load environment variables from secure file
 EnvironmentFile=$KEYRING_ENV_FILE
