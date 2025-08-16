@@ -5,12 +5,14 @@ import keyring.credentials
 import requests
 import json
 import keyring
+from datetime import datetime, timedelta
 from getpass import getpass
 
 from traitlets import Any
 from .constants import api_url, username
 
 session_id = None
+session_id_expiration = None
 
 # Add logging for Conscribo
 import logging
@@ -46,7 +48,7 @@ Returns the session id of the authenticated user.
 """
 
 
-def validate_session(session_id: str) -> bool:
+def validate_session(session_id: str) -> bool | int:
     """
     Checks if the session is still valid by calling /sessions/.
     Returns True if valid, False otherwise.
@@ -62,14 +64,21 @@ def validate_session(session_id: str) -> bool:
         if res.status_code == 400:
             logger.info("Session invalid (400), need to re-authenticate.")
             return False
-        return res.ok
+
+        if not res.ok:
+            logger.error(f"Failed to validate session: {res.text}")
+            return False
+
+        secsToLogout = res.json().get("secsToLogout")
+        return secsToLogout
+    
     except Exception as e:
         logger.error(f"Error validating session: {e}")
         return False
 
 
 def authenticate() -> str:
-    global session_id
+    global session_id, session_id_expiration
     # Try environment variable first
     password = os.environ.get("CONSCRIBO_PASSWORD")
     user = os.environ.get("CONSCRIBO_USERNAME", username)
@@ -112,6 +121,8 @@ def authenticate() -> str:
     session_id = auth_session["sessionId"]
     # Cache session id in keyring
     keyring.set_password("sib-conscribo", "session-id", session_id)
+
+    session_id_expiration = datetime.now() + timedelta(minutes=5)
     return session_id
 
 
@@ -121,14 +132,21 @@ def do_auth():
 
 
 def get_conscribo_session_id():
-    global session_id
-    if session_id is not None:
+    global session_id, session_id_expiration
+
+    if (
+        session_id is not None and
+        session_id_expiration is not None and
+        datetime.now() < session_id_expiration
+    ):
         return session_id
     # Try to get session id from keyring
-    cached_session_id = keyring.get_password("sib-conscribo", "session-id")
+    cached_session_id = session_id or keyring.get_password("sib-conscribo", "session-id")
     logger.info(f"Cached session id present: {cached_session_id is not None}")
     if cached_session_id:
-        if validate_session(cached_session_id):
+        secsToLogout = validate_session(cached_session_id) or 0
+
+        if secsToLogout > 0:
             session_id = cached_session_id
             logger.info("Using cached session id.")
             return session_id
