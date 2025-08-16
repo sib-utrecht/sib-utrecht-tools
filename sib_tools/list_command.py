@@ -40,6 +40,18 @@ def handle_list_alumnus(args: Namespace):
         print()
 
 
+def handle_list_members(args: Namespace):
+    members = list_relations_members()
+    if args.conscribo_id:
+        filtered = [
+            m for m in members if str(m.get("conscribo_id")) == str(args.conscribo_id)
+        ]
+        print(json.dumps(filtered, indent=2))
+    else:
+        print(json.dumps(members, indent=2))
+        print()
+
+
 def handle_list_education(args: Namespace):
     """List educational institution counts among members."""
     active_date = args.date or date.today().isoformat()
@@ -408,6 +420,17 @@ def add_parse_args(parser: ArgumentParser):
         help="Conscribo ID of the alumnus to query",
     )
     alumnus_parser.set_defaults(func=handle_list_alumnus)
+
+    members_parser = subparser.add_parser(
+        "conscribo-members", help="List Conscribo members"
+    )
+    members_parser.add_argument(
+        "--conscribo-id",
+        type=str,
+        required=False,
+        help="Conscribo ID of the member to query",
+    )
+    members_parser.set_defaults(func=handle_list_members)
 
     education_parser = subparser.add_parser(
         "conscribo-education", help="List educational institution counts among members"
