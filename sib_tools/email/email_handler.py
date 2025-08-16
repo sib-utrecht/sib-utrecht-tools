@@ -3,10 +3,10 @@ import logging
 import json
 from datetime import datetime, timezone, timedelta
 
-from .forms_extract_mail import extract_fields_from_mail, extract_fields_from_mail_message, form_to_canonical
+from .extract_form_fields import extract_fields_from_mail, extract_fields_from_mail_message, form_to_canonical
 from .dkim_verify import DKIMDetailsVerified, verify_dkim_signature
 from dataclasses import asdict
-from .process_elm_file import logger, process_registration_email
+from .registration_email import logger, process_registration_email, process_deregistration_email
 
 def handle_incoming_email(args):
     eml_path = args.eml_path
@@ -136,6 +136,11 @@ def process_email(eml_path, allow_old=False) -> bool:
         if receiver in ["inschrijving@automations.sib-utrecht.nl", "register@automations.sib-utrecht.nl"]:
             logger.info(f"Processing registration email for: {receiver}")
             process_registration_email(dkim_result)
+            return True
+
+        if receiver in ["deregister@automations.sib-utrecht.nl"]:
+            logger.info(f"Processing deregistration email for: {receiver}")
+            process_deregistration_email(dkim_result)
             return True
 
         logger.error(f"Unexpected receiver address: {receiver}. No handler")

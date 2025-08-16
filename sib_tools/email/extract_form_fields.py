@@ -11,8 +11,7 @@ def extract_fields_from_mail(path_to_eml):
     msg = message_from_file(open(path_to_eml, 'r', encoding='utf-8'))
     return extract_fields_from_mail_message(msg)
 
-
-def extract_fields_from_mail_message(msg : EmailMessage):
+def get_html_and_plain_from_mail_message(msg : EmailMessage):
     html_message = None
     text_message = None
     main_part = next(msg.walk())
@@ -24,16 +23,27 @@ def extract_fields_from_mail_message(msg : EmailMessage):
             html_message = subpart.get_payload(decode=True)
         if subpart.get_content_type() == 'text/plain':
             assert "UTF-8" in subpart['Content-Type'], 'Unexpected Content-Type for text/plain'
-            assert subpart['Content-Transfer-Encoding'] == 'quoted-printable', 'Unexpected Content-Transfer-Encoding for text/plain'
+            assert subpart.get('Content-Transfer-Encoding', '') in {'quoted-printable', ''}, 'Unexpected Content-Transfer-Encoding for text/plain'
 
             text_message = subpart.get_payload(decode=True)
+
+    if html_message is not None:
+        print(f"Html message length: {len(html_message)}")
+        html_message = html_message.decode('utf-8')
+    if text_message is not None:
+        print(f"Text message length: {len(text_message)}")
+        text_message = text_message.decode('utf-8')
+
+    return html_message, text_message
+
+def extract_fields_from_mail_message(msg : EmailMessage):
+    html_message, text_message = get_html_and_plain_from_mail_message(msg)
 
     # msg.get_body(preferencelist=('related', 'html', 'plain'))
     # iter_attachments()
 
     if html_message is not None:
         print(f"Html message length: {len(html_message)}")
-        html_message = html_message.decode('utf-8')
         secure_bold_marker = str(uuid.uuid4())
         soup = BeautifulSoup(html_message, 'html.parser')
         for tag in soup.find_all('strong'):
@@ -53,8 +63,7 @@ def extract_fields_from_mail_message(msg : EmailMessage):
         return fields
     if text_message is not None:
         print(f"Text message length: {len(text_message)}")
-        open('member-admin/add-to-conscribo/sample2.txt', 'wb').write(text_message)
-        text_message = text_message.decode('utf-8')
+        open('member-admin/add-to-conscribo/sample2.txt', 'w', encoding="utf-8").write(text_message)
 
 def form_to_canonical(fields : dict[str, str]) -> dict:
     to_canonical = get_register_form_to_key()

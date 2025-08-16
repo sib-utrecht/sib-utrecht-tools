@@ -66,6 +66,25 @@ def list_entity_groups():
 
     return entity_groups
 
+def list_entity_groups_by_name():
+    """
+    Returns a dictionary of entity groups indexed by their name.
+    """
+    return {
+        group["name"]: group for group in list_entity_groups()
+    }
+
+def find_group_id_by_name(name: str) -> int | None:
+    def normalize(name : str) -> str:
+        return name.lower().replace(" ", "_").replace("-", "_")
+    
+    groups = {
+        normalize(group["name"]): group for group in list_entity_groups()
+    }
+
+    group = groups.get(normalize(name))
+    return group["id"] if group else None
+
 def add_relations_to_group(
     group_id : int,
     user_ids : list[str],

@@ -124,7 +124,7 @@ def update_relation(canonical):
 
     print("\n\n")
 
-def create_relation_member(canonical):
+def create_relation_member(canonical) -> str:
     canonical = flatten_dict(canonical)
     to_conscribo = canonical_key.get_key_to_conscribo()
 
@@ -132,22 +132,46 @@ def create_relation_member(canonical):
 
     conscribo_relation = dict()
 
+    other = dict()
+
     for k, v in canonical.items():
         conscribo_key = to_conscribo.get(k, None)
 
         if conscribo_key is None:
             print(f"Missing translation for {k} to Conscribo field")
+            other[k] = v
             continue
             # raise Exception(f"Missing translation for {k} to Conscribo field")
 
         conscribo_relation[conscribo_key] = v
+
+    other.pop("agreements", None)
+
+    administrative_details = ""
+    for k, v in other.items():
+        val = str(v)
+        multiline = "\n" in val
+        if multiline:
+            administrative_details += f"{k}:\n{v.replace('\n', '\n  ')}\n\n"
+            continue
+
+        administrative_details += f"{k}: {v}\n\n"
+
+    admin_details = canonical.get("admin_details") or ""
+
+    if administrative_details:
+        if admin_details:
+            admin_details += "\n\n"
+        admin_details += administrative_details
+
+    conscribo_relation[to_conscribo["admin_details"]] = admin_details
 
     # Unflatten dict
     conscribo_relation = canonical_key.expand_dict(conscribo_relation)
 
     print(f"Creating Conscribo relation with\n{json.dumps(conscribo_relation, indent=4)}")
 
-    conscribo_post(
+    ans = conscribo_post(
         "/relations/",
         json={
             "entityType": canonical.get("conscribo_entity_type", ENTITY_TYPE_PERSON),
@@ -155,7 +179,10 @@ def create_relation_member(canonical):
         },
     )
 
+    conscribo_id = ans["code"]
+
     print("\n\n")
+    return conscribo_id
 
 
 def list_relations_persoon():

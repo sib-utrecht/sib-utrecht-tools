@@ -19,7 +19,7 @@ from pathlib import Path
 
 
 from .aws.auth import get_s3_client
-from .email.email_handler import handle_incoming_email
+from .email.email_handler import process_email
 
 from .auth import check_available_auth, configure_keyring
 configure_keyring()
@@ -146,7 +146,7 @@ def sns_incoming():
                 log_file.write(f"Mail output path: {mail_output_path}\n")
 
             # Process the downloaded e-mail
-            handle_incoming_email(mail_output_path)
+            process_email(mail_output_path, allow_old=False)
 
         except Exception as e:
             print(f"Failed to process e-mail: {e}", file=sys.stderr)
@@ -155,7 +155,7 @@ def sns_incoming():
     return "", 400
 
 
-def run_email_listener(host="127.0.0.1", port=8087):
+def run_email_listener(host="0.0.0.0", port=8087):
     app.run(host=host, port=port)
 
 
