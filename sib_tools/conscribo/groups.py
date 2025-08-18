@@ -102,9 +102,9 @@ def remove_relations_from_group(
 ):
     return conscribo_delete(
         f"/relations/groups/{group_id}/members/",
-        data={
+        params={
             "relationIds": user_ids
-        },
+        }, # type: ignore
     )
 
 

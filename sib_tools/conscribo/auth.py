@@ -1,17 +1,19 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-import keyring.credentials
 import requests
 import json
 import keyring
+import keyring.errors
 from datetime import datetime, timedelta
 from getpass import getpass
+from typing import Mapping
 
 from traitlets import Any
 from .constants import api_url, username
 
-session_id = None
+
+session_id: str | None = None
 session_id_expiration = None
 
 # Add logging for Conscribo
@@ -118,7 +120,8 @@ def authenticate() -> str:
         raise Exception("Failed to authenticate")
 
     user_display_name = auth_session["userDisplayName"]
-    session_id = auth_session["sessionId"]
+    auth_session_id : str = auth_session["sessionId"]
+    session_id = auth_session_id
     # Cache session id in keyring
     keyring.set_password("sib-conscribo", "session-id", session_id)
 
@@ -128,6 +131,10 @@ def authenticate() -> str:
 
 def do_auth():
     authenticate()
+    if session_id is None:
+        logger.error("Session id is None after authentication")
+        raise Exception("Session id is None after authentication")
+
     logger.debug(f"Session id length: {len(session_id)}")
 
 
@@ -173,7 +180,7 @@ def conscribo_get(url: str) -> dict:
 
     return res.json()
 
-def conscribo_delete(url: str, params : None | dict[str, Any]) -> dict:
+def conscribo_delete(url: str, params : None | Mapping[str, Any]) -> dict:
     session_id = get_conscribo_session_id()
 
     res = requests.delete(
@@ -182,7 +189,7 @@ def conscribo_delete(url: str, params : None | dict[str, Any]) -> dict:
             "X-Conscribo-SessionId": session_id,
             "X-Conscribo-API-Version": "1.20240610",
         },
-        params=params,
+        params=params, # type: ignore
     )
 
     if not res.ok:

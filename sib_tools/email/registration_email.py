@@ -30,7 +30,7 @@ from sib_tools.email.extract_form_fields import (
     form_to_canonical,
     get_html_and_plain_from_mail_message,
 )
-from .dkim_verify import DKIMDetailsVerified, verify_dkim_signature
+from .dkim_verify import DKIMDetailsVerified, DKIMVerifiedMail, verify_dkim_signature
 from datetime import datetime, timezone
 import re
 
@@ -112,8 +112,12 @@ def send_registration_notification(canonical: dict, conscribo_id: str, groups_ad
     except Exception as e:
         logger.error(f"Failed to send registration notification: {e}")
 
-def process_registration_email(dkim_result : DKIMDetailsVerified):
+def process_registration_email(dkim_result : DKIMVerifiedMail):
     fields = extract_fields_from_mail_message(dkim_result.email)
+    if not fields:
+        logger.error("No fields extracted from registration email")
+        return
+
     canonical = form_to_canonical(fields)
     logger.info(f"Canonical form: {json.dumps(canonical, indent=2)}")
 

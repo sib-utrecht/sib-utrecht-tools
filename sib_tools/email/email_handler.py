@@ -112,7 +112,7 @@ def process_email(eml_path, allow_old=False) -> bool:
         # Check an '@automations.sib-utrecht.nl' is included in 'To'
         included_to_addresses = [
             address.addr_spec
-            for address in message.get("to").addresses
+            for address in message.get("to").addresses # type: ignore
             if address.domain == "automations.sib-utrecht.nl"
         ]
         
@@ -144,6 +144,7 @@ def process_email(eml_path, allow_old=False) -> bool:
             return True
 
         logger.error(f"Unexpected receiver address: {receiver}. No handler")
+        return False
 
     except Exception as e:
         logger.error(f"Failed to process email: {e}", exc_info=True)

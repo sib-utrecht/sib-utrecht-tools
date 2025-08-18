@@ -24,8 +24,12 @@ class DKIMDetailsVerified:
     sender_address : Address
     included_headers : list[str]
     date : str | None
-    email : EmailMessage | None
-    is_forwarded_or_auto: bool = False
+    is_forwarded_or_auto: bool | None
+
+@dataclass
+class DKIMVerifiedMail(DKIMDetailsVerified):
+    email : EmailMessage
+
 
 def check_aws_ses_verification_headers(msg : EmailMessage):
     auth_results = [
@@ -46,7 +50,7 @@ def check_aws_ses_verification_headers(msg : EmailMessage):
         raise Exception("DMARC failed")
 
 
-def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: list[str] | None = None, check_aws_verification_headers = True) -> DKIMDetailsVerified | None:
+def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: list[str] | None = None, check_aws_verification_headers = True) -> DKIMVerifiedMail | None:
     """
     Verify DKIM signature of an email message.
     
@@ -106,7 +110,7 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
         
         email_sender = message.get("sender")
         if email_sender:
-            email_sender : Address | None = email_sender.address
+            email_sender : Address | None = email_sender
 
         # SECURITY: Define ALL headers that MUST be signed for security
         required_signed = [
@@ -170,10 +174,11 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
         logger.info(f"DKIM verified for domain: {domain}, selector: {selector}")
 
         # Extract the date header
-        date_header = message.get("date")
+        date_header : str | None = message.get("date")
+        date_str : str | None = None
         if date_header:
-            date_header = email.utils.parsedate_to_datetime(date_header)
-            date_str = date_header.isoformat()
+            date_datetime = email.utils.parsedate_to_datetime(date_header)
+            date_str = date_datetime.isoformat()
 
         if "x-autoreply" in message:
             logger.error("Email has X-Autoreply header")
@@ -199,7 +204,7 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
                 logger.error(f"Failed AWS SES verification: {e}")
                 return None
 
-        return DKIMDetailsVerified(
+        return DKIMVerifiedMail(
             signing_domain=domain.decode('ascii'),
             signing_selector=selector.decode('ascii') if selector else None,
             sender=email_sender.addr_spec,

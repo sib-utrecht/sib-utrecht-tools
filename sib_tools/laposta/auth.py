@@ -1,12 +1,13 @@
 import os
 from .constants import api_url
-import keyring.credentials
 import requests
 import json
 import keyring
+import keyring.errors
 from getpass import getpass
 import urllib.parse
 from dotenv import load_dotenv
+from typing import Any
 
 load_dotenv()
 
@@ -61,7 +62,7 @@ def laposta_get(url : str, parameters = None) -> dict:
     )
     return response.json()
 
-def make_form_flattened(body : dict[str]) -> dict[str]:
+def make_form_flattened(body : dict[str, Any]) -> dict[str, Any]:
     """
     Converts a dictionary to a flattened form suitable for form submission.
     For example, {'custom_fields': {'prefs': ['optionA', 'optionB']}}
@@ -89,7 +90,7 @@ def make_form_flattened(body : dict[str]) -> dict[str]:
     return body_flat
 
 
-def laposta_post(url : str, body : dict[str]) -> dict[str]:
+def laposta_post(url : str, body : dict[str, Any]) -> dict[str, Any]:
     api_key = get_laposta_api_key()
 
     # Flatten body, we need keys like 'custom_fields[prefs][]=optionA'
@@ -122,7 +123,7 @@ def laposta_delete(url : str) -> dict:
     )
     return response.json()
 
-def laposta_patch(url : str, body : dict[str]) -> dict[str]:
+def laposta_patch(url : str, body : dict[str, Any]) -> dict[str, Any]:
     api_key = get_laposta_api_key()
 
     response = requests.patch(

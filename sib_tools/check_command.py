@@ -12,7 +12,7 @@ from .auth import check_available_auth
 def mail_results(
     contents: str,
     subject: str = "Health check report by sib-tools",
-    logger: logging.Logger = None,
+    logger: logging.Logger | None = None,
 ):
     """
     Mail the results using AWS SES.
