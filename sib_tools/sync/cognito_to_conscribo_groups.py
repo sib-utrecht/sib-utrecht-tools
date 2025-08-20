@@ -35,9 +35,11 @@ logging.getLogger("botocore").setLevel(logging.WARNING)
 logging.getLogger("s3transfer").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-def sync_cognito_to_conscribo_groups(dry_run=True):
+def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None = None):
+    logger = logger or logging.getLogger()
+
     cognito_groups = cognito_list_groups()
-    logging.info(f"Groups count: {len(cognito_groups)}")
+    logger.info(f"Groups count: {len(cognito_groups)}")
 
     cognito_groups_by_name = {group["GroupName"]: group for group in cognito_groups}
     cognito_group_members = {
@@ -60,25 +62,25 @@ def sync_cognito_to_conscribo_groups(dry_run=True):
     subgroups = [a for a in conscribo_groups if a["parentId"] == accounts_group["id"]]
     subgroups.sort(key=lambda x: x["name"])
 
-    logging.info(f"Found {len(subgroups)} subgroups on Conscribo:")
+    logger.info(f"Found {len(subgroups)} subgroups on Conscribo:")
     for subgroup in subgroups:
-        logging.info(
+        logger.info(
             f"  - {subgroup['name']} ({subgroup['id']}) with {len(subgroup['members'])} members"
         )
 
-    logging.info("")
-    logging.info(f"Found {len(cognito_group_members)} groups on Cognito:")
+    logger.info("")
+    logger.info(f"Found {len(cognito_group_members)} groups on Cognito:")
     for name, members in sorted(cognito_group_members.items(), key=lambda x: x[0]):
-        logging.info(f"  - {name} with {len(members)} members")
-    logging.info("")
-    logging.info("")
+        logger.info(f"  - {name} with {len(members)} members")
+    logger.info("")
+    logger.info("")
 
 
     # Now sync Cognito groups to Conscribo subgroups
     for group_name, cognito_members in cognito_group_members.items():
         conscribo_group = conscribo_groups_by_name.get(group_name)
         if not conscribo_group:
-            logging.info(f"Group not found in Conscribo: '{group_name}', skipping.")
+            logger.info(f"Group not found in Conscribo: '{group_name}', skipping.")
             continue
 
         conscribo_member_ids = set(a["entityId"] for a in conscribo_group["members"])
@@ -89,7 +91,7 @@ def sync_cognito_to_conscribo_groups(dry_run=True):
         to_remove = conscribo_member_ids - cognito_member_ids
 
         if len(to_add) > 0:
-            logging.info(
+            logger.info(
                 f"ADD {','.join(sorted(to_add))} TO {group_name}"
             )
 
@@ -98,14 +100,14 @@ def sync_cognito_to_conscribo_groups(dry_run=True):
                     conscribo_group["id"],
                     list(to_add),
                 )
-                logging.debug("Response from Conscribo API:")
-                logging.debug(increase_indent(json.dumps(res, indent=2)))
+                logger.debug("Response from Conscribo API:")
+                logger.debug(increase_indent(json.dumps(res, indent=2)))
 
-                logging.info(f"Added {len(to_add)} users to Conscribo group {group_name}")
+                logger.info(f"Added {len(to_add)} users to Conscribo group {group_name}")
                 sleep(2)
 
         if len(to_remove) > 0:
-            logging.info(
+            logger.info(
                 f"REMOVE {','.join(sorted(to_remove))} FROM {group_name}"
             )
 
@@ -114,12 +116,12 @@ def sync_cognito_to_conscribo_groups(dry_run=True):
                     conscribo_group["id"],
                     list(to_remove),
                 )
-                logging.debug("Response from Conscribo API:")
-                logging.debug(increase_indent(json.dumps(res, indent=2)))
+                logger.debug("Response from Conscribo API:")
+                logger.debug(increase_indent(json.dumps(res, indent=2)))
 
-                logging.info(f"Removed {len(to_remove)} users from Conscribo group {group_name}")
+                logger.info(f"Removed {len(to_remove)} users from Conscribo group {group_name}")
                 sleep(2)
-        logging.info("")
+        logger.info("")
 
 if __name__ == "__main__":
     sync_cognito_to_conscribo_groups(dry_run=True)

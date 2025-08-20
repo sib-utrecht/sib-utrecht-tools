@@ -31,8 +31,10 @@ logging.getLogger().addHandler(console_handler)
 
 
 def match_laposta_with_conscribo(
-    laposta_members, members, alumni
+    laposta_members, members, alumni, logger: logging.Logger | None = None
 ) -> list[tuple[dict, dict, dict]]:
+    logger = logger or logging.getLogger()
+
     laposta_members_by_email = {
         member.get("email"): member for member in laposta_members
     }
@@ -88,8 +90,8 @@ def match_laposta_with_conscribo(
                 is None
             )
 
-            if is_valid_member:
-                print(
+            if is_valid_member and conscribo_member is not None:
+                logger.info(
                     f"Found member by date of birth: {email} -> {conscribo_member['email']}"
                 )
                 unmatched_conscribo.discard(conscribo_member.get("email", ""))
@@ -105,8 +107,8 @@ def match_laposta_with_conscribo(
                 and laposta_members_by_email.get(conscribo_alumnus.get("email", ""))
                 is None
             )
-            if is_valid_alumnus:
-                print(
+            if is_valid_alumnus and conscribo_alumnus is not None:
+                logger.info(
                     f"Found alumnus by date of birth: {email} -> {conscribo_alumnus['email']}"
                 )
                 unmatched_conscribo.discard(conscribo_alumnus.get("email", ""))
@@ -124,11 +126,11 @@ def match_laposta_with_conscribo(
         conscribo_alumnus = alumni_by_email.get(email, None)
 
         if conscribo_member is not None:
-            print(f"Conscribo member not found in Laposta: {email}")
+            logger.info(f"Conscribo member not found in Laposta: {email}")
         elif conscribo_alumnus is not None:
-            print(f"Conscribo alumnus not found in Laposta: {email}")
+            logger.info(f"Conscribo alumnus not found in Laposta: {email}")
         else:
-            print(f"Conscribo relation not found for email: {email}")
+            logger.info(f"Conscribo relation not found for email: {email}")
 
         entries.append((None, conscribo_member, conscribo_alumnus))
 
@@ -159,37 +161,38 @@ def get_participating_flags(member):
     return "".join(flags)
 
 
-def sync_conscribo_to_laposta(dry_run=True):
+def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None):
+    logger = logger or logging.getLogger(__name__)
     laposta_members = get_aggregated_relations()
 
     # Override dry_run for testing purposes
     # dry_run = True
-    print(f"Member count: {len(laposta_members)}")
+    logger.info(f"Member count: {len(laposta_members)}")
     assert len(laposta_members) > 5, "No members found in Laposta."
 
-    # print(json.dumps(laposta_members[:5], default=str, indent=2))
+    # logger.debug(json.dumps(laposta_members[:5], default=str, indent=2))
 
     block_email_members = get_block_email_members()
 
-    print(f"Block email members: {json.dumps(list(block_email_members))}")
+    logger.info(f"Block email members: {json.dumps(list(block_email_members))}")
 
     members = list_relations_active_members()
     alumni = list_relations_active_alumni()
-    print(f"Conscribo members count: {len(members)}")
-    print(f"Conscribo alumni count: {len(alumni)}")
+    logger.info(f"Conscribo members count: {len(members)}")
+    logger.info(f"Conscribo alumni count: {len(alumni)}")
 
     # No need to filter members or alumni here, already filtered by abstraction
 
-    entries = match_laposta_with_conscribo(laposta_members, members, alumni)
+    entries = match_laposta_with_conscribo(laposta_members, members, alumni, logger=logger)
 
-    # print(f"First 5 entries:")
+    # logger.info(f"First 5 entries:")
     # for entry in entries[:5]:
-    #     print(json.dumps(entry, indent=2, default=str))
+    #     logger.info(json.dumps(entry, indent=2, default=str))
 
     current_and_desired: list[tuple[dict, dict]] = []
 
     now = datetime.now().isoformat()
-    logging.info(f"Sync started at {now}")
+    logger.info(f"Sync started at {now}")
 
     for entry in entries:
         laposta_member, conscribo_member, conscribo_alumnus = entry
@@ -214,13 +217,13 @@ def sync_conscribo_to_laposta(dry_run=True):
 
         block_all = False
         if laposta_member is not None and laposta_member.get("conscribo_id") == "ignore":
-            logging.warning(
+            logger.warning(
                 f"Skipping entry with conscribo_id 'ignore': {json.dumps([email, first_name, last_name])}"
             )
             continue
 
         if email is None or len(email) == 0:
-            logging.warning(
+            logger.warning(
                 f"Skipping entry with no email: {json.dumps([first_name, last_name, (conscribo_member or {}).get('other', {}).get('selector')])}"
             )
             continue
@@ -267,13 +270,13 @@ def sync_conscribo_to_laposta(dry_run=True):
             desired["send_birthday"] = False
             desired["send_newsletter"] = False
             desired["send_birthday_alumnus"] = False
-        # print(
+        # logger.debug(
         #     f"For {email}: {block_all=}, {is_member=}, {is_alumnus=}, {date_of_birth=}, desired={json.dumps(desired)}"
         # )
 
         current_and_desired.append((laposta_member, desired))
 
-    # print(json.dumps(current_and_desired, indent=2, default=str))
+    # logger.debug(json.dumps(current_and_desired, indent=2, default=str))
     # exit(0)
 
 
@@ -286,8 +289,8 @@ def sync_conscribo_to_laposta(dry_run=True):
         #     continue
 
 
-        # print(f"Current: {json.dumps(laposta_member)}")
-        # print(f"Desired: {json.dumps(desired)}")
+        # logger.debug(f"Current: {json.dumps(laposta_member)}")
+        # logger.debug(f"Desired: {json.dumps(desired)}")
         current_flags = get_participating_flags(laposta_member)
         desired_flags = get_participating_flags(desired)
 
@@ -310,20 +313,20 @@ def sync_conscribo_to_laposta(dry_run=True):
         force_readd = False
 
         if len(first_names) > 1 or len(last_names) > 1 or len(date_of_births) > 1:
-            logging.warning(
+            logger.warning(
                 f"Warning: Inconsistent names or date of birth for {laposta_member['email']}:"
             )
-            logging.warning(
+            logger.warning(
                 f"  Current: {laposta_member.get('first_name', '')} {laposta_member.get('last_name', '')} ({laposta_member.get('date_of_birth', '')})"
             )
-            logging.warning(
+            logger.warning(
                 f"  Desired: {desired.get('first_name', '')} {desired.get('last_name', '')} ({desired.get('date_of_birth', '')})"
             )
             force_readd = True
             # continue
 
         if laposta_member.get("email") != desired.get("email"):
-            logging.info(f"Updating email {laposta_member.get('email')} to {desired.get('email')}")
+            logger.info(f"Updating email {laposta_member.get('email')} to {desired.get('email')}")
             force_readd = True
 
         if current_lists == desired_lists and not force_readd:
@@ -338,16 +341,16 @@ def sync_conscribo_to_laposta(dry_run=True):
             desired["email"],
         )
 
-        logging.info(f"UPDATE {conscribo_id} {json.dumps(basic_info)}")
+        logger.info(f"UPDATE {conscribo_id} {json.dumps(basic_info)}")
 
-        # print(
+        # logger.debug(
         #     f"Updating {desired['email']}: {current_flags} -> {desired_flags}, "
         #     f"lists: {current_lists} -> {desired_lists}"
         # )
-        # print(f"Desired: {json.dumps(desired)}")
+        # logger.debug(f"Desired: {json.dumps(desired)}")
 
 
-        # print(json.dumps(laposta_member))
+        # logger.debug(json.dumps(laposta_member))
 
         # if dry_run:
         #     continue
@@ -361,33 +364,33 @@ def sync_conscribo_to_laposta(dry_run=True):
 
 
         for list_id in remove_lists:
-            logging.info(f"  Removing {laposta_member['email']} from list {list_id}")
+            logger.info(f"  Removing {laposta_member['email']} from list {list_id}")
             member_id = laposta_member["laposta_member_ids"].get(list_id, None)
-            # logging.debug(f"  Member ID for list {list_id}: {member_id}")
+            # logger.debug(f"  Member ID for list {list_id}: {member_id}")
 
             if member_id is None:
-                logging.error(
+                logger.error(
                     f"  Member ID for list {list_id} not found for {laposta_member['email']}. Skipping removal."
                 )
                 continue
 
             
             url = f"/v2/member/{member_id}?list_id={list_id}"
-            logging.debug(f"  Doing DELETE to Laposta: {url}")
+            logger.debug(f"  Doing DELETE to Laposta: {url}")
 
             if dry_run:
-                logging.debug("Dry run, not executing")
+                logger.debug("Dry run, not executing")
                 continue
 
             response = auth.laposta_delete(
                 url
             )
-            logging.debug(f"Response: {json.dumps(response)}")
+            logger.debug(f"Response: {json.dumps(response)}")
             sleep(2)
 
 
         for list_id in add_lists:
-            logging.info(f"  Adding {desired['email']} to list {list_id}")
+            logger.info(f"  Adding {desired['email']} to list {list_id}")
             # if list_id == list_members.alumni_birthday_list_id:
             #     continue
 
@@ -416,10 +419,10 @@ def sync_conscribo_to_laposta(dry_run=True):
             # if desired.get("first_name", None) != "XXXX":
             #     continue
 
-            logging.debug(f"  Doing POST to Laposta: {json.dumps(payload, indent=2)}")
+            logger.debug(f"  Doing POST to Laposta: {json.dumps(payload, indent=2)}")
 
             if dry_run:
-                logging.debug("Dry run, not executing")
+                logger.debug("Dry run, not executing")
                 continue
 
             response = auth.laposta_post(
@@ -427,5 +430,5 @@ def sync_conscribo_to_laposta(dry_run=True):
                 payload,
             )
 
-            logging.debug(f"Response: {json.dumps(response)}")
+            logger.debug(f"Response: {json.dumps(response)}")
             sleep(2)

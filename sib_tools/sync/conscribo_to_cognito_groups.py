@@ -38,10 +38,11 @@ logging.getLogger('s3transfer').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 
-def sync_conscribo_to_cognito_groups(dry_run=True):
+def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None = None):
+    logger = logger or logging.getLogger()
     cognito_groups = cognito_list_groups()
-    logging.info(f"Groups count: {len(cognito_groups)}")
-    logging.info(f"Dry run: {dry_run}")
+    logger.info(f"Groups count: {len(cognito_groups)}")
+    logger.info(f"Dry run: {dry_run}")
 
     cognito_groups_by_name = {group["GroupName"]: group for group in cognito_groups}
     cognito_group_members = {
@@ -69,34 +70,34 @@ def sync_conscribo_to_cognito_groups(dry_run=True):
     subgroups = [a for a in conscribo_groups if a["parentId"] == accounts_group["id"]]
     subgroups.sort(key=lambda x: x["name"])
 
-    logging.info(f"Found {len(subgroups)} subgroups on Conscribo:")
+    logger.info(f"Found {len(subgroups)} subgroups on Conscribo:")
     for subgroup in subgroups:
-        logging.info(
+        logger.info(
             f"  - {subgroup['name']} ({subgroup['id']}) with "
             f"{len(subgroup['members'])} members"
         )
 
-    logging.info("")
-    logging.info(f"Found {len(cognito_group_members)} groups on Cognito:")
+    logger.info("")
+    logger.info(f"Found {len(cognito_group_members)} groups on Cognito:")
     for name, members in sorted(cognito_group_members.items(), key=lambda x: x[0]):
-        logging.info(f"  - {name} with {len(members)} members")
-    logging.info("")
+        logger.info(f"  - {name} with {len(members)} members")
+    logger.info("")
 
     for subgroup in subgroups:
         group_name = subgroup["name"]
 
-        logging.info("")
-        logging.info(f"Processing subgroup: {group_name} ({subgroup['id']})")
+        logger.info("")
+        logger.info(f"Processing subgroup: {group_name} ({subgroup['id']})")
 
         if group_name not in cognito_group_members:
-            logging.info(f"Creating Cognito group: {group_name}")
+            logger.info(f"Creating Cognito group: {group_name}")
             if not dry_run:
                 ans = cognito_client.create_group(
                     GroupName=group_name,
                     UserPoolId=user_pool_id,
                 )
-                logging.debug(json.dumps(ans, indent=2))
-                logging.info(f"Created Cognito group: {ans['Group']}")
+                logger.debug(json.dumps(ans, indent=2))
+                logger.info(f"Created Cognito group: {ans['Group']}")
                 sleep(0.1)
                 cognito_group_members[group_name] = []
 
@@ -111,16 +112,16 @@ def sync_conscribo_to_cognito_groups(dry_run=True):
         to_add = conscribo_member_ids - cognito_member_ids
         to_remove = cognito_member_ids - conscribo_member_ids
 
-        logging.info(
+        logger.info(
             f"Group {group_name} ({subgroup['id']}) has {len(subgroup['members'])} members"
         )
-        logging.info(f"  - To add: {len(to_add)} members")
-        logging.info(f"  - To remove: {len(to_remove)} members")
+        logger.info(f"  - To add: {len(to_add)} members")
+        logger.info(f"  - To remove: {len(to_remove)} members")
 
         for user_id in to_add:
             cognito_member = cognito_users_by_id.get(user_id, None)
             if cognito_member is None:
-                logging.warning(
+                logger.warning(
                     f"User {user_id} not found in Cognito users, skipping. "
                     f"Would add to group {group_name}"
                 )
@@ -136,7 +137,7 @@ def sync_conscribo_to_cognito_groups(dry_run=True):
                 username,
             )
 
-            logging.info(
+            logger.info(
                 f"ADD {user_id} TO {group_name} "
                 f"{json.dumps(basic_info)}"
             )
@@ -148,8 +149,8 @@ def sync_conscribo_to_cognito_groups(dry_run=True):
                 Username=username,
                 GroupName=group_name,
             )
-            logging.debug("Response from Cognito API:")
-            logging.debug(increase_indent(json.dumps(res, indent=2)))
+            logger.debug("Response from Cognito API:")
+            logger.debug(increase_indent(json.dumps(res, indent=2)))
 
             sleep(0.1)
 
@@ -170,7 +171,7 @@ def sync_conscribo_to_cognito_groups(dry_run=True):
                     username,
                 )
 
-                logging.info(
+                logger.info(
                     f"REMOVE {user_id} FROM {group_name} "
                     f"{json.dumps(basic_info)}"
                 )
@@ -182,12 +183,12 @@ def sync_conscribo_to_cognito_groups(dry_run=True):
                     Username=username,
                     GroupName=group_name,
                 )
-                logging.debug("Response from Cognito API:")
-                logging.debug(increase_indent(json.dumps(res, indent=2)))
+                logger.debug("Response from Cognito API:")
+                logger.debug(increase_indent(json.dumps(res, indent=2)))
 
                 sleep(0.1)
             if not found:
-                logging.warning(
+                logger.warning(
                     f"User {user_id} not found in Cognito users, skipping. "
                     f"Would remove from group {group_name}"
                 )

@@ -29,19 +29,20 @@ console_handler.setLevel(logging.INFO)
 logging.getLogger().addHandler(console_handler)
 
 
-def sync_conscribo_to_cognito(dry_run=True):
+def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None):
+    logger = logger or logging.getLogger()
     cognito_users = list_all_cognito_users()
 
-    print(f"Users count: {len(cognito_users)}")
+    logger.info(f"Users count: {len(cognito_users)}")
     assert len(cognito_users) > 5, "No users found in the Cognito user pool."
 
-    # print(json.dumps(cognito_users[0], default=str, indent=2))
-    print()
+    # logger.debug(json.dumps(cognito_users[0], default=str, indent=2))
+    logger.info("")
 
     cognito_users = [cognito_user_to_canonical(user) for user in cognito_users]
 
     conscribo_members = list_relations_active_members()
-    print(f"Conscribo members count: {len(conscribo_members)}")
+    logger.info(f"Conscribo members count: {len(conscribo_members)}")
 
     cognito_without_id = [
         user
@@ -57,31 +58,27 @@ def sync_conscribo_to_cognito(dry_run=True):
 
     conscribo_by_id = {member["conscribo_id"]: member for member in conscribo_members}
 
-    print("Without Conscribo ID:")
-    print(", ".join(sorted([user["email"] for user in cognito_without_id])))
+    logger.info("Without Conscribo ID:")
+    logger.info(", ".join(sorted([user["email"] for user in cognito_without_id])))
 
-    print("Cognito:")
-    print(", ".join(sorted(cognito_by_id.keys())))
-    print()
-    print("Conscribo:")
-    print(", ".join(sorted(conscribo_by_id.keys())))
-    print()
-    print("Cognito only:")
+    logger.info("Cognito:")
+    logger.info(", ".join(sorted(cognito_by_id.keys())))
+    logger.info("")
+    logger.info("Conscribo:")
+    logger.info(", ".join(sorted(conscribo_by_id.keys())))
+    logger.info("")
+    logger.info("Cognito only:")
     cognito_only = sorted(cognito_by_id.keys() - conscribo_by_id.keys())
-    print(", ".join(sorted(cognito_only)))
-    # for cognito_id in cognito_only:
-    #     print(f"{cognito_id}: {json.dumps(cognito_by_id[cognito_id], indent=2)}")
+    logger.info(", ".join(sorted(cognito_only)))
 
-    print()
-    print("Conscribo only:")
+    logger.info("")
+    logger.info("Conscribo only:")
     conscribo_only = conscribo_by_id.keys() - cognito_by_id.keys()
-    print(", ".join(sorted(conscribo_only)))
-    # for conscribo_id in conscribo_only:
-    #     print(f"{conscribo_id}: {json.dumps(conscribo_by_id[conscribo_id], indent=2)}")
-    print()
+    logger.info(", ".join(sorted(conscribo_only)))
+    logger.info("")
 
     def prune_users():
-        logging.info(f"Dry run: {dry_run}")
+        logger.info(f"Dry run: {dry_run}")
 
         for conscribo_id in cognito_only:
             cognito_user = cognito_by_id[conscribo_id]
@@ -91,7 +88,7 @@ def sync_conscribo_to_cognito(dry_run=True):
                 cognito_user["email"],
             )
 
-            logging.info(f"DELETE {conscribo_id} {json.dumps(cognito_basics)}")
+            logger.info(f"DELETE {conscribo_id} {json.dumps(cognito_basics)}")
 
             if dry_run:
                 continue
@@ -102,7 +99,7 @@ def sync_conscribo_to_cognito(dry_run=True):
                 UserPoolId=user_pool_id,
                 Username=cognito_user["cognito_sub"],
             )
-            logging.info(f"Deleted {conscribo_id} ({cognito_sub})")
+            logger.info(f"Deleted {conscribo_id} ({cognito_sub})")
 
     def create_users():
         for conscribo_id in conscribo_only:
@@ -110,7 +107,7 @@ def sync_conscribo_to_cognito(dry_run=True):
 
             email = conscribo_user.get("email", None)
             if email is None or len(email) == 0:
-                logging.warning(
+                logger.warning(
                     f"Skipping user '{conscribo_id}' due to missing e-mail address."
                 )
                 continue
@@ -121,11 +118,11 @@ def sync_conscribo_to_cognito(dry_run=True):
                 conscribo_user["email"],
             )
 
-            logging.info(f"CREATE {conscribo_id} {json.dumps(conscribo_basics)}")
+            logger.info(f"CREATE {conscribo_id} {json.dumps(conscribo_basics)}")
 
             cognito_user = canonical_to_cognito_user(conscribo_user)
 
-            print(json.dumps(cognito_user, indent=2))
+            logger.debug(json.dumps(cognito_user, indent=2))
 
             if dry_run:
                 continue
@@ -158,9 +155,9 @@ def sync_conscribo_to_cognito(dry_run=True):
                 prev_value = old_attribute_values_by_name.get(attr["Name"], "")
 
                 if prev_value == attr["Value"]:
-                    # print(f"Skipping unchanged attribute {attr['Name']} for {conscribo_id}")
+                    # logger.debug(f"Skipping unchanged attribute {attr['Name']} for {conscribo_id}")
                     continue
-                print(
+                logger.info(
                     f"Changed {attr['Name']}: {prev_value} -> {attr['Value']} for {conscribo_id}"
                 )
 
@@ -169,10 +166,10 @@ def sync_conscribo_to_cognito(dry_run=True):
             if len(update_attributes) == 0:
                 continue
 
-            print(f"Updating attributes for {conscribo_id}: {update_attributes}")
+            logger.info(f"Updating attributes for {conscribo_id}: {update_attributes}")
 
             cognito_sub = cognito_user["cognito_sub"]
-            logging.info(f"UPDATE {conscribo_id} {json.dumps(update_attributes)}\n")
+            logger.info(f"UPDATE {conscribo_id} {json.dumps(update_attributes)}\n")
             if dry_run:
                 continue
 

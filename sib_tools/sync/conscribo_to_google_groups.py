@@ -13,6 +13,7 @@ from sib_tools.google.auth import (
 )
 from googleapiclient.discovery import build
 from time import sleep
+import logging
 
 # Example: mapping Conscribo roles to Google Groups
 GROUPS = {
@@ -21,12 +22,14 @@ GROUPS = {
 }
 
 
-def sync_group_to_emails(group_email, emails, dry_run=True):
+def sync_group_to_emails(group_email, emails, dry_run=True, logger: logging.Logger | None = None):
+    logger = logger or logging.getLogger(__name__)
+
     creds = get_credentials(directory_scopes)
     service = build("admin", "directory_v1", credentials=creds)
 
-    print(f"Syncing group: {group_email}. Got {len(emails)} emails")
-    print(f"Dry run: {dry_run}")
+    logger.info(f"Syncing group: {group_email}. Got {len(emails)} emails")
+    logger.info(f"Dry run: {dry_run}")
 
     # Get current Google Group members
     google_members = list_group_members_api(group_email)
@@ -43,29 +46,29 @@ def sync_group_to_emails(group_email, emails, dry_run=True):
     will_add = emails - google_emails
     will_remove = (google_emails - emails) - google_always_stay
 
-    print(f"Emails in Google list: {len(google_emails)}")
-    print(
+    logger.info(f"Emails in Google list: {len(google_emails)}")
+    logger.info(
         f"Will remove {len(will_remove)} emails, will add {len(will_add)}"
     )
-    print()
-    print()
+    logger.info("")
+    logger.info("")
 
     # Remove extra members from Google Group
     for email in will_remove:
-        print(f"Removing {email} from {group_email}")
+        logger.info(f"Removing {email} from {group_email}")
         if dry_run:
             continue
 
         try:
             service.members().delete(groupKey=group_email, memberKey=email).execute()
         except Exception as e:
-            print(f"Failed to remove {email}: {e}")
+            logger.warning(f"Failed to remove {email}: {e}")
         sleep(0.2)
 
-    print()
+    logger.info("")
     # Add missing members to Google Group
     for email in will_add:
-        print(f"Adding {email} to {group_email}")
+        logger.info(f"Adding {email} to {group_email}")
         if dry_run:
             continue
 
@@ -74,24 +77,26 @@ def sync_group_to_emails(group_email, emails, dry_run=True):
                 groupKey=group_email, body={"email": email, "role": "MEMBER"}
             ).execute()
         except Exception as e:
-            print(f"Failed to add {email}: {e}")
+            logger.warning(f"Failed to add {email}: {e}")
         sleep(0.2)
 
 
-def sync_conscribo_to_google_groups(dry_run=True, group="alumni"):
+def sync_conscribo_to_google_groups(dry_run=True, group="alumni", logger: logging.Logger | None = None):
     """
     Synchronize Conscribo members to Google Groups.
     group: 'alumni' or 'members'
     """
+    logger = logger or logging.getLogger(__name__)
+
     if group == "alumni":
-        print("Syncing alumni emails:")
+        logger.info("Syncing alumni emails:")
         alumni = list_relations_active_alumni()
         emails = set(a.get("email") for a in alumni) - {"", None}
-        sync_group_to_emails("alumni@sib-utrecht.nl", emails, dry_run=dry_run)
+        sync_group_to_emails("alumni@sib-utrecht.nl", emails, dry_run=dry_run, logger=logger)
     elif group == "members":
-        print("Syncing members emails:")
+        logger.info("Syncing members emails:")
         members = list_relations_active_members()
         emails = set(a.get("email") for a in members) - {"", None}
-        sync_group_to_emails("members@sib-utrecht.nl", emails, dry_run=dry_run)
+        sync_group_to_emails("members@sib-utrecht.nl", emails, dry_run=dry_run, logger=logger)
     else:
         raise ValueError(f"Unknown group: {group}")

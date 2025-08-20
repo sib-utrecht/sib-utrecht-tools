@@ -24,25 +24,27 @@ CONTACTS_SCOPES = [
 ]
 
 
-def sync_conscribo_to_google_contacts(dry_run=False):
+def sync_conscribo_to_google_contacts(dry_run=False, logger: logging.Logger | None = None):
     """
     Sync Conscribo members to Google Contacts, only considering contacts with label 'Member'.
     Uses the Google People API.
     """
 
+    logger = logger or logging.getLogger(__name__)
+
     try:
-        print("Syncing Conscribo members to Google Contacts...")
+        logger.info("Syncing Conscribo members to Google Contacts...")
 
         creds = get_credentials(CONTACTS_SCOPES)
         service = build("people", "v1", credentials=creds)
 
         group = get_contact_group(service, GOOGLE_CONTACTS_MEMBER_LABEL)
         if not group:
-            print("No contact group with label 'Member' found, creating it...")
+            logger.warning("No contact group with label 'Member' found, creating it...")
             # group = service.contactGroups().create(
             #     body={"name": "Member", "groupType": "USER_CONTACT_GROUP"}
             # ).execute()
-            # print(f"Created group: {group.get('resourceName')}")
+            # logger.info(f"Created group: {group.get('resourceName')}")
             return
 
         members = list_relations_active_members()
@@ -60,22 +62,22 @@ def sync_conscribo_to_google_contacts(dry_run=False):
             members_by_conscribo_id.keys()
         )
 
-        print(
+        logger.info(
             f"Would add {len(would_add)} contacts, would remove {len(would_remove)} contacts."
         )
 
         today = datetime.now(tz=timezone.utc).astimezone()
-        print(f"Sync date: {today.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        print(f"Dry run: {dry_run}")
+        logger.info(f"Sync date: {today.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logger.info(f"Dry run: {dry_run}")
 
         today_date = today.date().isoformat()
 
         this_year = today.year
 
-        print("Add: ")
+        logger.info("Add: ")
         for conscribo_id in would_add:
             member = members_by_conscribo_id[conscribo_id]
-            print(
+            logger.info(
                 f" - {member['first_name']} {member['last_name']} <{member['email']}> ({conscribo_id})"
             )
 
@@ -97,17 +99,20 @@ def sync_conscribo_to_google_contacts(dry_run=False):
                     }
                 )
 
-            this_year_birthday = f"{this_year}-{date_of_birth[5:7]}-{date_of_birth[8:10]}"
-            next_year_birthday = f"{this_year + 1}-{date_of_birth[5:7]}-{date_of_birth[8:10]}"
-
             next_birthday = None
-            age_at_next_birthday = this_year - int(date_of_birth[:4]) if date_of_birth else 0
+            age_at_next_birthday = 0
 
-            if this_year_birthday >= today_date:
-                next_birthday = this_year_birthday
-            else:
-                next_birthday = next_year_birthday
-                age_at_next_birthday += 1
+            if date_of_birth:
+                age_at_next_birthday = this_year - int(date_of_birth[:4]) if date_of_birth else 0
+
+                this_year_birthday = f"{this_year}-{date_of_birth[5:7]}-{date_of_birth[8:10]}"
+                next_year_birthday = f"{this_year + 1}-{date_of_birth[5:7]}-{date_of_birth[8:10]}"
+
+                if this_year_birthday >= today_date:
+                    next_birthday = this_year_birthday
+                else:
+                    next_birthday = next_year_birthday
+                    age_at_next_birthday += 1
 
             contact = {
                 "names": [
@@ -152,15 +157,15 @@ def sync_conscribo_to_google_contacts(dry_run=False):
                 body={"resourceNamesToAdd": [created_contact["resourceName"]]}
             ).execute()
 
-            print(f"Created contact: {created_contact.get('resourceName')}")
-            print(json.dumps(created_contact, indent=2))
+            logger.info(f"    Created contact: {created_contact.get('resourceName')}")
+            # logger.debug(json.dumps(created_contact, indent=2))
             sleep(0.1)  # Avoid hitting rate limits
-            break
+            # break
 
-        print("Remove: ")
+        logger.info("Remove: ")
         for conscribo_id in would_remove:
             contact = contacts_by_conscribo_id[conscribo_id]
-            print(
+            logger.info(
                 f" - {contact['first_name']} {contact['last_name']} <{contact['email']}> ({conscribo_id})"
             )
 
@@ -169,7 +174,7 @@ def sync_conscribo_to_google_contacts(dry_run=False):
 
             resource_name = contact.get("other", {}).get("googleResourceName")
             if not resource_name:
-                logging.warning(
+                logger.warning(
                     f"Contact {contact['conscribo_id']} does not have a Google resource name, skipping removal."
                 )
                 continue
@@ -179,4 +184,4 @@ def sync_conscribo_to_google_contacts(dry_run=False):
             sleep(0.1)
 
     except Exception as e:
-        logging.exception(f"Error syncing to Google Contacts: {e}")
+        logger.exception(f"Error syncing to Google Contacts: {e}")
