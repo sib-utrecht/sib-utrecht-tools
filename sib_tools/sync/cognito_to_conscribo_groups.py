@@ -3,7 +3,7 @@ import sys
 import json
 from time import sleep
 
-from sib_tools.utils import increase_indent
+from sib_tools.utils import increase_indent, print_change_count, print_header
 
 from ..conscribo.relations import list_relations_members
 from ..conscribo.groups import list_entity_groups
@@ -24,19 +24,10 @@ from ..cognito.groups import (
     cognito_list_users_in_group_canonical,
 )
 
-logging.basicConfig(
-    filename="cognito_sync_groups_to_conscribo.log",
-    level=logging.DEBUG,
-    format="[%(asctime)s] %(levelname)s: %(message)s",
-)
-logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-logging.getLogger("boto3").setLevel(logging.WARNING)
-logging.getLogger("botocore").setLevel(logging.WARNING)
-logging.getLogger("s3transfer").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
+def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None = None) -> int:
+    logger = logger or logging.getLogger(__name__)
 
-def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None = None):
-    logger = logger or logging.getLogger()
+    print_header("Syncing Cognito groups to Conscribo groups...", logger)
 
     cognito_groups = cognito_list_groups()
     logger.info(f"Groups count: {len(cognito_groups)}")
@@ -75,6 +66,7 @@ def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None
     logger.info("")
     logger.info("")
 
+    change_count = 0
 
     # Now sync Cognito groups to Conscribo subgroups
     for group_name, cognito_members in cognito_group_members.items():
@@ -89,6 +81,9 @@ def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None
 
         to_add = cognito_member_ids - conscribo_member_ids
         to_remove = conscribo_member_ids - cognito_member_ids
+
+        # Each creation (add) and deletion (remove) counts as a change
+        change_count += len(to_add) + len(to_remove)
 
         if len(to_add) > 0:
             logger.info(
@@ -122,6 +117,9 @@ def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None
                 logger.info(f"Removed {len(to_remove)} users from Conscribo group {group_name}")
                 sleep(2)
         logger.info("")
+
+    print_change_count(change_count, logger)
+    return change_count
 
 if __name__ == "__main__":
     sync_cognito_to_conscribo_groups(dry_run=True)

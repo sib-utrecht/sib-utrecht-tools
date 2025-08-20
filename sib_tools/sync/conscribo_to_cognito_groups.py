@@ -20,29 +20,16 @@ from ..cognito.groups import (
     cognito_list_groups,
     cognito_list_users_in_group,
 )
-from ..utils import increase_indent
+from ..utils import increase_indent, print_change_count, print_header
 
-logging.basicConfig(
-    filename="cognito_sync_groups.log",
-    level=logging.DEBUG,
-    format="[%(asctime)s] %(levelname)s: %(message)s",
-)
-logger = logging.getLogger("sib-tools")
-logger.setLevel(logging.DEBUG)
-
-logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-
-logging.getLogger('boto3').setLevel(logging.WARNING)
-logging.getLogger('botocore').setLevel(logging.WARNING)
-logging.getLogger('s3transfer').setLevel(logging.WARNING)
-logging.getLogger('urllib3').setLevel(logging.WARNING)
-
-
-def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None = None):
-    logger = logger or logging.getLogger()
+def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None = None) -> int:
+    logger = logger or logging.getLogger(__name__)
+    print_header("Syncing Conscribo groups to AWS Cognito groups...", logger)
+    
     cognito_groups = cognito_list_groups()
     logger.info(f"Groups count: {len(cognito_groups)}")
-    logger.info(f"Dry run: {dry_run}")
+    if dry_run:
+        logger.info(f"Dry run: {dry_run}")
 
     cognito_groups_by_name = {group["GroupName"]: group for group in cognito_groups}
     cognito_group_members = {
@@ -83,6 +70,8 @@ def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None
         logger.info(f"  - {name} with {len(members)} members")
     logger.info("")
 
+    change_count = 0
+
     for subgroup in subgroups:
         group_name = subgroup["name"]
 
@@ -91,6 +80,7 @@ def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None
 
         if group_name not in cognito_group_members:
             logger.info(f"Creating Cognito group: {group_name}")
+            change_count += 1  # group creation counts as a change
             if not dry_run:
                 ans = cognito_client.create_group(
                     GroupName=group_name,
@@ -117,6 +107,9 @@ def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None
         )
         logger.info(f"  - To add: {len(to_add)} members")
         logger.info(f"  - To remove: {len(to_remove)} members")
+
+        # additions and removals count as changes
+        change_count += len(to_add) + len(to_remove)
 
         for user_id in to_add:
             cognito_member = cognito_users_by_id.get(user_id, None)
@@ -192,3 +185,6 @@ def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None
                     f"User {user_id} not found in Cognito users, skipping. "
                     f"Would remove from group {group_name}"
                 )
+
+    print_change_count(change_count, logger)
+    return change_count

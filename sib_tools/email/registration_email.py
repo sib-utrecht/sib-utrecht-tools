@@ -133,7 +133,11 @@ def process_registration_email(dkim_result : DKIMVerifiedMail):
         logger.error("No date found in registration email. Using current date instead.")
         membership_start = datetime.now(timezone.utc).astimezone(tz).isoformat()
 
-    canonical["membership_start"] = membership_start[:14]
+    canonical["membership_start"] = membership_start[:10]
+
+    # If the signup is in July or August, set the membership start to September 1st
+    if re.fullmatch(r"\d{4}-0[78]-\d+", membership_start[:10]):
+        canonical["membership_start"] = f"{membership_start[:4]}-09-01"
 
     canonical.pop("registration_form_url", None)
 

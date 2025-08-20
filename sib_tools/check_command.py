@@ -104,19 +104,19 @@ def handle_check(args: Namespace):
         )
         logger.removeHandler(memory_handler)
 
-    if args.output_to_html or args.mail_output:
-        log_contents = log_stream.getvalue()
-        dark_mode = getattr(args, "html_dark_mode", False)
-        html = log_to_html(log_contents, dark_mode)
-        if args.output_to_html:
-            with open(args.output_to_html, "w", encoding="utf-8") as f:
-                f.write(html)
-        if args.mail_output:
-            mail_results(
-                html,
-                subject=f"Health check report by sib-tools ({args.healthcheck})",
-                logger=logger,
-            )
+        if args.output_to_html or args.mail_output:
+            log_contents = log_stream.getvalue()
+            dark_mode = getattr(args, "html_dark_mode", False)
+            html = log_to_html(log_contents, dark_mode)
+            if args.output_to_html:
+                with open(args.output_to_html, "w", encoding="utf-8") as f:
+                    f.write(html)
+            if args.mail_output:
+                mail_results(
+                    html,
+                    subject=f"Report by sib-tools ({args.healthcheck})",
+                    logger=logger,
+                )
 
 
 def add_parse_args(parser: ArgumentParser):
@@ -248,7 +248,7 @@ def ansi_to_html(text):
     return result
 
 
-def log_to_html(log_contents: str, dark_mode: bool = False) -> str:
+def log_to_html(log_contents: str, dark_mode: bool = False, is_sync = False) -> str:
     if dark_mode:
         style = """
             body { background: #222; color: #e0e0e0; }
@@ -306,6 +306,15 @@ def log_to_html(log_contents: str, dark_mode: bool = False) -> str:
             <span class="banner-text">This is the output of an automated health check by a script at <a href="https://github.com/sib-utrecht/sib-utrecht-tools" target="_blank" style="color:#1976d2;text-decoration:underline;">https://github.com/sib-utrecht/sib-utrecht-tools</a>. It aims to help you in finding issues, and fixing them. If you are confused, please message the IT committee.</span>
         </div>
         """
+    
+    if is_sync:
+        banner = """
+        <div class="banner">
+            <span class="icon" aria-label="sync" title="Sync">🔄</span>
+            <span class="banner-text">This is the output of a synchronization process by a script at <a href="https://github.com/sib-utrecht/sib-utrecht-tools" target="_blank" style="color:#1976d2;text-decoration:underline;">https://github.com/sib-utrecht/sib-utrecht-tools</a>. If you are confused, please message the IT committee.</span>
+        </div>
+    """
+
     return (
         f"<html><head><style>{style}</style></head><body>"
         f"{banner}"

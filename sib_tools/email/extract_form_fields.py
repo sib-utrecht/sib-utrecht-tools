@@ -1,17 +1,18 @@
 import json
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from email import message_from_file
 import re
 import uuid
 from email.message import EmailMessage, Message
 from sib_tools.canonical.canonical_key import get_register_form_to_key
-
+from typing import Any
 
 def extract_fields_from_mail(path_to_eml):
     msg = message_from_file(open(path_to_eml, 'r', encoding='utf-8'))
     return extract_fields_from_mail_message(msg)
 
-def get_html_and_plain_from_mail_message(msg : EmailMessage):
+def get_html_and_plain_from_mail_message(msg : Message):
     html_message = None
     text_message = None
     main_part = next(msg.walk())
@@ -20,12 +21,20 @@ def get_html_and_plain_from_mail_message(msg : EmailMessage):
             assert "UTF-8" in subpart['Content-Type'], 'Unexpected Content-Type for text/html'
             assert subpart['Content-Transfer-Encoding'] == 'quoted-printable', 'Unexpected Content-Transfer-Encoding for text/html'
  
-            html_message = subpart.get_payload(decode=True)
+            payload = subpart.get_payload(decode=True)
+            if not isinstance(payload, bytes):
+                raise ValueError("Expected bytes for HTML payload")
+            html_message = payload
+
         if subpart.get_content_type() == 'text/plain':
             assert "UTF-8" in subpart['Content-Type'], 'Unexpected Content-Type for text/plain'
             assert subpart.get('Content-Transfer-Encoding', '') in {'quoted-printable', ''}, 'Unexpected Content-Transfer-Encoding for text/plain'
 
-            text_message = subpart.get_payload(decode=True)
+            payload = subpart.get_payload(decode=True)
+            if not isinstance(payload, bytes):
+                raise ValueError("Expected bytes for text payload")
+            
+            text_message = payload
 
     if html_message is not None:
         print(f"Html message length: {len(html_message)}")
@@ -36,7 +45,7 @@ def get_html_and_plain_from_mail_message(msg : EmailMessage):
 
     return html_message, text_message
 
-def extract_fields_from_mail_message(msg : EmailMessage):
+def extract_fields_from_mail_message(msg : Message):
     html_message, text_message = get_html_and_plain_from_mail_message(msg)
 
     # msg.get_body(preferencelist=('related', 'html', 'plain'))
@@ -47,6 +56,8 @@ def extract_fields_from_mail_message(msg : EmailMessage):
         secure_bold_marker = str(uuid.uuid4())
         soup = BeautifulSoup(html_message, 'html.parser')
         for tag in soup.find_all('strong'):
+            if not isinstance(tag, Tag):
+                continue
             tag.string = f"\n{secure_bold_marker}\n{tag.text}\n"
         parts = soup.text.split(secure_bold_marker)
         preamble = parts[0]
@@ -67,8 +78,8 @@ def extract_fields_from_mail_message(msg : EmailMessage):
 
 def form_to_canonical(fields : dict[str, str]) -> dict:
     to_canonical = get_register_form_to_key()
-    canonical : dict[str, str] = dict()
-    agreements = dict()
+    canonical : dict[str, str | dict[str, Any] | Any] = dict()
+    agreements : dict[str, str] = dict()
     for k, v in fields.items():
         new_key = to_canonical.get(k, None)
         is_agreement = (
@@ -82,7 +93,7 @@ def form_to_canonical(fields : dict[str, str]) -> dict:
             continue
         if (k in ["id", "form_id", "url_page", "url_slug"]) or is_agreement:
             continue
-        other = canonical.setdefault("other", dict())
+        other : Any = canonical.setdefault("other", dict())
         other[k] = v
     if "agreements_dict" in canonical:
         del canonical["agreements_dict"]
@@ -90,11 +101,21 @@ def form_to_canonical(fields : dict[str, str]) -> dict:
         f"{k}: {v}"
         for k, v in agreements.items()
     ]) + "\n"
+
+    dob : str | None = canonical.get("date_of_birth", None) # type: ignore
+    if dob is None:
+        raise ValueError("No date_of_birth found in canonical form")
+
     m = re.fullmatch(
         r"^(\d{1,2})-(\d{1,2})-(\d{4})$",
-        canonical["date_of_birth"].strip()
+        dob.strip()
         .replace(" ", "-").replace("/", "-")
     )
+    if m is None:
+        raise ValueError(
+            f"Invalid date format in date_of_birth: {repr(dob)}"
+        )
+
     canonical["date_of_birth"] = f"{m.group(3)}-{m.group(2):>02}-{m.group(1):>02}"
     return canonical
 

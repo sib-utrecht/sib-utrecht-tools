@@ -4,6 +4,8 @@ import json
 import logging
 import sys
 
+from sib_tools.conscribo.groups import find_group_id_by_name, get_group_members_cached
+
 from ..conscribo.relations import list_relations_active_members
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
@@ -14,26 +16,21 @@ from ..cognito.list_users import (
     cognito_client,
     user_pool_id,
 )
+from ..utils import print_change_count, print_header
 
+def sync_conscribo_to_cognito(
+    dry_run=True, logger: logging.Logger | None = None
+) -> int:
+    logger = logger or logging.getLogger(__name__)
 
-logging.basicConfig(
-    filename="cognito_sync.log",
-    level=logging.INFO,
-    format="[%(asctime)s] %(levelname)s: %(message)s",
-)
+    print_header("Syncing Conscribo members to AWS Cognito users...", logger)
 
-# Only print INFO and above to stdout
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-# console_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s"))
-logging.getLogger().addHandler(console_handler)
+    if dry_run:
+        logger.info(f"Dry run: {dry_run}")
 
-
-def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None):
-    logger = logger or logging.getLogger()
     cognito_users = list_all_cognito_users()
 
-    logger.info(f"Users count: {len(cognito_users)}")
+    logger.debug(f"Cognito users count: {len(cognito_users)}")
     assert len(cognito_users) > 5, "No users found in the Cognito user pool."
 
     # logger.debug(json.dumps(cognito_users[0], default=str, indent=2))
@@ -42,7 +39,28 @@ def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None
     cognito_users = [cognito_user_to_canonical(user) for user in cognito_users]
 
     conscribo_members = list_relations_active_members()
-    logger.info(f"Conscribo members count: {len(conscribo_members)}")
+    logger.debug(f"Conscribo members count: {len(conscribo_members)}")
+
+    # Filter to only members who are not in the 'Te verwerken' Conscribo group
+    te_verwerken_group_id = find_group_id_by_name("Te verwerken")
+    if te_verwerken_group_id is None:
+        logger.warning("Not excluding 'Te verwerken' members: the Conscribo group 'Te verwerken' as not found.")
+
+    if te_verwerken_group_id is not None:
+        group_members = get_group_members_cached(te_verwerken_group_id)
+
+        prev_conscribo_members_count = len(conscribo_members)
+        
+        conscribo_members = [
+            member for member in conscribo_members
+            if member["conscribo_id"] not in group_members
+        ]
+
+        new_conscribo_members_count = len(conscribo_members)
+
+        logger.info(
+            f"Excluding {prev_conscribo_members_count - new_conscribo_members_count} members in 'Te verwerken' group"
+        )
 
     cognito_without_id = [
         user
@@ -58,27 +76,29 @@ def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None
 
     conscribo_by_id = {member["conscribo_id"]: member for member in conscribo_members}
 
-    logger.info("Without Conscribo ID:")
-    logger.info(", ".join(sorted([user["email"] for user in cognito_without_id])))
+    logger.debug("Without Conscribo ID:")
+    logger.debug(", ".join(sorted([user["email"] for user in cognito_without_id])))
 
-    logger.info("Cognito:")
-    logger.info(", ".join(sorted(cognito_by_id.keys())))
-    logger.info("")
-    logger.info("Conscribo:")
-    logger.info(", ".join(sorted(conscribo_by_id.keys())))
-    logger.info("")
-    logger.info("Cognito only:")
+    logger.debug("Cognito:")
+    logger.debug(", ".join(sorted(cognito_by_id.keys())))
+    logger.debug("")
+    logger.debug("Conscribo:")
+    logger.debug(", ".join(sorted(conscribo_by_id.keys())))
+    logger.debug("")
+    logger.debug("Cognito only:")
     cognito_only = sorted(cognito_by_id.keys() - conscribo_by_id.keys())
-    logger.info(", ".join(sorted(cognito_only)))
+    logger.debug(", ".join(sorted(cognito_only)))
 
-    logger.info("")
-    logger.info("Conscribo only:")
+    logger.debug("")
+    logger.debug("Conscribo only:")
     conscribo_only = conscribo_by_id.keys() - cognito_by_id.keys()
-    logger.info(", ".join(sorted(conscribo_only)))
-    logger.info("")
+    logger.debug(", ".join(sorted(conscribo_only)))
+    logger.debug("")
+
+    change_count = 0
 
     def prune_users():
-        logger.info(f"Dry run: {dry_run}")
+        nonlocal change_count
 
         for conscribo_id in cognito_only:
             cognito_user = cognito_by_id[conscribo_id]
@@ -89,6 +109,7 @@ def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None
             )
 
             logger.info(f"DELETE {conscribo_id} {json.dumps(cognito_basics)}")
+            change_count += 1
 
             if dry_run:
                 continue
@@ -102,6 +123,7 @@ def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None
             logger.info(f"Deleted {conscribo_id} ({cognito_sub})")
 
     def create_users():
+        nonlocal change_count
         for conscribo_id in conscribo_only:
             conscribo_user = conscribo_by_id[conscribo_id]
 
@@ -119,6 +141,7 @@ def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None
             )
 
             logger.info(f"CREATE {conscribo_id} {json.dumps(conscribo_basics)}")
+            change_count += 1
 
             cognito_user = canonical_to_cognito_user(conscribo_user)
 
@@ -135,6 +158,7 @@ def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None
             )
 
     def update_users():
+        nonlocal change_count
         for conscribo_id in conscribo_by_id.keys():
             cognito_user = cognito_by_id.get(conscribo_id, None)
             conscribo_user = conscribo_by_id[conscribo_id]
@@ -166,6 +190,8 @@ def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None
             if len(update_attributes) == 0:
                 continue
 
+            # Count this as a single modification for the user
+            change_count += 1
             logger.info(f"Updating attributes for {conscribo_id}: {update_attributes}")
 
             cognito_sub = cognito_user["cognito_sub"]
@@ -182,3 +208,6 @@ def sync_conscribo_to_cognito(dry_run=True, logger: logging.Logger | None = None
     prune_users()
     create_users()
     update_users()
+
+    print_change_count(change_count, logger)
+    return change_count

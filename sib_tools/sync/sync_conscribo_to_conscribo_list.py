@@ -9,9 +9,10 @@ import logging
 import sys
 from typing import List, Dict, Any
 
-from ..conscribo.groups import set_group_members
+from ..conscribo.groups import set_group_members, get_group_members_cached
 from ..conscribo.relations import list_relations_active_members, list_relations_active_alumni
 from ..canonical import canonical_key
+from ..utils import print_change_count, print_header
 
 
 logging.basicConfig(
@@ -31,7 +32,7 @@ def sync_conscribo_to_conscribo_list(
     canonical_members: List[Dict[str, Any]], 
     dry_run: bool = True,
     logger: logging.Logger | None = None,
-):
+) -> int:
     """
     Sync canonical members to a specific Conscribo group.
     
@@ -42,30 +43,40 @@ def sync_conscribo_to_conscribo_list(
     """
     logger = logger or logging.getLogger(__name__)
 
-    logger.info(f"Syncing {len(canonical_members)} canonical members to Conscribo group {group_id}")
+    print_header("Syncing members to Conscribo group...", logger)
+
+    logger.debug(f"Syncing {len(canonical_members)} canonical members to Conscribo group {group_id}")
     
     if dry_run:
         logger.info("DRY RUN MODE - No actual changes will be made")
     
+    # Determine whether any change would occur
+    current_members = get_group_members_cached(group_id)
+    desired_member_ids = {str(m.get("conscribo_id")) for m in canonical_members if m.get("conscribo_id")}
+    to_add = desired_member_ids - current_members
+    to_remove = current_members - desired_member_ids
+    change_count = len(to_add) + len(to_remove)
+
     # Use the set_group_members method from groups.py
     set_group_members(group_id, canonical_members, dry_run=dry_run)
     
-    logger.info("Sync completed")
+    print_change_count(change_count, logger)
+    return change_count
 
 
-def sync_active_members_to_group(group_id: int, dry_run: bool = True, logger: logging.Logger | None = None):
+def sync_active_members_to_group(group_id: int, dry_run: bool = True, logger: logging.Logger | None = None) -> int:
     """
     Convenience function to sync all active members to a group.
     """
     logger = logger or logging.getLogger(__name__)
     active_members = list_relations_active_members()
-    sync_conscribo_to_conscribo_list(group_id, active_members, dry_run, logger=logger)
+    return sync_conscribo_to_conscribo_list(group_id, active_members, dry_run, logger=logger)
 
 
-def sync_active_alumni_to_group(group_id: int, dry_run: bool = True, logger: logging.Logger | None = None):
+def sync_active_alumni_to_group(group_id: int, dry_run: bool = True, logger: logging.Logger | None = None) -> int:
     """
     Convenience function to sync all active alumni to a group.
     """
     logger = logger or logging.getLogger(__name__)
     active_alumni = list_relations_active_alumni()
-    sync_conscribo_to_conscribo_list(group_id, active_alumni, dry_run, logger=logger)
+    return sync_conscribo_to_conscribo_list(group_id, active_alumni, dry_run, logger=logger)

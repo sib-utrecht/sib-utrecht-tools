@@ -16,6 +16,7 @@ from ..conscribo.relations import (
     list_relations_active_members,
 )
 from datetime import datetime, date, timezone
+from ..utils import print_change_count, print_header
 
 
 CONTACTS_SCOPES = [
@@ -24,7 +25,7 @@ CONTACTS_SCOPES = [
 ]
 
 
-def sync_conscribo_to_google_contacts(dry_run=False, logger: logging.Logger | None = None):
+def sync_conscribo_to_google_contacts(dry_run=False, logger: logging.Logger | None = None) -> int:
     """
     Sync Conscribo members to Google Contacts, only considering contacts with label 'Member'.
     Uses the Google People API.
@@ -33,19 +34,19 @@ def sync_conscribo_to_google_contacts(dry_run=False, logger: logging.Logger | No
     logger = logger or logging.getLogger(__name__)
 
     try:
-        logger.info("Syncing Conscribo members to Google Contacts...")
+        print_header("Syncing Conscribo members to Google Contacts...", logger)
 
         creds = get_credentials(CONTACTS_SCOPES)
         service = build("people", "v1", credentials=creds)
 
         group = get_contact_group(service, GOOGLE_CONTACTS_MEMBER_LABEL)
         if not group:
-            logger.warning("No contact group with label 'Member' found, creating it...")
+            logger.warning("No contact group with label 'Member' found, create one to continue.")
             # group = service.contactGroups().create(
             #     body={"name": "Member", "groupType": "USER_CONTACT_GROUP"}
             # ).execute()
             # logger.info(f"Created group: {group.get('resourceName')}")
-            return
+            return 0
 
         members = list_relations_active_members()
         members_by_conscribo_id = {member["conscribo_id"]: member for member in members}
@@ -73,6 +74,8 @@ def sync_conscribo_to_google_contacts(dry_run=False, logger: logging.Logger | No
         today_date = today.date().isoformat()
 
         this_year = today.year
+
+        change_count = len(would_add) + len(would_remove)
 
         logger.info("Add: ")
         for conscribo_id in would_add:
@@ -183,5 +186,9 @@ def sync_conscribo_to_google_contacts(dry_run=False, logger: logging.Logger | No
             service.people().deleteContact(resourceName=resource_name).execute()
             sleep(0.1)
 
+        print_change_count(change_count, logger)
+        return change_count
+
     except Exception as e:
         logger.exception(f"Error syncing to Google Contacts: {e}")
+        return 0

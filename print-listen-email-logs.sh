@@ -1,3 +1,3 @@
 #!/bin/sh
 
-journalctl -fu sib-tools-listen-email
+journalctl -n 100 -fu sib-tools-listen-email

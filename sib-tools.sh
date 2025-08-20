@@ -59,5 +59,5 @@ source /etc/sib-tools/keyring-decrypt-password.env
 #     traceback.print_exc()
 # "
 set +a
-echo "${#KEYRING_CRYPTFILE_PASSWORD}"
+#echo "${#KEYRING_CRYPTFILE_PASSWORD}"
 python -m sib_tools "$@"

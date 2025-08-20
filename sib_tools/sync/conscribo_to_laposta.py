@@ -18,16 +18,7 @@ from ..laposta import auth
 from ..laposta import list_members
 from ..laposta.list_members import get_aggregated_relations
 from datetime import datetime
-
-# Set format to use timestamp
-logging.basicConfig(filename="laposta_sync.log", level=logging.DEBUG,
-                    format="[%(asctime)s] %(levelname)s: %(message)s")
-
-# Only print INFO and above to stdout
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-# console_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s"))
-logging.getLogger().addHandler(console_handler)
+from ..utils import print_change_count, print_header
 
 
 def match_laposta_with_conscribo(
@@ -121,18 +112,29 @@ def match_laposta_with_conscribo(
 
         entries.append((member, conscribo_member, conscribo_alumnus))
 
+    unmatched_members = []
+    unmatched_alumni = []
+
     for email in unmatched_conscribo:
         conscribo_member = members_by_email.get(email, None)
         conscribo_alumnus = alumni_by_email.get(email, None)
 
         if conscribo_member is not None:
-            logger.info(f"Conscribo member not found in Laposta: {email}")
+            unmatched_members.append(email)
+            # logger.info(f"Conscribo member not found in Laposta: {email}")
         elif conscribo_alumnus is not None:
-            logger.info(f"Conscribo alumnus not found in Laposta: {email}")
+            unmatched_alumni.append(email)
+            # logger.info(f"Conscribo alumnus not found in Laposta: {email}")
         else:
             logger.info(f"Conscribo relation not found for email: {email}")
 
         entries.append((None, conscribo_member, conscribo_alumnus))
+
+    if unmatched_members:
+        logger.debug(f"Unmatched members: {', '.join(unmatched_members)}")
+
+    if unmatched_alumni:
+        logger.debug(f"Unmatched alumni: {', '.join(unmatched_alumni)}")
 
     return entries
 
@@ -161,20 +163,23 @@ def get_participating_flags(member):
     return "".join(flags)
 
 
-def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None):
+def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None) -> int:
     logger = logger or logging.getLogger(__name__)
+    print_header("Syncing Conscribo members to Laposta lists...", logger)
     laposta_members = get_aggregated_relations()
+
+    logger.info("Syncing Conscribo to Laposta...")
 
     # Override dry_run for testing purposes
     # dry_run = True
-    logger.info(f"Member count: {len(laposta_members)}")
+    logger.debug(f"Member count: {len(laposta_members)}")
     assert len(laposta_members) > 5, "No members found in Laposta."
 
     # logger.debug(json.dumps(laposta_members[:5], default=str, indent=2))
 
     block_email_members = get_block_email_members()
 
-    logger.info(f"Block email members: {json.dumps(list(block_email_members))}")
+    logger.debug(f"Block email members: {json.dumps(list(block_email_members))}")
 
     members = list_relations_active_members()
     alumni = list_relations_active_alumni()
@@ -184,10 +189,6 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
     # No need to filter members or alumni here, already filtered by abstraction
 
     entries = match_laposta_with_conscribo(laposta_members, members, alumni, logger=logger)
-
-    # logger.info(f"First 5 entries:")
-    # for entry in entries[:5]:
-    #     logger.info(json.dumps(entry, indent=2, default=str))
 
     current_and_desired: list[tuple[dict, dict]] = []
 
@@ -276,21 +277,13 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
 
         current_and_desired.append((laposta_member, desired))
 
-    # logger.debug(json.dumps(current_and_desired, indent=2, default=str))
-    # exit(0)
-
-
     key_to_laposta = get_key_to_laposta()
+
+    change_count = 0
 
     for entry in current_and_desired:
         laposta_member, desired = entry
 
-        # if desired.get("first_name", None) != "XXX":
-        #     continue
-
-
-        # logger.debug(f"Current: {json.dumps(laposta_member)}")
-        # logger.debug(f"Desired: {json.dumps(desired)}")
         current_flags = get_participating_flags(laposta_member)
         desired_flags = get_participating_flags(desired)
 
@@ -329,8 +322,16 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
             logger.info(f"Updating email {laposta_member.get('email')} to {desired.get('email')}")
             force_readd = True
 
-        if current_lists == desired_lists and not force_readd:
+        if set(current_lists) == set(desired_lists) and not force_readd:
             continue
+
+        # Count changes: removals + additions (force_readd implies full remove+add)
+        remove_lists = set(current_lists) - set(desired_lists)
+        add_lists = set(desired_lists) - set(current_lists)
+        if force_readd:
+            remove_lists = set(current_lists)
+            add_lists = set(desired_lists)
+        change_count += len(remove_lists) + len(add_lists)
 
         conscribo_id = desired.get("conscribo_id", None)
 
@@ -343,30 +344,9 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
 
         logger.info(f"UPDATE {conscribo_id} {json.dumps(basic_info)}")
 
-        # logger.debug(
-        #     f"Updating {desired['email']}: {current_flags} -> {desired_flags}, "
-        #     f"lists: {current_lists} -> {desired_lists}"
-        # )
-        # logger.debug(f"Desired: {json.dumps(desired)}")
-
-
-        # logger.debug(json.dumps(laposta_member))
-
-        # if dry_run:
-        #     continue
-
-        add_lists = set(desired_lists) - set(current_lists)
-        remove_lists = set(current_lists) - set(desired_lists)
-
-        if force_readd:
-            remove_lists = set(current_lists)
-            add_lists = set(desired_lists)
-
-
         for list_id in remove_lists:
             logger.info(f"  Removing {laposta_member['email']} from list {list_id}")
             member_id = laposta_member["laposta_member_ids"].get(list_id, None)
-            # logger.debug(f"  Member ID for list {list_id}: {member_id}")
 
             if member_id is None:
                 logger.error(
@@ -374,7 +354,6 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
                 )
                 continue
 
-            
             url = f"/v2/member/{member_id}?list_id={list_id}"
             logger.debug(f"  Doing DELETE to Laposta: {url}")
 
@@ -387,7 +366,6 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
             )
             logger.debug(f"Response: {json.dumps(response)}")
             sleep(2)
-
 
         for list_id in add_lists:
             logger.info(f"  Adding {desired['email']} to list {list_id}")
@@ -415,10 +393,6 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
                 }
             )
 
-
-            # if desired.get("first_name", None) != "XXXX":
-            #     continue
-
             logger.debug(f"  Doing POST to Laposta: {json.dumps(payload, indent=2)}")
 
             if dry_run:
@@ -432,3 +406,6 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
 
             logger.debug(f"Response: {json.dumps(response)}")
             sleep(2)
+
+    print_change_count(change_count, logger)
+    return change_count
