@@ -130,7 +130,7 @@ def handle_sync(args: Namespace):
         logger.removeHandler(memory_handler)
         if getattr(args, "mail_output", False) and change_count:
             html = log_to_html(log_stream.getvalue(), dark_mode=False, is_sync=True)
-            subject = f"Synced {change_count} changes in member admin by sib-tools (sync: {args.dest})"
+            subject = f"Synced {change_count} changes in member administration"
             mail_results(html, subject=subject, logger=logger)
 
 

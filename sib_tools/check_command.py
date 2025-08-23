@@ -303,7 +303,7 @@ def log_to_html(log_contents: str, dark_mode: bool = False, is_sync = False) -> 
     banner = """
         <div class="banner">
             <span class="icon" aria-label="info" title="Info">Note.</span>
-            <span class="banner-text">This is the output of an automated health check by a script at <a href="https://github.com/sib-utrecht/sib-utrecht-tools" target="_blank" style="color:#1976d2;text-decoration:underline;">https://github.com/sib-utrecht/sib-utrecht-tools</a>. It aims to help you in finding issues, and fixing them. If you are confused, please message the IT committee.</span>
+            <span class="banner-text">This is the output of an automated health check by a script at <a href="https://github.com/sib-utrecht/sib-utrecht-tools" target="_blank" style="color:#1976d2;text-decoration:underline;">https://github.com/sib-utrecht/sib-utrecht-tools</a>. It aims to help you in finding issues, and fixing them. If you are confused, please contact the IT committee.</span>
         </div>
         """
     
@@ -311,7 +311,7 @@ def log_to_html(log_contents: str, dark_mode: bool = False, is_sync = False) -> 
         banner = """
         <div class="banner">
             <span class="icon" aria-label="sync" title="Sync">🔄</span>
-            <span class="banner-text">This is the output of a synchronization process by a script at <a href="https://github.com/sib-utrecht/sib-utrecht-tools" target="_blank" style="color:#1976d2;text-decoration:underline;">https://github.com/sib-utrecht/sib-utrecht-tools</a>. If you are confused, please message the IT committee.</span>
+            <span class="banner-text">This is the output of a synchronization script at <a href="https://github.com/sib-utrecht/sib-utrecht-tools" target="_blank" style="color:#1976d2;text-decoration:underline;">https://github.com/sib-utrecht/sib-utrecht-tools</a>. If you are confused, please contact the IT committee.</span>
         </div>
     """
 

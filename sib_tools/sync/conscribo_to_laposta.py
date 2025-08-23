@@ -186,6 +186,11 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
     logger.info(f"Conscribo members count: {len(members)}")
     logger.info(f"Conscribo alumni count: {len(alumni)}")
 
+    logger.info("Explanation: a member with flags \"bna\" will receive:")
+    logger.info("- b: birthday e-mails (member)")
+    logger.info("- n: newsletter e-mails (only if permission in Conscribo)")
+    logger.info("- a: birthday e-mails (alumnus)")
+
     # No need to filter members or alumni here, already filtered by abstraction
 
     entries = match_laposta_with_conscribo(laposta_members, members, alumni, logger=logger)
@@ -342,6 +347,7 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
             desired["email"],
         )
 
+        logger.info("")
         logger.info(f"UPDATE {conscribo_id} {json.dumps(basic_info)}")
 
         for list_id in remove_lists:
