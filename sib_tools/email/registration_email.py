@@ -141,6 +141,18 @@ def process_registration_email(dkim_result : DKIMVerifiedMail):
 
     canonical.pop("registration_form_url", None)
 
+    canonical["type"] = "Lid"
+
+    if canonical.get("newsletter_permission"):
+        perm = str(canonical["newsletter_permission"]).lower()
+
+        canonical["newsletter_permission"] = (
+            perm == "1" or ("agree" in perm and not "disagree" in perm)
+            or perm == "yes" or perm == "ja"
+            or perm == "true"
+            or "akkoord" in perm
+        )
+
     # Add to Conscribo
     conscribo_id = create_relation_member(canonical)
 
@@ -148,7 +160,8 @@ def process_registration_email(dkim_result : DKIMVerifiedMail):
         "Lid",
         # "eerstejaars",
         # "na 1 februari ingeschreven"
-        "Te verwerken"
+        "Te verwerken",
+        "Eerstejaars"
     ]
 
     for group_name in groups:

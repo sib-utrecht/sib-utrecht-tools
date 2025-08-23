@@ -267,7 +267,7 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
             "last_name": last_name,
             "date_of_birth": date_of_birth,
             "send_birthday": is_member and date_of_birth is not None,
-            "send_newsletter": is_member,
+            "send_newsletter": is_member and conscribo_member.get("newsletter_permission"),
             "send_birthday_alumnus": is_alumnus and date_of_birth is not None,
             "conscribo_id": conscribo_id,
         }
