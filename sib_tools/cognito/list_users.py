@@ -8,25 +8,10 @@ from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 from .constants import user_pool_id
 from .auth import get_cognito_credentials
+from typing import Any
+from .client import cognito_client
 
-# Print account id
-# print(boto3.client("sts").get_caller_identity()["Account"])
-
-
-def create_cognito_client():
-    a, b, c = get_cognito_credentials()
-    return boto3.client(
-        "cognito-idp",
-        region_name="eu-central-1",
-        aws_access_key_id=a,
-        aws_secret_access_key=b,
-        aws_session_token=c,
-    )
-
-
-cognito_client = create_cognito_client()
 cognito_to_canonical_dict = canonical_key.get_cognito_to_key()
-
 
 def cognito_user_meta_to_canonical(user):
     to_canonical = cognito_to_canonical_dict
@@ -46,7 +31,7 @@ def cognito_user_meta_to_canonical(user):
     return canonical
 
 
-def cognito_user_to_canonical(user):
+def cognito_user_to_canonical(user : dict[str, Any]) -> dict[str, Any]:
     username = user.get("Username")
     usercreatedate = user.get("UserCreateDate")
     userlastmodifieddate = user.get("UserLastModifiedDate")
@@ -56,6 +41,9 @@ def cognito_user_to_canonical(user):
     attributes = user.pop("Attributes", [])
     attributes_dict = {attr["Name"]: attr["Value"] for attr in attributes}
     canonical = cognito_user_meta_to_canonical(attributes_dict)
+
+    if "wp_user_id" in canonical:
+        canonical["wp_user_id"] = int(canonical["wp_user_id"])
 
     user["UserCreateDate"] = str(usercreatedate)
     user["UserLastModifiedDate"] = str(userlastmodifieddate)

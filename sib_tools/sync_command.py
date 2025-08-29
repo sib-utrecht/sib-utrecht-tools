@@ -52,6 +52,7 @@ def handle_sync(args: Namespace):
             from .sync.cognito_to_conscribo_groups import sync_cognito_to_conscribo_groups
             from .sync.conscribo_to_google_contacts import sync_conscribo_to_google_contacts
             from .sync.conscribo_to_google_groups import sync_conscribo_to_google_groups
+            from .sync.cognito_to_wp import sync_cognito_to_wp
 
             total = 0
             total += sync_conscribo_to_cognito(dry_run=args.dry_run, logger=logger)
@@ -61,6 +62,7 @@ def handle_sync(args: Namespace):
             # Run both alumni and members for Google Groups
             total += sync_conscribo_to_google_groups(dry_run=args.dry_run, group="alumni", logger=logger)
             total += sync_conscribo_to_google_groups(dry_run=args.dry_run, group="members", logger=logger)
+            total += sync_cognito_to_wp(dry_run=args.dry_run, logger=logger)
 
             print_change_count(total, logger)
 
@@ -122,6 +124,11 @@ def handle_sync(args: Namespace):
                 raise ValueError(f"Unknown member_type: {member_type}")
             return
 
+        if args.dest == "cognito_to_wp":
+            from .sync.cognito_to_wp import sync_cognito_to_wp
+            change_count = sync_cognito_to_wp(dry_run=args.dry_run, logger=logger)
+            return
+
         raise ValueError(f"Unknown destination: {args.dest}")
     finally:
         logger.info("")
@@ -148,6 +155,7 @@ def add_parse_args(parser: ArgumentParser):
             "google-groups",
             "google-contacts",
             "conscribo-list",
+            "cognito_to_wp",
         ],
         help="Destination service to sync members to.",
     )

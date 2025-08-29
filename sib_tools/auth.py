@@ -2,6 +2,12 @@ import os
 import keyring
 import logging
 import sys
+from typing import Any, Optional, cast
+
+try:
+    from beaupy import select
+except Exception:
+    select = None  # type: ignore
 
 
 def configure_keyring():
@@ -19,15 +25,13 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
     from sib_tools.laposta import auth as laposta_auth
     from sib_tools.grist import auth as grist_auth
     from sib_tools.google import auth as google_auth
+    from sib_tools.sib_app import auth as sib_app_auth
 
     if not logger:
         logger = logging.getLogger("sib_tools_check")
         stream_handler = logging.StreamHandler(sys.stdout)
         logger.addHandler(stream_handler)
         logger.setLevel(logging.INFO)
-
-    if not non_interactive:
-        from beaupy import select
 
     GREEN = "\033[92m"
     RED = "\033[91m"
@@ -38,7 +42,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
 
     subactions = ["signin", "rotate", "signout"]
 
-    services = [
+    services: list[dict[str, Any]] = [
         {
             "name": "AWS (used for Cognito and e-mails)",
             "key": "aws",
@@ -60,6 +64,13 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
             "signin": laposta_auth.prompt_credentials,
             "check-available": laposta_auth.check_available,
             "signout": laposta_auth.signout,
+        },
+        {
+            "name": "SIB App",
+            "key": "sib_app",
+            "signin": sib_app_auth.prompt_credentials,
+            "check-available": sib_app_auth.check_available,
+            "signout": sib_app_auth.signout,
         },
         {
             "name": "Grist",
@@ -99,13 +110,17 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
         msg(f"{YELLOW}Non-interactive mode: not prompting for sign-in.{RESET}")
         return
 
+    available_subactions: list[str] = []
+
     if not signin_action:
         msg(
             f"\n{BOLD}Select a service to sign in, rotate, or sign out (or choose 'Cancel' to skip):{RESET}"
         )
-        selection_options = [(None, [], f"{YELLOW}Cancel{RESET}")]
+        selection_options: list[tuple[Optional[dict[str, Any]], list[str], str]] = [
+            (None, [], f"{YELLOW}Cancel{RESET}")
+        ]
         for svc in services:
-            available_subactions = list(filter(lambda x: x in svc, subactions))
+            available_subactions = [a for a in subactions if a in svc]
             if not available_subactions:
                 continue
 
@@ -115,8 +130,9 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
 
         option_descriptions = [desc for _, _, desc in selection_options]
 
-        service_index = idx = select(
-            option_descriptions, cursor="→", cursor_style="blue", return_index=True
+        assert select is not None
+        service_index = select(
+            cast(list[Any], option_descriptions), cursor="→", cursor_style="blue", return_index=True
         )
 
         service = None
@@ -138,8 +154,9 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
         ]
 
         option_descriptions = [desc for _, desc in subaction_options]
+        assert select is not None
         idx = select(
-            option_descriptions, cursor="→", cursor_style="blue", return_index=True
+            cast(list[Any], option_descriptions), cursor="→", cursor_style="blue", return_index=True
         )
 
         signin_action = None

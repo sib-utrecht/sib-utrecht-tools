@@ -23,6 +23,7 @@ from sib_tools.google.auth import (
     list_groups_settings_api,
     list_group_members_api,
 )
+from sib_tools.sib_app.wp_old_users import fetch_users
 
 
 #  ./sib-tools.sh list conscribo-transactions 2025-01-01 2025-07-07
@@ -405,6 +406,13 @@ def handle_list_google_contacts(args: Namespace):
     print()
 
 
+def handle_list_sib_app_users(args: Namespace):
+    """List users from SIB App (WordPress) via the sib_app API."""
+    users = fetch_users(args.min_wp_user_id)
+    print(json.dumps(users, indent=2))
+    print()
+
+
 def add_parse_args(parser: ArgumentParser):
     parser.set_defaults(func=lambda args: parser.print_help())
     subparser = parser.add_subparsers(
@@ -511,13 +519,20 @@ def add_parse_args(parser: ArgumentParser):
         default=None,
         help="Output file to store the balance difference results",
     )
-    # balance_diff_parser.add_argument(
-    #     "--account-id",
-    #     type=str,
-    #     required=False,
-    #     help="Account ID to calculate the balance difference for",
-    # )
     balance_diff_parser.set_defaults(func=handle_list_balance_diff)
+
+    # New: List users from SIB App (WordPress)
+    sib_app_users_parser = subparser.add_parser(
+        "sib-app-users", help="List users from SIB App (WordPress)"
+    )
+    sib_app_users_parser.add_argument(
+        "--min-wp-user-id",
+        type=int,
+        required=False,
+        default=0,
+        help="Minimum WordPress user ID to filter from (default: 0)",
+    )
+    sib_app_users_parser.set_defaults(func=handle_list_sib_app_users)
 
     google_groups_dir_parser = subparser.add_parser(
         "google-groups-directory", help="List Google Groups using Directory API"

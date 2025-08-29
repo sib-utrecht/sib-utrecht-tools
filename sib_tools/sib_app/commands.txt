@@ -1,0 +1,11 @@
+POST /users
+{"entity_name": "user-2025-1001", "wordpress_user_id": 1001, "long_name": "Vincent Testing1", "short_name": "Vincuu"}
+
+
+GET /users?min_wp_user_id=1000
+
+POST /auth/api-keys
+{"authorization": {"hasFullReadAccess": true, "hasFullWriteAccess": true, "userId": "member-admin-bot", "groups": ["public", "member-admin-bot"]}}
+
+
+
