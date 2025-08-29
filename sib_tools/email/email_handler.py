@@ -9,17 +9,21 @@ from dataclasses import asdict
 from .registration_email import logger, process_registration_email, process_deregistration_email
 
 
-def send_failure_notification(error_message: str, eml_path: str):
+def send_failure_notification(error_message: str, subject: str, eml_path: str):
     """Send email notification when email processing fails using AWS SES."""
     try:
         from ..aws.auth import get_ses_client
         
         ses_client = get_ses_client()
-        subject = "Email processing failure notification"
+        subject = "Failed to process incoming email"
         body = f"""An error occurred while processing an incoming email:
 
-File: {eml_path}
+Subject: {subject}
 Error: {error_message}
+
+You can search in the mailbox for 'subject:"{subject}"' to find the original email.
+
+(File: {eml_path})
 
 This is an automated notification from sib-tools.
 """
@@ -54,6 +58,14 @@ def handle_incoming_email(args):
 
 
 def process_email(eml_path, allow_old=False) -> bool:
+    subject = "(Missing)"
+    def send_fail(error_msg):
+        nonlocal subject
+
+        logger.error(error_msg)
+        send_failure_notification(error_msg, subject, eml_path)
+        return False
+
     try:
         with open(eml_path, "rb") as eml_file:
             allowed_domains = ["sib-utrecht.nl"]
@@ -62,16 +74,25 @@ def process_email(eml_path, allow_old=False) -> bool:
         if not dkim_result:
             error_msg = "DKIM verification failed"
             logger.error(error_msg)
-            send_failure_notification(error_msg, eml_path)
+            subject = "(Missing)"
+            try:
+                with open(eml_path, "rb") as eml_file:
+                    from email import message_from_binary_file
+                    msg = message_from_binary_file(eml_file)
+                    subject = msg.get("Subject", "(Missing)")
+            except Exception as e:
+                logger.error(f"Failed to read email subject: {e}")
+
+            send_failure_notification(error_msg, subject, eml_path)
             return False
         
+        subject = dkim_result.email.get("Subject", "(Missing)")
+
         logger.debug(f"DKIM domain: {dkim_result.signing_domain}")
 
         # SECURITY: Strict domain validation
         if dkim_result.signing_domain != "sib-utrecht.nl":
-            error_msg = f"Unexpected DKIM domain: {json.dumps(dkim_result.signing_domain)}"
-            logger.error(error_msg)
-            send_failure_notification(error_msg, eml_path)
+            send_fail(f"Unexpected DKIM domain: {json.dumps(dkim_result.signing_domain)}")
             return False
         
         logger.debug(f"DKIM selector: {dkim_result.signing_selector}")
@@ -87,15 +108,11 @@ def process_email(eml_path, allow_old=False) -> bool:
         ]
         
         if dkim_result.sender not in allowed_senders:
-            error_msg = f"Unexpected email sender: {json.dumps(dkim_result.sender)}"
-            logger.error(error_msg)
-            send_failure_notification(error_msg, eml_path)
+            send_fail(f"Unexpected email sender: {json.dumps(dkim_result.sender)}")
             return False
         
         if dkim_result.date is None:
-            error_msg = "Email has no date header"
-            logger.error(error_msg)
-            send_failure_notification(error_msg, eml_path)
+            send_fail("Email has no date header")
             return False
                 
         # SECURITY: Time-based validation to prevent replay attacks
@@ -106,21 +123,15 @@ def process_email(eml_path, allow_old=False) -> bool:
                 
                 # Allow emails from up to 24 hours ago, but not future emails
                 if email_date > now + timedelta(minutes=5):  # 5 min tolerance for clock skew
-                    error_msg = f"Email date is in the future: {email_date}"
-                    logger.error(error_msg)
-                    send_failure_notification(error_msg, eml_path)
+                    send_fail(f"Email date is in the future: {email_date}")
                     return False
                     
                 if email_date < now - timedelta(hours=24):
-                    error_msg = f"Email is too old (older than 24 hours): {email_date}"
-                    logger.error(error_msg)
-                    send_failure_notification(error_msg, eml_path)
+                    send_fail(f"Email is too old (older than 24 hours): {email_date}")
                     return False
                     
             except Exception as e:
-                error_msg = f"Failed to parse email date: {e}"
-                logger.error(error_msg)
-                send_failure_notification(error_msg, eml_path)
+                send_fail(f"Failed to parse email date: {e}")
                 return False
 
         message = dkim_result.email
@@ -143,17 +154,13 @@ def process_email(eml_path, allow_old=False) -> bool:
                 reply_to = reply_to.addresses
 
             if not reply_to:
-                error_msg = "No Reply-To header found in the email. Can't verify it is not a user-facing e-mail."
-                logger.error(error_msg)
-                send_failure_notification(error_msg, eml_path)
+                send_fail("No Reply-To header found in the email. Can't verify it is not a user-facing e-mail.")
                 return False
 
             reply_to = reply_to[0]
 
             if ("sib-utrecht.nl" in reply_to.domain) or ("sibutrecht.nl" in reply_to.domain):
-                error_msg = f"Reply-To address {reply_to} is not of a user, the mail may hence be a user-facing e-mail. Aborting processing."
-                logger.error(error_msg)
-                send_failure_notification(error_msg, eml_path)
+                send_fail(f"Reply-To address {reply_to} is not of a user, the mail may hence be a user-facing e-mail. Aborting processing.")
                 return False
         
         # Check an '@automations.sib-utrecht.nl' is included in 'To'
@@ -164,9 +171,7 @@ def process_email(eml_path, allow_old=False) -> bool:
         ]
         
         if not included_to_addresses and dkim_result.sender != "forms@sib-utrecht.nl":
-            error_msg = "No '@automations.sib-utrecht.nl' address found in 'To' header"
-            logger.error(error_msg)
-            send_failure_notification(error_msg, eml_path)
+            send_fail("No '@automations.sib-utrecht.nl' address found in 'To' header")
             return False
 
         # In the case of a forwarded e-mail, this can differ from the receiver
@@ -174,16 +179,12 @@ def process_email(eml_path, allow_old=False) -> bool:
         if delivered_to_address:
             logger.info(f"Delivered to: {delivered_to_address}")
             if not delivered_to_address.endswith("@sib-utrecht.nl"):
-                error_msg = f"Delivered-To address {delivered_to_address} is not a sib-utrecht.nl address"
-                logger.error(error_msg)
-                send_failure_notification(error_msg, eml_path)
+                send_fail(f"Delivered-To address {delivered_to_address} is not a sib-utrecht.nl address")
                 return False
 
 
         if receiver not in included_to_addresses and dkim_result.sender != "forms@sib-utrecht.nl":
-            error_msg = f"Receiver {receiver} not found in 'To' header"
-            logger.error(error_msg)
-            send_failure_notification(error_msg, eml_path)
+            send_fail(f"Receiver {receiver} not found in 'To' header")
             return False
         
         if receiver in ["inschrijving@automations.sib-utrecht.nl", "register@automations.sib-utrecht.nl"]:
@@ -196,14 +197,12 @@ def process_email(eml_path, allow_old=False) -> bool:
             process_deregistration_email(dkim_result)
             return True
 
-        logger.error(f"Unexpected receiver address: {receiver}. No handler")
-        send_failure_notification(f"Unexpected receiver address: {receiver}. No handler", eml_path)
+        send_fail(f"Unexpected receiver address: {receiver}. No handler")
         return False
 
     except Exception as e:
-        error_msg = f"Failed to process email: {e}"
-        logger.error(error_msg, exc_info=True)
-        send_failure_notification(error_msg, eml_path)
+        logger.error(f"Failed to process email: {e}", exc_info=True)
+        send_fail(f"Failed to process email: {e}. See logs for details.")
         sys.exit(1)
 
 
