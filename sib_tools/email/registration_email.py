@@ -37,16 +37,22 @@ import re
 logger = logging.getLogger("incoming_email.log")
 logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler("sib_tools_incoming_email.log")
-file_handler.setFormatter(
-    logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
-)
+file_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s"))
 logger.addHandler(file_handler)
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setLevel(logging.INFO)
 # stream_handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
 logger.addHandler(stream_handler)
 
-def send_registration_notification(canonical: dict, conscribo_id: str, groups_added: list[str], original_msg_id: str | None = None, original_subject: str | None = None):
+
+def send_registration_notification(
+    canonical: dict,
+    conscribo_id: str,
+    groups_added: list[str],
+    original_msg_id: str | None = None,
+    original_subject: str | None = None,
+    iban_included: bool = True,
+):
     """Notify info@sib-utrecht.nl that a registration was processed.
     If original_msg_id is provided, include reply-threading headers.
     """
@@ -63,7 +69,10 @@ def send_registration_notification(canonical: dict, conscribo_id: str, groups_ad
         )
 
         # Because Gmail groups e-mails by subject, we need to reuse the same subject as the original e-mail.
-        subject = original_subject or f"New registration processed: {first} {last} (Conscribo {conscribo_id})"
+        subject = (
+            original_subject
+            or f"New registration processed: {first} {last} (Conscribo {conscribo_id})"
+        )
         groups_str = ", ".join(groups_added)
         body_html = (
             f"<p>A new registration has been processed by sib-tools.</p>"
@@ -73,7 +82,7 @@ def send_registration_notification(canonical: dict, conscribo_id: str, groups_ad
             f"<li><strong>Conscribo ID:</strong> {conscribo_id}</li>"
             f"<li><strong>Groups added:</strong> {groups_str}</li>"
             f"</ul>"
-            f"<p><a href=\"{view_url}\">View in Conscribo</a></p>"
+            f'<p><a href="{view_url}">View in Conscribo</a></p>'
         )
         body_text = (
             "A new registration has been processed by sib-tools.\n"
@@ -83,6 +92,13 @@ def send_registration_notification(canonical: dict, conscribo_id: str, groups_ad
             f"Groups added: {groups_str}\n"
             f"View in Conscribo: {view_url}\n"
         )
+
+        if not iban_included:
+            body_text += ("\nNote: The IBAN provided in the registration email was invalid or missing, "
+                          "so it was not included in the Conscribo member record.\n")
+            body_html += ('<p><strong>Note:</strong> The IBAN provided in the registration email was invalid or missing, '
+                          'so it was not included in the Conscribo member record.</p>')
+
 
         source = "member-admin-bot@sib-utrecht.nl"
         to_addr = "info@sib-utrecht.nl"
@@ -112,7 +128,8 @@ def send_registration_notification(canonical: dict, conscribo_id: str, groups_ad
     except Exception as e:
         logger.error(f"Failed to send registration notification: {e}")
 
-def process_registration_email(dkim_result : DKIMVerifiedMail):
+
+def process_registration_email(dkim_result: DKIMVerifiedMail):
     fields = extract_fields_from_mail_message(dkim_result.email)
     if not fields:
         logger.error("No fields extracted from registration email")
@@ -122,11 +139,13 @@ def process_registration_email(dkim_result : DKIMVerifiedMail):
     logger.info(f"Canonical form: {json.dumps(canonical, indent=2)}")
 
     iban = canonical.get("iban", None)
+    iban_included = True
 
-    if not iban or len(iban) < 15:
+    if not iban or len(iban) < 15 or "contact" in iban.lower():
         logger.error(f"Invalid IBAN: {iban}")
         logger.warning("Excluding IBAN from Conscribo member")
-        canonical.pop("iban", None)    
+        canonical.pop("iban", None)
+        iban_included = False
 
     membership_start = dkim_result.date
     if membership_start is None:
@@ -147,21 +166,23 @@ def process_registration_email(dkim_result : DKIMVerifiedMail):
         perm = str(canonical["newsletter_permission"]).lower()
 
         canonical["newsletter_permission"] = (
-            perm == "1" or ("agree" in perm and not "disagree" in perm)
-            or perm == "yes" or perm == "ja"
+            perm == "1"
+            or ("agree" in perm and not "disagree" in perm)
+            or perm == "yes"
+            or perm == "ja"
             or perm == "true"
             or "akkoord" in perm
         )
 
     # Add to Conscribo
-    conscribo_id = create_relation_member(canonical)
+    conscribo_id = create_relation_member(canonical, logger)
 
     groups = [
         "Lid",
         # "eerstejaars",
         # "na 1 februari ingeschreven"
         "Te verwerken",
-        "Eerstejaars"
+        "Eerstejaars",
     ]
 
     for group_name in groups:
@@ -169,21 +190,27 @@ def process_registration_email(dkim_result : DKIMVerifiedMail):
         if group_id is None:
             logger.error(f"Group '{group_name}' not found")
             continue
-        
-        logger.info(f"Adding member {repr(canonical['first_name'] + ' ' + canonical['last_name'])} to group {group_name} (ID: {group_id})")
+
+        logger.info(
+            f"Adding member {repr(canonical['first_name'] + ' ' + canonical['last_name'])} to group {group_name} (ID: {group_id})"
+        )
         add_relations_to_group(group_id, [conscribo_id])
 
     # Notify info@sib-utrecht.nl (include reply-threading headers when possible)
-    original_msg_id = dkim_result.email.get("Message-ID") or dkim_result.email.get("Message-Id")
+    original_msg_id = dkim_result.email.get("Message-ID") or dkim_result.email.get(
+        "Message-Id"
+    )
     send_registration_notification(
         canonical,
         conscribo_id,
         groups,
         original_msg_id,
-        original_subject=dkim_result.email.get("Subject")
+        original_subject=dkim_result.email.get("Subject"),
+        iban_included=iban_included,
     )
 
     logger.info("Registration email processed successfully")
+
 
 def process_deregistration_email(dkim_result: DKIMDetailsVerified):
     raise NotImplementedError("Deregistration email processing is not implemented yet")
@@ -196,7 +223,6 @@ def process_deregistration_email(dkim_result: DKIMDetailsVerified):
     #     subemail = part.get_content()
     #     print(f"Subemail: {subemail}")
     #     print(f"Subemail content type: {part.get_content_type()}")
-        
 
     #     # if isinstance(subemail, bytes):
     #     #     subemail = subemail.decode('utf-8')
@@ -207,7 +233,6 @@ def process_deregistration_email(dkim_result: DKIMDetailsVerified):
     #     subemail = message_from_bytes(subemail)
     #     from_person = subemail.get("From", "")
     #     print(f"From person: {from_person}")
-
 
     #     if part.get_content_type() == 'text/html':
     #         html_content = part.get_payload(decode=True)
@@ -220,7 +245,7 @@ def process_deregistration_email(dkim_result: DKIMDetailsVerified):
     # if not elm_attachments:
     #     logger.error("No ELM attachments found in deregistration email")
     #     return False
-    
+
     # if isinstance(elm_attachments, list):
     #     if len(elm_attachments) > 1:
     #         logger.error("Multiple ELM attachments found, expected only one")
@@ -232,20 +257,20 @@ def process_deregistration_email(dkim_result: DKIMDetailsVerified):
     # else:
     #     logger.error(f"Unexpected type for ELM attachments: {type(elm_attachments)}")
     #     return False
-    
+
     # if isinstance(elm_attachment, bytes):
     #     elm_attachment = elm_attachment.decode('utf-8')
     # elif not isinstance(elm_attachment, str):
     #     logger.error(f"Unexpected type for ELM attachment: {type(elm_attachment)}")
     #     return False
-    
+
     # # Parse the ELM XML
     # try:
     #     elm_data = json.loads(elm_attachment)
     # except json.JSONDecodeError as e:
     #     logger.error(f"Failed to parse ELM XML: {e}")
     #     return False
-    
+
     # logger.info(f"ELM data: {json.dumps(elm_data, indent=2)}")
 
     # # html_content, text_content = (
@@ -270,7 +295,7 @@ def process_deregistration_email(dkim_result: DKIMDetailsVerified):
     # # if not match:
     # #     logger.error("No forwarded header found in deregistration email")
     # #     return False
-    
+
     # # sender = match.group("sender")
     # # date_str = match.group("date").strip()
 
@@ -288,7 +313,6 @@ def process_deregistration_email(dkim_result: DKIMDetailsVerified):
 
     # # logger.info(f"Parsed date: {date.isoformat()}")
 
-
     # # fields = extract_fields_from_mail_message(dkim_result.email)
 
     # # canonical = form_to_canonical(fields)
@@ -303,4 +327,3 @@ def process_deregistration_email(dkim_result: DKIMDetailsVerified):
     # # # Here you would implement the logic to remove the member from Conscribo
     # # # For now, we just log it
     # # logger.info(f"Deregistering member with ID: {member_id}")
-

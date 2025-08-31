@@ -1,3 +1,4 @@
+import logging
 import keyring.credentials
 import requests
 import json
@@ -124,7 +125,7 @@ def update_relation(canonical):
 
     print("\n\n")
 
-def create_relation_member(canonical) -> str:
+def create_relation_member(canonical, logger : logging.Logger) -> str:
     canonical = flatten_dict(canonical)
     to_conscribo = canonical_key.get_key_to_conscribo()
 
@@ -138,7 +139,7 @@ def create_relation_member(canonical) -> str:
         conscribo_key = to_conscribo.get(k, None)
 
         if conscribo_key is None:
-            print(f"Missing translation for {k} to Conscribo field")
+            logger.debug(f"Missing translation for {k} to Conscribo field")
             other[k] = v
             continue
             # raise Exception(f"Missing translation for {k} to Conscribo field")
@@ -169,7 +170,7 @@ def create_relation_member(canonical) -> str:
     # Unflatten dict
     conscribo_relation = canonical_key.expand_dict(conscribo_relation)
 
-    print(f"Creating Conscribo relation with\n{json.dumps(conscribo_relation, indent=4)}")
+    logger.info(f"Creating Conscribo relation with\n{json.dumps(conscribo_relation, indent=4)}")
 
     ans = conscribo_post(
         "/relations/",
@@ -181,7 +182,7 @@ def create_relation_member(canonical) -> str:
 
     conscribo_id = ans["code"]
 
-    print("\n\n")
+    logger.info("\n\n")
     return conscribo_id
 
 

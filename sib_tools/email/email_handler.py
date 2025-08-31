@@ -19,9 +19,16 @@ def send_failure_notification(error_message: str, subject: str, eml_path: str):
         body = f"""An error occurred while processing an incoming email:
 
 Subject: {subject}
-Error: {error_message}
-
 You can search in the mailbox for 'subject:"{subject}"' to find the original email.
+
+Failures like this can for example be a registration where a field is filled out
+incorrectly. In that case, try to understand the trouble the program is having
+from the error details below. Then click 'Forward' (or draft a copy) on the
+original e-mail. In it, expand any collapsed contents, fix these contents, and
+send the e-mail to register@automations.sib-utrecht.nl. The e-mail will then be
+processed again.
+
+Error details: {error_message}
 
 (File: {eml_path})
 
