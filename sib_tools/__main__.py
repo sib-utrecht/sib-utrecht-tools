@@ -1,5 +1,8 @@
 import argparse
 from argparse import ArgumentParser
+from .auth import configure_keyring
+configure_keyring()
+
 from . import (
     sync_command,
     list_command,
@@ -11,8 +14,6 @@ from . import (
 from .command_exception import CommandException
 import os
 import keyring
-from .auth import configure_keyring
-configure_keyring()
 
 
 def main(args=None):

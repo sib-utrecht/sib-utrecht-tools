@@ -62,6 +62,7 @@ def contact_to_canonical(contact):
         "first_name": primary_name.get("givenName", None),
         "last_name": primary_name.get("familyName", None),
         "email": primary_email,
+        "phone_number": (contact.get("phoneNumbers") or [{}])[0].get("value"),
         "date_of_birth": primary_birthday.get("text"),
         "anon_number": user_defined_map.get("AnoniemNr", None),
         "anon_email": dummy_email,
