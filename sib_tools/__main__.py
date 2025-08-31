@@ -10,6 +10,7 @@ from . import (
     check_command,
     email,
     serve_command,
+    auth_command,
 )
 from .command_exception import CommandException
 import os
@@ -52,6 +53,13 @@ def main(args=None):
     serve_command.add_parse_args(
         subparser.add_parser(
             "serve", help="Run server endpoints (e.g. for SNS webhooks)"
+        )
+    )
+
+    # New: auth command group for Cognito actions
+    auth_command.add_parse_args(
+        subparser.add_parser(
+            "auth", help="Cognito user management actions"
         )
     )
 
