@@ -133,7 +133,7 @@ def process_registration_email(dkim_result: DKIMVerifiedMail):
     fields = extract_fields_from_mail_message(dkim_result.email)
     if not fields:
         logger.error("No fields extracted from registration email")
-        return
+        raise Exception("Couldn't extract fields from registration e-mail. Make sure the field names are in bold.")
 
     canonical = form_to_canonical(fields)
     logger.info(f"Canonical form: {json.dumps(canonical, indent=2)}")
