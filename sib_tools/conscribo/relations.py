@@ -268,7 +268,8 @@ def list_relations_active_members(date=None):
     members = list_relations_members()
     active_members = []
     for member in members:
-        if member.get("conscribo_id") == "666":
+        membership_start = member.get("membership_start")
+        if not membership_start:
             continue
 
         membership_end = member.get("membership_end")

@@ -68,6 +68,9 @@ def canonical_to_cognito_user(user):
             # logging.warning(f"[canonical_to_cognito_user] Key {key} not found in Cognito mapping, skipping.")
             continue
 
+        if value is None:
+            continue
+
         attributes.append({"Name": new_key, "Value": value})
 
         # other = user.setdefault("other", dict())
