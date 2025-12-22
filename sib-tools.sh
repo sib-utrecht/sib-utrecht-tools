@@ -4,7 +4,9 @@ set -e
 
 set -a
 # echo "${#KEYRING_CRYPTFILE_PASSWORD}"
+source ./.venv/bin/activate
 source /etc/sib-tools/keyring-decrypt-password.env
+
 # echo "${#KEYRING_CRYPTFILE_PASSWORD}"
 # python -c "
 # import keyring

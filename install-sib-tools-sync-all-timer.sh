@@ -3,14 +3,17 @@
 # Install a systemd service + timer to run `sib-tools sync all` daily
 set -e
 
-read -p "Enter the user to run the service as: " SERVICE_USER
-WORKDIR=$(pwd)
+# read -p "Enter the user to run the service as: " SERVICE_USER
+SERVICE_USER=sib-tools
+# WORKDIR=$(pwd)
+WORKDIR=/home/sib-tools/sib-utrecht-tools
 SERVICE_FILE=/etc/systemd/system/sib-tools-sync-all.service
 TIMER_FILE=/etc/systemd/system/sib-tools-sync-all.timer
 
 echo "Using workdir: $WORKDIR"
 
-read -p "Enter the location of the file which contains the keyring decrypt password: " KEYRING_ENV_FILE
+# read -p "Enter the location of the file which contains the keyring decrypt password: " KEYRING_ENV_FILE
+KEYRING_ENV_FILE=/etc/sib-tools/keyring-decrypt-password.env
 
 # Create service unit (oneshot)
 cat <<EOF | sudo tee $SERVICE_FILE > /dev/null
@@ -25,8 +28,7 @@ Group=$SERVICE_USER
 WorkingDirectory=$WORKDIR
 # Ensure venv/bin is preferred if present
 Environment=PYTHONUNBUFFERED=1
-Environment=PATH=$WORKDIR/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=python -m sib_tools sync all --mail-output
+ExecStart=/usr/bin/uv run -m sib_tools sync all --mail-output
 
 # Load environment variables from secure file
 EnvironmentFile=$KEYRING_ENV_FILE
