@@ -1,6 +1,6 @@
 # SIB-Utrecht Tools (sib_tools)
 
-Tools for member administration for SIB-Utrecht. This repository provides a Python script for synchronising data with external services, listing information, checking data integrity and handling incoming email.
+Tools for member administration of SIB-Utrecht. This repository provides a Python script for synchronising data with external services, listing information, checking data integrity and handling incoming email.
 
 For example, if a person registers via the website to become a member, the
 following happens:
