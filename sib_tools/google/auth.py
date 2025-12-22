@@ -161,11 +161,50 @@ def list_group_members_api(group_email: str) -> list:
         return []
 
 
+
+
 def check_available():
     """
     Check if Google admin email is available in keyring.
     """
     return keyring.get_password("sib_tools_google", "GOOGLE_ADMIN_EMAIL")
+
+
+def show():
+    """Display Google credentials information."""
+    service_account_file = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE") or keyring.get_password("sib_tools_google", "GOOGLE_SERVICE_ACCOUNT_FILE")
+    admin_email = os.environ.get("GOOGLE_ADMIN_EMAIL") or keyring.get_password("sib_tools_google", "GOOGLE_ADMIN_EMAIL")
+    
+    print("\n=== Google Workspace Credentials ===")
+    
+    if admin_email:
+        print(f"Admin Email: {admin_email}")
+        print(f"Source: {'Environment Variable' if os.environ.get('GOOGLE_ADMIN_EMAIL') else 'Keyring'}")
+    else:
+        print("Admin Email: Not set")
+    
+    if service_account_file:
+        print(f"Service Account File: {service_account_file}")
+        print(f"Source: {'Environment Variable' if os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE') else 'Keyring'}")
+        
+        # Try to read service account info
+        if pathlib.Path(service_account_file).is_file():
+            try:
+                with open(service_account_file, 'r') as f:
+                    sa_data = json.load(f)
+                print(f"Service Account Email: {sa_data.get('client_email', 'Unknown')}")
+                print(f"Project ID: {sa_data.get('project_id', 'Unknown')}")
+            except Exception as e:
+                print(f"Unable to read service account file: {e}")
+        else:
+            print("Service Account File: File not found at specified path")
+    else:
+        print("Service Account File: Not set")
+    
+    print(f"\nScopes:")
+    print(f"  Directory API: {', '.join(directory_scopes)}")
+    print(f"  Groups Settings API: {', '.join(groups_settings_scopes)}")
+    print()
 
 
 def signout():
@@ -174,5 +213,8 @@ def signout():
     """
     try:
         keyring.delete_password("sib_tools_google", "GOOGLE_ADMIN_EMAIL")
+        keyring.delete_password("sib_tools_google", "GOOGLE_SERVICE_ACCOUNT_FILE")
     except keyring.errors.PasswordDeleteError:
         pass
+    print("Warning: Not automatically deleting service account json file!!")
+

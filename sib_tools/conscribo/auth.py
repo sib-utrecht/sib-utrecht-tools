@@ -231,6 +231,38 @@ def conscribo_patch(url : str, json : dict) -> dict:
 def check_available():
     return keyring.get_password("sib-conscribo", "member-admin-bot")
 
+def show():
+    """Display Conscribo credentials information with redacted password."""
+    def redact_password(pwd):
+        if not pwd or len(pwd) < 4:
+            return "****"
+        return pwd[:2] + "*" * (len(pwd) - 2)
+    
+    password = os.environ.get("CONSCRIBO_PASSWORD") or keyring.get_password("sib-conscribo", "member-admin-bot")
+    user = os.environ.get("CONSCRIBO_USERNAME", username)
+    
+    print("\n=== Conscribo Credentials ===")
+    print(f"Username: {user}")
+    print(f"API URL: {api_url}")
+    
+    if password:
+        print(f"Password: {redact_password(password)}")
+        print(f"Source: {'Environment Variable' if os.environ.get('CONSCRIBO_PASSWORD') else 'Keyring'}")
+        
+        # Try to validate session
+        global session_id
+        if session_id:
+            validity = validate_session(session_id)
+            if validity:
+                print(f"Session Status: Active (expires in {validity} seconds)")
+            else:
+                print("Session Status: Invalid or expired")
+        else:
+            print("Session Status: Not authenticated yet")
+    else:
+        print("Password: Not set")
+    print()
+
 def signout():
     try:
         keyring.delete_password("sib-conscribo", "member-admin-bot")

@@ -40,7 +40,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
     RESET = "\033[0m"
     BOLD = "\033[1m"
 
-    subactions = ["signin", "rotate", "signout"]
+    subactions = ["signin", "rotate", "show", "signout"]
 
     services: list[dict[str, Any]] = [
         {
@@ -48,6 +48,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
             "key": "aws",
             "signin": aws_auth.prompt_credentials,
             "rotate": aws_auth.rotate_aws_credentials,
+            "show": aws_auth.show,
             "check-available": aws_auth.check_available,
             "signout": aws_auth.signout,
         },
@@ -55,6 +56,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
             "name": "Conscribo",
             "key": "conscribo",
             "signin": conscribo_auth.prompt_credentials,
+            "show": conscribo_auth.show,
             "check-available": conscribo_auth.check_available,
             "signout": conscribo_auth.signout,
         },
@@ -62,6 +64,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
             "name": "Laposta",
             "key": "laposta",
             "signin": laposta_auth.prompt_credentials,
+            "show": laposta_auth.show,
             "check-available": laposta_auth.check_available,
             "signout": laposta_auth.signout,
         },
@@ -69,6 +72,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
             "name": "SIB App",
             "key": "sib_app",
             "signin": sib_app_auth.prompt_credentials,
+            "show": sib_app_auth.show,
             "check-available": sib_app_auth.check_available,
             "signout": sib_app_auth.signout,
         },
@@ -76,6 +80,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
             "name": "Grist",
             "key": "grist",
             "signin": grist_auth.prompt_credentials,
+            "show": grist_auth.show,
             "check-available": grist_auth.check_available,
             "signout": grist_auth.signout,
         },
@@ -83,6 +88,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
             "name": "Google",
             "key": "google",
             "signin": google_auth.prompt_credentials,
+            "show": google_auth.show,
             "check-available": google_auth.check_available,
             "signout": google_auth.signout,
         },

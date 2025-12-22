@@ -192,6 +192,27 @@ def grist_patch(url : str, body : dict | list, query : dict = None) -> dict:
 def check_available():
     return keyring.get_password("grist", "member-admin-bot")
 
+def show():
+    """Display Grist credentials information with redacted API key."""
+    def redact_key(key):
+        return "****"
+        # if not key or len(key) < 8:
+        #     return "****"
+        # return key[:4] + "*" * (len(key) - 8) + key[-4:]
+    
+    api_key = os.environ.get("GRIST_API_KEY") or keyring.get_password("grist", "member-admin-bot")
+    
+    print("\n=== Grist Credentials ===")
+    print(f"API URL: {api_url}")
+    print(f"Relations Document: {relations_doc}")
+    
+    if api_key:
+        print(f"API Key: {redact_key(api_key)}")
+        print(f"Source: {'Environment Variable' if os.environ.get('GRIST_API_KEY') else 'Keyring'}")
+    else:
+        print("API Key: Not set")
+    print()
+
 def signout():
     try:
         keyring.delete_password("grist", "member-admin-bot")

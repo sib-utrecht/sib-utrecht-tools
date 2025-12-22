@@ -143,6 +143,26 @@ def laposta_patch(url : str, body : dict[str, Any]) -> dict[str, Any]:
 def check_available():
     return keyring.get_password("laposta", "api-key")
 
+def show():
+    """Display Laposta credentials information with redacted API key."""
+    def redact_key(key):
+        return "****"
+        # if not key or len(key) < 8:
+        #     return "****"
+        # return key[:4] + "*" * (len(key) - 8) + key[-4:]
+    
+    api_key = os.environ.get("LAPOSTA_API_KEY") or keyring.get_password("laposta", "api-key")
+    
+    print("\n=== Laposta Credentials ===")
+    print(f"API URL: {api_url}")
+    
+    if api_key:
+        print(f"API Key: {redact_key(api_key)}")
+        print(f"Source: {'Environment Variable' if os.environ.get('LAPOSTA_API_KEY') else 'Keyring'}")
+    else:
+        print("API Key: Not set")
+    print()
+
 def signout():
     try:
         keyring.delete_password("laposta", "api-key")

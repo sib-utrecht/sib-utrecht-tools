@@ -205,6 +205,52 @@ def rotate_aws_credentials():
 def check_available():
     return len(keyring.get_password("aws-cognito", "access-key-id") or "") > 0
 
+def show():
+    """Display AWS credentials information with redacted keys."""
+    def redact_key(key):
+        return "****"
+        # if not key or len(key) < 8:
+        #     return "****"
+        # return key[:4] + "*" * (len(key) - 8) + key[-4:]
+    
+    access_key = os.environ.get("AWS_ACCESS_KEY_ID") or keyring.get_password("aws-cognito", "access-key-id")
+    secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY") or keyring.get_password("aws-cognito", "secret-access-key")
+    session_token = os.environ.get("AWS_SESSION_TOKEN") or keyring.get_password("aws-cognito", "session-token")
+    
+    print("\n=== AWS (Cognito & Email) Credentials ===")
+    if access_key:
+        print(f"Access Key ID: {access_key}")
+        print(f"Source: {'Environment Variable' if os.environ.get('AWS_ACCESS_KEY_ID') else 'Keyring'}")
+    else:
+        print("Access Key ID: Not set")
+    
+    if secret_key:
+        print(f"Secret Access Key: {redact_key(secret_key)}")
+    else:
+        print("Secret Access Key: Not set")
+    
+    if session_token:
+        print(f"Session Token: {redact_key(session_token)}")
+    else:
+        print("Session Token: Not set")
+    
+    # Try to get caller identity if credentials are available
+    if access_key and secret_key:
+        try:
+            sts = boto3.client('sts',
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                aws_session_token=session_token,
+                region_name="eu-central-1"
+            )
+            caller_identity = sts.get_caller_identity()
+            print(f"IAM User ARN: {caller_identity.get('Arn', 'Unknown')}")
+            print(f"Account ID: {caller_identity.get('Account', 'Unknown')}")
+            print(f"User ID: {caller_identity.get('UserId', 'Unknown')}")
+        except Exception as e:
+            print(f"Unable to verify credentials: {e}")
+    print()
+
 def signout():
     for k in ["access-key-id", "secret-access-key", "session-token"]:
         try:
