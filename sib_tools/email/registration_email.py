@@ -14,20 +14,20 @@ from urllib.parse import quote_plus
 
 tz = pytz.timezone("Europe/Amsterdam")
 
-from sib_tools.conscribo.groups import add_relations_to_group, find_group_id_by_name
-from sib_tools.conscribo.relations import create_relation_member
-from sib_tools.aws.auth import get_ses_client
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import formatdate
+from sib_tools.conscribo.groups import add_relations_to_group, find_group_id_by_name  # noqa: E402
+from sib_tools.conscribo.relations import create_relation_member  # noqa: E402
+from sib_tools.aws.auth import get_ses_client  # noqa: E402
+from email.mime.multipart import MIMEMultipart  # noqa: E402
+from email.mime.text import MIMEText  # noqa: E402
+from email.utils import formatdate  # noqa: E402
 
-from sib_tools.email.extract_form_fields import (
+from sib_tools.email.extract_form_fields import (  # noqa: E402
     extract_fields_from_mail_message,
     form_to_canonical,
 )
-from .dkim_verify import DKIMDetailsVerified, DKIMVerifiedMail
-from datetime import datetime, timezone
-import re
+from .dkim_verify import DKIMDetailsVerified, DKIMVerifiedMail  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
+import re  # noqa: E402
 
 logger = logging.getLogger("incoming_email.log")
 logger.setLevel(logging.DEBUG)
@@ -162,7 +162,7 @@ def process_registration_email(dkim_result: DKIMVerifiedMail) -> None:
 
         canonical["newsletter_permission"] = (
             perm == "1"
-            or ("agree" in perm and not "disagree" in perm)
+            or ("agree" in perm and "disagree" not in perm)
             or perm == "yes"
             or perm == "ja"
             or perm == "true"

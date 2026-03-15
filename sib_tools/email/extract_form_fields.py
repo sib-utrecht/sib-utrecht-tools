@@ -61,7 +61,6 @@ def extract_fields_from_mail_message(msg: Message) -> dict[str, str] | None:
                 continue
             tag.string = f"\n{secure_bold_marker}\n{tag.text}\n"
         parts = soup.text.split(secure_bold_marker)
-        preamble = parts[0]
         fields_contents = [
             part.strip().split("\n")
             for part in parts[1:]

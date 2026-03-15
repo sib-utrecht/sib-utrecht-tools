@@ -27,7 +27,7 @@ def list_filter_raw(fieldNames: list[str], filters: list[dict[str, Any]]) -> dic
     See https://www.conscribo.nl/APIDocs/#?route=post-/relations/filters/
     """
     return conscribo_post(
-        f"/relations/filters/",
+        "/relations/filters/",
         json={
             "requestedFields": fieldNames,
             "filters": filters,
@@ -183,7 +183,7 @@ def create_relation_member(canonical: dict[str, Any], logger: logging.Logger) ->
 
 
 def list_relations_persoon() -> list[dict[str, Any]]:
-    fieldDefinitions = conscribo_get(f"/relations/fieldDefinitions/persoon")["fields"]
+    fieldDefinitions = conscribo_get("/relations/fieldDefinitions/persoon")["fields"]
 
     fieldNames = [field["fieldName"] for field in fieldDefinitions]
 
@@ -220,7 +220,7 @@ def list_relations_members() -> list[dict[str, Any]]:
 
 
 def list_relations_alumnus() -> list[dict[str, Any]]:
-    fieldDefinitions = conscribo_get(f"/relations/fieldDefinitions/re__nisten")[
+    fieldDefinitions = conscribo_get("/relations/fieldDefinitions/re__nisten")[
         "fields"
     ]
 

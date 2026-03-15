@@ -115,7 +115,7 @@ def clear_if_invalid() -> None:
         print(f"Caller identity: {caller_identity}")
 
     except (botocore.exceptions.ClientError, botocore.exceptions.NoCredentialsError):
-        print(f"AWS Session token is invalid or has expired")
+        print("AWS Session token is invalid or has expired")
         if aws_credentials_origin == "keyring":
             for k in ["access-key-id", "secret-access-key", "session-token"]:
                 try:

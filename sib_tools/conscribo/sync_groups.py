@@ -13,7 +13,7 @@ records : list[dict[str, Any]] = grist_get(
 
 
 ans = conscribo_get(
-    f"/relations/groups/"
+    "/relations/groups/"
 )
 entity_groups = ans["entityGroups"]
 

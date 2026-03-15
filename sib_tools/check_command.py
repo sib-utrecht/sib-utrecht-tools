@@ -151,12 +151,12 @@ def add_parse_args(parser: ArgumentParser) -> ArgumentParser:
         "selftest", help="Show ANSI color palette for self-test and debug."
     )
 
-    conscribo_parser = create_subparser(
+    create_subparser(
         "conscribo-numbering",
         help="Check Conscribo member/external numbering consistency.",
     )
 
-    conscribo_basic_parser = create_subparser(
+    create_subparser(
         "conscribo-basic", help="Basic Conscribo health check (required fields, etc)."
     )
 

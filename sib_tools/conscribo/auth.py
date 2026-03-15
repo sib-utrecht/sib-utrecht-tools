@@ -1,21 +1,21 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-import requests
-import json
-import keyring
-import keyring.errors
-from datetime import datetime, timedelta
-from getpass import getpass
-from typing import Any, Mapping, cast
-from .constants import api_url, username
+import requests  # noqa: E402
+import json  # noqa: E402
+import keyring  # noqa: E402
+import keyring.errors  # noqa: E402
+from datetime import datetime, timedelta  # noqa: E402
+from getpass import getpass  # noqa: E402
+from typing import Any, Mapping, cast  # noqa: E402
+from .constants import api_url, username  # noqa: E402
 
 
 session_id: str | None = None
 session_id_expiration: datetime | None = None
 
 # Add logging for Conscribo
-import logging
+import logging  # noqa: E402
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

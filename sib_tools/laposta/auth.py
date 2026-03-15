@@ -15,7 +15,7 @@ laposta_api_key = None
 
 
 def prompt_credentials() -> None:
-    password = getpass(f"API-key for LaPosta: ")
+    password = getpass("API-key for LaPosta: ")
 
     keyring.set_password("laposta", "api-key", password)
 

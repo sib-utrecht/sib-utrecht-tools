@@ -1,5 +1,33 @@
 # This was an experimental script whose development has been suspended.
 
+import json
+import locale
+import logging
+import re
+from contextlib import contextmanager
+from datetime import datetime
+from typing import Generator
+
+from ..dkim_verify import DKIMDetailsVerified
+from ..extract_form_fields import (
+    extract_fields_from_mail_message,
+    form_to_canonical,
+    get_html_and_plain_from_mail_message,
+)
+
+logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def setlocale(category: int, locale_str: str) -> Generator[None, None, None]:
+    old = locale.setlocale(category)
+    try:
+        locale.setlocale(category, locale_str)
+        yield
+    finally:
+        locale.setlocale(category, old)
+
+
 def process_deregistration_email(dkim_result: DKIMDetailsVerified) -> bool | None:
     html_content, text_content = (
         get_html_and_plain_from_mail_message(dkim_result.email)

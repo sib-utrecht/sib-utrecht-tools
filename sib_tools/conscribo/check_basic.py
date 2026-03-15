@@ -40,7 +40,7 @@ def check_relations_for_empty_fields(relations: list[dict[str, Any]], logger: lo
     for field, selectors in sorted(
         members_per_empty_fields.items(), key=lambda x: should_be_nonempty.index(x[0])
     ):
-        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning("\x1b[33mProblem found: \x1b[0m")
         logger.info(f"  Found {len(selectors)} members with empty '{field}':")
         for selector in selectors:
             logger.info(f"    - {selector}")
@@ -51,7 +51,7 @@ def check_relation_fields_nonempty(relation: dict[str, Any], logger: logging.Log
     empty_fields = [field for field in should_be_nonempty if not relation.get(field)]
 
     if report and len(empty_fields) > 0:
-        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning("\x1b[33mProblem found: \x1b[0m")
         logger.warning(
             f"  Member \x1b[93m'{relation['other']['selector']}'\x1b[0m has no {', '.join(empty_fields)}."
         )
@@ -71,9 +71,6 @@ def check_basic(logger: logging.Logger) -> None:
     logger.info("")
 
     logger.info("\x1b[94mPreparation done.\x1b[0m\n")
-
-    correct = 0
-    wrong = 0
 
     personen_by_membership_end: dict[str, list[dict[str, Any]]] = {}
 
@@ -96,7 +93,7 @@ def check_basic(logger: logging.Logger) -> None:
     for membership_end, entry_members in sorted(
         personen_by_membership_end.items(), key=lambda x: x[0]
     ):
-        logger.info(f"\x1b[94mInfo:\x1b[0m")
+        logger.info("\x1b[94mInfo:\x1b[0m")
         logger.info(
             f"  Found {len(entry_members)} members with membership end \x1b[94m{membership_end}\x1b[0m:"
         )

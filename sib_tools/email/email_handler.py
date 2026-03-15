@@ -3,7 +3,6 @@ import json
 from argparse import ArgumentParser, Namespace
 from datetime import datetime, timezone, timedelta
 from email.message import Message
-from typing import Any
 
 from .dkim_verify import verify_dkim_signature
 from dataclasses import asdict

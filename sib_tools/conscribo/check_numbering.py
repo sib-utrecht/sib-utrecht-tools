@@ -39,16 +39,16 @@ def check_relation_number_correct(relation: dict[str, Any], logger: 'Logger') ->
     selector = relation["other"]["selector"]
 
     if is_member:
-        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning("\x1b[33mProblem found: \x1b[0m")
         logger.warning(f"  Member \x1b[93m'{selector}'\x1b[0m has inconsistent conscribo_id: {conscribo_id}. ")
         logger.warning("  Explanation: Member ids should be < 2000.")
         logger.warning("  The relation is presumed to be a member, since it is not in any of the external groups: ")
-        logger.warning(f"    - Externen, Overige externen voor incassos, Donateurs")
+        logger.warning("    - Externen, Overige externen voor incassos, Donateurs")
         logger.warning("")
         return False
 
     if is_external:
-        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning("\x1b[33mProblem found: \x1b[0m")
         logger.warning(f"  External \x1b[93m'{selector}'\x1b[0m has inconsistent conscribo_id: {conscribo_id}.")
         logger.warning("  Explanation: External ids should be >= 2000.")
         logger.warning("  The relation is presumed to be an external, since it is in these external groups: ")

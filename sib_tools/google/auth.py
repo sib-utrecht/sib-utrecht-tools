@@ -201,7 +201,7 @@ def show() -> None:
     else:
         print("Service Account File: Not set")
     
-    print(f"\nScopes:")
+    print("\nScopes:")
     print(f"  Directory API: {', '.join(directory_scopes)}")
     print(f"  Groups Settings API: {', '.join(groups_settings_scopes)}")
     print()

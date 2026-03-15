@@ -14,7 +14,7 @@ sib_app_api_key = None
 
 
 def prompt_credentials() -> None:
-    password = getpass(f"API-key for sib_app: ")
+    password = getpass("API-key for sib_app: ")
 
     keyring.set_password("sib_app", "api-key", password)
 

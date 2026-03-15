@@ -24,7 +24,6 @@ def sync_conscribo_to_cognito_groups(dry_run: bool = True, logger: logging.Logge
     if dry_run:
         logger.info(f"Dry run: {dry_run}")
 
-    cognito_groups_by_name = {group["GroupName"]: group for group in cognito_groups}
     cognito_group_members = {
         group["GroupName"]: cognito_list_users_in_group(group["GroupName"])
         for group in cognito_groups

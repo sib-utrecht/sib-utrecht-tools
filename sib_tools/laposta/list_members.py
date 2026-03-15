@@ -23,7 +23,7 @@ def get_list(list_id: str) -> dict[str, Any]:
 
 def get_list_members_raw(list_id: str) -> list[dict[str, Any]]:
     ans = laposta_get(
-        f"/v2/member",
+        "/v2/member",
         parameters={
             "list_id": list_id,
         },

@@ -57,7 +57,7 @@ def get_block_email_members() -> set[str]:
 def list_entity_groups() -> list[dict[str, Any]]:
     global entity_groups
     if entity_groups is None:
-        entity_groups = conscribo_get(f"/relations/groups/")["entityGroups"]
+        entity_groups = conscribo_get("/relations/groups/")["entityGroups"]
 
     assert entity_groups is not None
     return entity_groups

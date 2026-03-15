@@ -4,7 +4,7 @@ from ..cognito.list_users import list_cognito_users_canonical
 from ..sib_app.wp_old_users import fetch_users_by_wp_user_id, create_user, delete_user
 from ..utils import print_header
 from typing import Any
-from time import sleep, time
+from time import sleep
 import json
 from ..cognito.client import (
     cognito_client,
@@ -109,7 +109,6 @@ def sync_cognito_to_wp(dry_run: bool = True, logger: logging.Logger | None = Non
             entity_id = result["entity_id"]
 
             # Update Cognito user
-            start_time = time()
             cognito_client.admin_update_user_attributes(
                 UserPoolId=user_pool_id,
                 Username=canonical["cognito_sub"],
@@ -124,9 +123,6 @@ def sync_cognito_to_wp(dry_run: bool = True, logger: logging.Logger | None = Non
                     }
                 ],
             )
-            end_time = time()
-            elapsed_time = end_time - start_time
-
             sleep(0.05)
         except Exception as e:
             logger.error(f"Failed to create WordPress user for {conscribo_id}: {e}")

@@ -1,6 +1,5 @@
 from argparse import ArgumentParser, Namespace
 
-from argparse import ArgumentParser, Namespace
 
 def handle_listen_email(args: Namespace) -> None:
     from .listen_sns_for_email import run_email_listener

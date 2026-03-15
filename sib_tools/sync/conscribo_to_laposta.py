@@ -406,7 +406,7 @@ def sync_conscribo_to_laposta(dry_run: bool = True, logger: logging.Logger | Non
                 continue
 
             response = auth.laposta_post(
-                f"/v2/member",
+                "/v2/member",
                 payload,
             )
 

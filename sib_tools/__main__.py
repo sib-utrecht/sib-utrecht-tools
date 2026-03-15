@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from .auth import configure_keyring
 configure_keyring()
 
-from . import (
+from . import (  # noqa: E402
     sync_command,
     list_command,
     api_command,
@@ -12,7 +12,7 @@ from . import (
     serve_command,
     auth_command,
 )
-from .command_exception import CommandException
+from .command_exception import CommandException  # noqa: E402
 
 
 def main(args_list: list[str] | None = None) -> None:
