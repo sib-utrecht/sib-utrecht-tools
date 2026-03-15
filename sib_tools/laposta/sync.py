@@ -1,9 +1,9 @@
-from laposta_auth import laposta_get, laposta_post, laposta_patch, laposta_delete
+from .auth import laposta_get, laposta_post, laposta_patch, laposta_delete
 import json
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 from time import sleep
-from ..grist.grist_update_relation_source import set_relation_records_as_source
+from ..grist.update_relation_source import set_relation_records_as_source
 
 from .list_members import (
     account_id,

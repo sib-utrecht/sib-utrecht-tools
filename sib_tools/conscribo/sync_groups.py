@@ -33,8 +33,8 @@ lookup_dict = {
 
 up_to_date_token = str(uuid4())
 
-to_add = []
-to_remove = []
+to_add: list[dict[str, object]] = []
+to_remove: list[dict[str, object]] = []
 
 for group in entity_groups:
     group_id = group["id"]
@@ -46,11 +46,11 @@ for group in entity_groups:
         existing_record = lookup_dict.get(f"{group_id}:{entity_id}", None)
 
         if existing_record is None:
-            to_add = {
+            to_add.append({
                 "Group_id": group_id,
                 "Conscribo_id": entity_id,
                 # "is_tracked": True
-            }
+            })
             continue
 
         existing_record["up_to_date_token"] = up_to_date_token
@@ -60,7 +60,7 @@ for record in records:
     if record.get("up_to_date_token", None) == up_to_date_token:
         continue
 
-    to_remove = record
+    to_remove.append(record)
 
 
 # grist_post(

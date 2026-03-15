@@ -32,7 +32,7 @@ should_be_nonempty = [
 
 
 def check_relations_for_empty_fields(relations: list[dict[str, Any]], logger: logging.Logger) -> None:
-    members_per_empty_fields = {}
+    members_per_empty_fields: dict[str, list[str]] = {}
 
     for relation in relations:
         if is_external_number(relation["conscribo_id"]):
@@ -84,7 +84,7 @@ def check_basic(logger: logging.Logger) -> None:
     correct = 0
     wrong = 0
 
-    personen_by_membership_end = {}
+    personen_by_membership_end: dict[str, list[dict[str, Any]]] = {}
 
     check_relations_for_empty_fields(personen, logger)
 

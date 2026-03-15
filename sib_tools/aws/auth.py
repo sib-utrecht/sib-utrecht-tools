@@ -23,6 +23,14 @@ class STSClientProtocol(Protocol):
 
 
 class SESClientProtocol(Protocol):
+    def send_email(
+        self,
+        *,
+        Source: str,
+        Destination: dict[str, Any],
+        Message: dict[str, Any],
+    ) -> dict[str, Any]: ...
+
     def send_raw_email(
         self,
         *,

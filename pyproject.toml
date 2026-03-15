@@ -34,3 +34,16 @@ dev = [
     "types-requests>=2.32.4.20260107",
     "types-tabulate>=0.10.0.20260308",
 ]
+
+[tool.mypy]
+python_version = "3.13"
+exclude = "(^|/)sib_tools/email/experimental/.*\\.py$"
+
+[[tool.mypy.overrides]]
+module = [
+    "googleapiclient",
+    "googleapiclient.*",
+    "beaupy",
+    "dkim",
+]
+ignore_missing_imports = true

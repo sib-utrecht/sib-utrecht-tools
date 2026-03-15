@@ -3,6 +3,7 @@ from time import sleep
 import json
 import logging
 import sys
+from typing import Any
 
 from ..conscribo.relations import (
     list_relations_members,
@@ -23,7 +24,7 @@ from ..utils import print_change_count, print_header
 
 def match_laposta_with_conscribo(
     laposta_members, members, alumni, logger: logging.Logger | None = None
-) -> list[tuple[dict, dict, dict]]:
+) -> list[tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]]:
     logger = logger or logging.getLogger()
 
     laposta_members_by_email = {
@@ -51,7 +52,7 @@ def match_laposta_with_conscribo(
     }
     
 
-    entries = []
+    entries: list[tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]] = []
 
     unmatched_conscribo = (
         set(members_by_email.keys()) | set(alumni_by_email.keys())
@@ -200,8 +201,8 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
     now = datetime.now().isoformat()
     logger.info(f"Sync started at {now}")
 
-    for entry in entries:
-        laposta_member, conscribo_member, conscribo_alumnus = entry
+    for matched_entry in entries:
+        laposta_member, conscribo_member, conscribo_alumnus = matched_entry
 
         def resolve_field(name):
             nonlocal conscribo_member, conscribo_alumnus, laposta_member
@@ -267,7 +268,11 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
             "last_name": last_name,
             "date_of_birth": date_of_birth,
             "send_birthday": is_member and date_of_birth is not None,
-            "send_newsletter": is_member and conscribo_member.get("newsletter_permission"),
+            "send_newsletter": (
+                is_member
+                and conscribo_member is not None
+                and bool(conscribo_member.get("newsletter_permission"))
+            ),
             "send_birthday_alumnus": is_alumnus and date_of_birth is not None,
             "conscribo_id": conscribo_id,
         }
@@ -286,8 +291,8 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
 
     change_count = 0
 
-    for entry in current_and_desired:
-        laposta_member, desired = entry
+    for member_pair in current_and_desired:
+        laposta_member, desired = member_pair
 
         current_flags = get_participating_flags(laposta_member)
         desired_flags = get_participating_flags(desired)

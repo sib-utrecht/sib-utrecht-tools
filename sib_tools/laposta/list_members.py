@@ -96,9 +96,12 @@ def get_aggregated_relations():
         newsletter: dict | None = entry.get("newsletter", None)
         birthday: dict | None = entry.get("birthday", None)
         birthday_alumnus: dict | None = entry.get("birthday_alumnus", None)
+        primary = newsletter or birthday or birthday_alumnus
+        if primary is None:
+            raise ValueError("Expected at least one Laposta relation entry")
 
         base = {
-            "email": (newsletter or birthday or birthday_alumnus)["email"],
+            "email": primary["email"],
             "send_birthday": False,
             "send_newsletter": False,
             "send_birthday_alumnus": False,

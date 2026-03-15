@@ -1,5 +1,6 @@
 import json
-import beaupy
+import beaupy  # type: ignore[import-untyped]
+from typing import Any
 
 from sib_tools.conscribo.finance import (
     list_conscribo_accounts,
@@ -30,7 +31,7 @@ def build_account_options(accounts, parent_id=None, prefix=""):
         options += build_account_options(accounts, account["accountNr"], next_prefix)
     return options
 
-def print_account_tree(accounts: list[dict], parent_id: str = None, prefix: str = ""):
+def print_account_tree(accounts: list[dict], parent_id: str | None = None, prefix: str = ""):
     """
     Print a tree structure of accounts.
     """
@@ -40,7 +41,7 @@ def print_account_tree(accounts: list[dict], parent_id: str = None, prefix: str 
     if not options:
         print(prefix + "No accounts found.")
 
-def show_choose_account_tall(date : str|None) -> str:
+def show_choose_account_tall(date : str|None) -> str | None:
     # This version can cause problems because of being too tall for the terminal.
 
     # Fetch accounts for selection
@@ -61,7 +62,7 @@ def show_choose_account_tall(date : str|None) -> str:
     return None
 
 
-def show_choose_account(date: str | None) -> str:
+def show_choose_account(date: str | None) -> str | None:
     """
     Interactive account selector with navigation through account levels.
     """
@@ -120,7 +121,7 @@ def print_list_accounts(date: str | None = None, raw: bool = False):
     List Conscribo accounts for a given date.
     """
     print(f"Listing Conscribo accounts for date: {date}")
-    ans : list[dict] = list_conscribo_accounts(date)
+    ans: dict[str, Any] = list_conscribo_accounts(date)
     if raw:
         print(json.dumps(ans, indent=2))
         return

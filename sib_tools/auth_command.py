@@ -1,6 +1,7 @@
 import json
 import logging
 from argparse import ArgumentParser, Namespace
+from typing import Any
 
 from .cognito.client import cognito_client
 from .cognito.constants import user_pool_id
@@ -26,8 +27,8 @@ def _find_user_by_email(email: str):
     return users[0]
 
 
-def _list_webauthn_credentials_with_token(access_token: str) -> list:
-    creds_all = []
+def _list_webauthn_credentials_with_token(access_token: str) -> list[dict[str, Any]]:
+    creds_all: list[dict[str, Any]] = []
     next_token = None
     while True:
         params = {"AccessToken": access_token}

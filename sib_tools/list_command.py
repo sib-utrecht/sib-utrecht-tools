@@ -3,10 +3,11 @@ from argparse import ArgumentParser, Namespace
 import sys
 from sib_tools.conscribo.relations import list_relations_alumnus, list_relations_members, list_relations_active_members
 import json
-import beaupy
+import beaupy  # type: ignore[import-untyped]
 from unidecode import unidecode
 from time import sleep
 from datetime import datetime, date, timezone
+from typing import TypedDict, NotRequired
 
 
 from sib_tools.conscribo.finance import (
@@ -63,7 +64,7 @@ def handle_list_education(args: Namespace):
     members = list_relations_active_members(date=active_date)
 
     # Count occurrences of educational institutions
-    education_counts = {}
+    education_counts: dict[str, int] = {}
     total_members = len(members)
 
     institution_mapper = {
@@ -115,7 +116,16 @@ def handle_list_education(args: Namespace):
             print(",".join(columns))
             
             # Create a list of members with their institutions for sorting
-            members_with_institutions = []
+            class _MemberWithInstitution(TypedDict):
+                institution: str
+                first_name: str
+                last_name: str
+                date_of_birth: str
+                study: str
+                institution_count: int
+                number: NotRequired[int]
+
+            members_with_institutions: list[_MemberWithInstitution] = []
             for member in members:
                 institution = member.get("institution") or "(empty)"
                 first_name = member.get("first_name") or ""
@@ -145,8 +155,8 @@ def handle_list_education(args: Namespace):
             institution_group = None
             count_for_institution = 0
 
-            for member in members_with_institutions:
-                institution = member.get("institution")
+            for row in members_with_institutions:
+                institution = row["institution"]
 
                 if institution != institution_group:
                     count_for_institution = 0
@@ -154,15 +164,14 @@ def handle_list_education(args: Namespace):
 
                 count_for_institution += 1
 
-                member["number"] = count_for_institution
+                row["number"] = count_for_institution
                 
                 data = [
-                    member.get(col, "")
+                    str(row.get(col, "") or "")
                     for col in columns
                 ]
 
                 for k, v in list(enumerate(data)):
-                    v = str(v or "")
                     # Escape any quotes
                     v = v.replace('"', '""')
 
@@ -192,7 +201,7 @@ def handle_list_accounts(args: Namespace):
 
 
 def handle_list_transactions(args: Namespace):
-    account_id = args.account_id
+    account_id: str | None = args.account_id
     if not account_id:
         answer = beaupy.confirm(
             "No account ID supplied. Would you like to select one interactively?"
@@ -226,8 +235,8 @@ def handle_list_transactions(args: Namespace):
 
 def handle_list_balance_diff(args: Namespace):
     print(f"Calculating balance difference from {args.start_date} to {args.end_date}")
-    debet_per_account = dict()
-    credit_per_account = dict()
+    debet_per_account: dict[str, float] = dict()
+    credit_per_account: dict[str, float] = dict()
     account_id = None
     fetch_date = datetime.now(timezone.utc).isoformat()
 

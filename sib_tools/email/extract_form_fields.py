@@ -13,8 +13,8 @@ def extract_fields_from_mail(path_to_eml: str) -> dict[str, str] | None:
     return extract_fields_from_mail_message(msg)
 
 def get_html_and_plain_from_mail_message(msg: Message) -> tuple[str | None, str | None]:
-    html_message = None
-    text_message = None
+    html_payload: bytes | None = None
+    text_payload: bytes | None = None
     main_part = next(msg.walk())
     for subpart in main_part.walk():
         if subpart.get_content_type() == 'text/html':
@@ -24,7 +24,7 @@ def get_html_and_plain_from_mail_message(msg: Message) -> tuple[str | None, str 
             payload = subpart.get_payload(decode=True)
             if not isinstance(payload, bytes):
                 raise ValueError("Expected bytes for HTML payload")
-            html_message = payload
+            html_payload = payload
 
         if subpart.get_content_type() == 'text/plain':
             assert "UTF-8" in subpart['Content-Type'], 'Unexpected Content-Type for text/plain'
@@ -34,14 +34,16 @@ def get_html_and_plain_from_mail_message(msg: Message) -> tuple[str | None, str 
             if not isinstance(payload, bytes):
                 raise ValueError("Expected bytes for text payload")
             
-            text_message = payload
+            text_payload = payload
 
-    if html_message is not None:
-        print(f"Html message length: {len(html_message)}")
-        html_message = html_message.decode('utf-8')
-    if text_message is not None:
-        print(f"Text message length: {len(text_message)}")
-        text_message = text_message.decode('utf-8')
+    html_message: str | None = None
+    text_message: str | None = None
+    if html_payload is not None:
+        print(f"Html message length: {len(html_payload)}")
+        html_message = html_payload.decode('utf-8')
+    if text_payload is not None:
+        print(f"Text message length: {len(text_payload)}")
+        text_message = text_payload.decode('utf-8')
 
     return html_message, text_message
 
@@ -75,6 +77,7 @@ def extract_fields_from_mail_message(msg: Message) -> dict[str, str] | None:
     if text_message is not None:
         print(f"Text message length: {len(text_message)}")
         open('member-admin/add-to-conscribo/sample2.txt', 'w', encoding="utf-8").write(text_message)
+    return None
 
 def form_to_canonical(fields: dict[str, str]) -> dict[str, Any]:
     to_canonical = get_register_form_to_key()

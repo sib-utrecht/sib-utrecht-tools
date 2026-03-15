@@ -6,6 +6,7 @@ from getpass import getpass
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 from datetime import datetime, timedelta
+from typing import Any
 
 from .constants import api_url
 from .auth import conscribo_post, conscribo_get, conscribo_patch
@@ -34,7 +35,7 @@ def list_conscribo_transactions(
     List Conscribo transactions for a given date range and account ID.
     """
 
-    filters = {
+    filters: dict[str, Any] = {
         "dateStart": start_date,
         "dateEnd": end_date,
     }

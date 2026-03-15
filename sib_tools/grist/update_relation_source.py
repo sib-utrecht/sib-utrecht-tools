@@ -35,7 +35,7 @@ def match_keys_case_insensitive(table_name : str, records : list[dict]) -> list[
 
     excluded_records = set()
 
-    def project_record(record : dict[str]) -> dict[str]:
+    def project_record(record : dict[str, object]) -> dict[str, object]:
         nonlocal excluded_records
 
         new_record = {}

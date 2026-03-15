@@ -33,7 +33,7 @@ groups_settings_scopes = [
 ]
 
 
-def get_env_or_keyring(key: str, keyring_service: str = "sib_tools_google") -> str:
+def get_env_or_keyring(key: str, keyring_service: str = "sib_tools_google") -> str | None:
     """
     Get a value from environment or keyring. If not found, return None.
     """

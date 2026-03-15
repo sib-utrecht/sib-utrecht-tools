@@ -7,6 +7,7 @@ import json
 import keyring
 from getpass import getpass
 import urllib.parse
+from typing import Any
 from .constants import relations_doc, api_url
 
 grist_api_key = None
@@ -40,12 +41,12 @@ def get_grist_api_key() -> str:
 
     return grist_api_key
 
-def grist_get(url : str, parameters = None) -> dict:
+def grist_get(url : str, parameters: dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
 
     if parameters is not None:
-        parameters = urllib.parse.urlencode(parameters)
-        url += "?" + parameters
+        encoded_parameters = urllib.parse.urlencode(parameters)
+        url += "?" + encoded_parameters
 
     response = requests.get(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -68,14 +69,14 @@ def grist_get(url : str, parameters = None) -> dict:
         raise Exception(message)
     return response.json()
 
-def grist_put(url : str, body : dict | list, query : dict = None) -> dict:
+def grist_put(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     print(f"Grist: Doing put on {url}")
     
     api_key = get_grist_api_key()
 
     if query is not None:
-        query = urllib.parse.urlencode(query)
-        url += "?" + query
+        encoded_query = urllib.parse.urlencode(query)
+        url += "?" + encoded_query
 
     response = requests.put(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -100,12 +101,12 @@ def grist_put(url : str, body : dict | list, query : dict = None) -> dict:
 
     return response.json()
 
-def grist_post(url : str, body : dict | list, query : dict = None) -> dict:
+def grist_post(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
 
     if query is not None:
-        query = urllib.parse.urlencode(query)
-        url += "?" + query
+        encoded_query = urllib.parse.urlencode(query)
+        url += "?" + encoded_query
 
     response = requests.post(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -130,12 +131,12 @@ def grist_post(url : str, body : dict | list, query : dict = None) -> dict:
         raise Exception(message)
     return response.json()
 
-def grist_delete(url : str, query : dict = None) -> dict:
+def grist_delete(url : str, query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
 
     if query is not None:
-        query = urllib.parse.urlencode(query)
-        url += "?" + query
+        encoded_query = urllib.parse.urlencode(query)
+        url += "?" + encoded_query
 
     response = requests.delete(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -159,12 +160,12 @@ def grist_delete(url : str, query : dict = None) -> dict:
         raise Exception(message)
     return response.json()
 
-def grist_patch(url : str, body : dict | list, query : dict = None) -> dict:
+def grist_patch(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
 
     if query is not None:
-        query = urllib.parse.urlencode(query)
-        url += "?" + query
+        encoded_query = urllib.parse.urlencode(query)
+        url += "?" + encoded_query
 
     response = requests.patch(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",

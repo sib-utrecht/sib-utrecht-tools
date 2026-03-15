@@ -360,12 +360,13 @@ def check_addresses(
     logger: "Logger", include_alumni: bool = True, include_members: bool = True
 ) -> None:
     logger.info("\x1b[94mPreparing...\x1b[0m")
+    personen: list[Mapping[str, object]]
     if include_members:
         personen = cast(list[Mapping[str, object]], list_relations_persoon())
         logger.info(f"Fetched {len(personen)} persons from Conscribo.")
         logger.info("")
     else:
-        personen: list[Mapping[str, object]] = []
+        personen = []
     logger.info("\x1b[94mPreparation done.\x1b[0m")
     logger.info("")
     logger.info("\x1b[94mChecking addresses...\x1b[0m")

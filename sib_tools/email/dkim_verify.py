@@ -6,8 +6,8 @@ import re
 import uuid
 from dataclasses import dataclass
 import email
-import dkim
-from dkim import DKIM, DKIMException
+import dkim  # type: ignore[import-untyped]
+from dkim import DKIM, DKIMException  # type: ignore[import-untyped]
 from email.message import EmailMessage
 from email.parser import Parser
 from email.headerregistry import HeaderRegistry, Address
@@ -84,12 +84,12 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
             logger.error(f"Error verifying DKIM: {x}")
             return None
 
-        domain = d.domain
-        selector = d.selector
+        domain: bytes = d.domain
+        selector: bytes | None = d.selector
         include_headers = d.include_headers
         signed_headers = d.signed_headers
 
-        signed_headers_keys = [k.lower() for k, v in signed_headers]
+        signed_headers_keys = [k.lower().decode("ascii") for k, v in signed_headers]
 
         # senders = [
         #     v
@@ -111,8 +111,6 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
             return None
         
         email_sender = message.get("sender")
-        if email_sender:
-            email_sender : Address | None = email_sender
 
         # SECURITY: Define ALL headers that MUST be signed for security
         required_signed = [
@@ -137,11 +135,12 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
         logger.info(f"Signed header keys: {signed_headers_keys}")
         logger.info(f"Required signed headers: {[h.decode('ascii') for h in required_signed]}")
 
-        for header in required_signed:
-            if header in signed_headers_keys:
+        for required_header in required_signed:
+            required_header_str = required_header.decode("ascii")
+            if required_header_str in signed_headers_keys:
                 continue
 
-            logger.error(f"Header {header} not signed")
+            logger.error(f"Header {required_header_str} not signed")
             return None
 
         if email_sender is None and len(email_from) == 1:
@@ -157,11 +156,11 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
             logger.error(f"Email sender {email_sender.addr_spec} not in 'from' addresses: {from_addresses}")
             return None
         
-        email_sender_domain = email_sender.domain.encode("utf-8")
+        email_sender_domain = email_sender.domain
 
         # SECURITY: Strict domain matching - must be exact match, no subdomains
-        if email_sender_domain != domain:
-            logger.error(f"Email sender domain {email_sender_domain} does not match DKIM domain {domain}")
+        if email_sender_domain != domain.decode("ascii"):
+            logger.error(f"Email sender domain {email_sender_domain} does not match DKIM domain {domain.decode('ascii')}")
             return None
             
         # SECURITY: Optional domain validation if allowed_domains is specified
@@ -173,7 +172,9 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
 
         logger.info(f"From: {email_from}")
         logger.info(f"Sender: {email_sender}")
-        logger.info(f"DKIM verified for domain: {domain}, selector: {selector}")
+        logger.info(
+            f"DKIM verified for domain: {domain.decode('ascii')}, selector: {selector.decode('ascii') if selector else None}"
+        )
 
         # Extract the date header
         date_header : str | None = message.get("date")
@@ -192,9 +193,9 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
 
         is_forwarded_or_auto = False
         # Check for forwarding/auto-generated headers
-        for header in ["Resent-From", "Auto-Submitted", "Return-Path", "X-Autoreply"]:
-            if header in message:
-                logger.info(f"Detected forwarding/auto-generated header: {header}")
+        for check_header in ["Resent-From", "Auto-Submitted", "Return-Path", "X-Autoreply"]:
+            if check_header in message:
+                logger.info(f"Detected forwarding/auto-generated header: {check_header}")
                 is_forwarded_or_auto = True
 
         if check_aws_verification_headers:

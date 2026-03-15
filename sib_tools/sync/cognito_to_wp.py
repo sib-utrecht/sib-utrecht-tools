@@ -81,7 +81,7 @@ def sync_cognito_to_wp(dry_run: bool = True, logger: logging.Logger | None = Non
         f"In WordPress only ({len(wp_only)}): {', '.join(map(str, wp_only))}"
     )
     logger.info(
-        f"In Cognito only ({len(cognito_only)}): Conscribo Ids: {', '.join(a.get("conscribo_id") for a in cognito_only)}"
+        f"In Cognito only ({len(cognito_only)}): Conscribo Ids: {', '.join(str(a.get('conscribo_id')) for a in cognito_only if a.get('conscribo_id') is not None)}"
     )
 
     change_count = 0

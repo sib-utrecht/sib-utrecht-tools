@@ -175,7 +175,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
             cast(list[Any], option_descriptions), cursor="→", cursor_style="blue", return_index=True
         )
 
-        service = None
+        service: ServiceDef | None = None
         if service_index is not None:
             service, available_subactions, _ = selection_options[service_index]
 
@@ -214,14 +214,14 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
     action_map: dict[str, ServiceDef] = {svc["key"]: svc for svc in services}
     try:
         service_key, action = signin_action.split(":", 1)
-        svc = action_map.get(service_key)
-        if not svc:
+        selected_service = action_map.get(service_key)
+        if not selected_service:
             msg(f"{YELLOW}Unknown service '{service_key}'.{RESET}")
             return
-        trigger = svc.get(action)
+        trigger = cast(ActionFn | None, selected_service.get(action))
 
         if not trigger:
-            msg(f"{YELLOW}Action '{action}' not supported for {svc['name']}.{RESET}")
+            msg(f"{YELLOW}Action '{action}' not supported for {selected_service['name']}.{RESET}")
             return
 
         trigger()
