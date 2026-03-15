@@ -3,7 +3,7 @@ import logging
 import sys
 import re
 import requests
-from typing import TYPE_CHECKING
+from typing import Any
 
 from . import auth
 from .relations import list_relations_persoon, update_relation, list_relations_alumnus
@@ -13,9 +13,6 @@ from .check_numbering import check_relation_number_correct
 from dataclasses import dataclass
 from .check_address import check_address
 from .check_numbering import is_external_number
-
-if TYPE_CHECKING:
-    from logging import Logger
 
 should_be_nonempty = [
     "conscribo_id",
@@ -34,7 +31,7 @@ should_be_nonempty = [
 ]
 
 
-def check_relations_for_empty_fields(relations, logger: 'Logger'):
+def check_relations_for_empty_fields(relations: list[dict[str, Any]], logger: logging.Logger) -> None:
     members_per_empty_fields = {}
 
     for relation in relations:
@@ -59,7 +56,7 @@ def check_relations_for_empty_fields(relations, logger: 'Logger'):
         logger.info("")
 
 
-def check_relation_fields_nonempty(relation, logger: 'Logger', report=True):
+def check_relation_fields_nonempty(relation: dict[str, Any], logger: logging.Logger, report: bool = True) -> list[str]:
     empty_fields = [field for field in should_be_nonempty if not relation.get(field)]
 
     if report and len(empty_fields) > 0:
@@ -72,7 +69,7 @@ def check_relation_fields_nonempty(relation, logger: 'Logger', report=True):
     return empty_fields
 
 
-def check_basic(logger: 'Logger'):
+def check_basic(logger: logging.Logger) -> None:
     logger.info("\x1b[94mPreparing...\x1b[0m")
 
     personen = list_relations_persoon()

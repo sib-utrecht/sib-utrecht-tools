@@ -5,6 +5,7 @@ import logging
 import sys
 import json
 import pytz
+from typing import Any
 from urllib.parse import quote_plus
 
 # After changing something, make sure to run `./restart.sh`. In VS Code:
@@ -46,13 +47,13 @@ logger.addHandler(stream_handler)
 
 
 def send_registration_notification(
-    canonical: dict,
+    canonical: dict[str, Any],
     conscribo_id: str,
     groups_added: list[str],
     original_msg_id: str | None = None,
     original_subject: str | None = None,
     iban_included: bool = True,
-):
+) -> None:
     """Notify info@sib-utrecht.nl that a registration was processed.
     If original_msg_id is provided, include reply-threading headers.
     """
@@ -129,7 +130,7 @@ def send_registration_notification(
         logger.error(f"Failed to send registration notification: {e}")
 
 
-def process_registration_email(dkim_result: DKIMVerifiedMail):
+def process_registration_email(dkim_result: DKIMVerifiedMail) -> None:
     fields = extract_fields_from_mail_message(dkim_result.email)
     if not fields:
         logger.error("No fields extracted from registration email")
@@ -212,7 +213,7 @@ def process_registration_email(dkim_result: DKIMVerifiedMail):
     logger.info("Registration email processed successfully")
 
 
-def process_deregistration_email(dkim_result: DKIMDetailsVerified):
+def process_deregistration_email(dkim_result: DKIMDetailsVerified) -> None:
     raise NotImplementedError("Deregistration email processing is not implemented yet")
 
     # for part in dkim_result.email.walk():

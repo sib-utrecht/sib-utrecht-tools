@@ -7,9 +7,7 @@ import keyring
 import keyring.errors
 from datetime import datetime, timedelta
 from getpass import getpass
-from typing import Mapping
-
-from traitlets import Any
+from typing import Any, Mapping
 from .constants import api_url, username
 
 
@@ -39,7 +37,7 @@ class ApiRequestError(Exception):
         self.status_code = status_code
 
 
-def prompt_credentials():
+def prompt_credentials() -> None:
     password = getpass(f"Password for {username}: ")
     keyring.set_password("sib-conscribo", "member-admin-bot", password)
 
@@ -129,7 +127,7 @@ def authenticate() -> str:
     return session_id
 
 
-def do_auth():
+def do_auth() -> None:
     authenticate()
     if session_id is None:
         logger.error("Session id is None after authentication")
@@ -138,7 +136,7 @@ def do_auth():
     logger.debug(f"Session id length: {len(session_id)}")
 
 
-def get_conscribo_session_id():
+def get_conscribo_session_id() -> str:
     global session_id, session_id_expiration
 
     if (
@@ -164,7 +162,7 @@ def get_conscribo_session_id():
     return session_id
 
 
-def conscribo_get(url: str) -> dict:
+def conscribo_get(url: str) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
 
     res = requests.get(
@@ -180,7 +178,7 @@ def conscribo_get(url: str) -> dict:
 
     return res.json()
 
-def conscribo_delete(url: str, params : None | Mapping[str, Any]) -> dict:
+def conscribo_delete(url: str, params: None | Mapping[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
 
     res = requests.delete(
@@ -197,7 +195,7 @@ def conscribo_delete(url: str, params : None | Mapping[str, Any]) -> dict:
 
     return res.json()
 
-def conscribo_post(url : str, json : dict) -> dict:
+def conscribo_post(url: str, json: dict[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
 
     res = requests.post(
@@ -215,7 +213,7 @@ def conscribo_post(url : str, json : dict) -> dict:
     return res.json()
 
 
-def conscribo_patch(url : str, json : dict) -> dict:
+def conscribo_patch(url: str, json: dict[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
 
     return requests.patch(
@@ -228,12 +226,12 @@ def conscribo_patch(url : str, json : dict) -> dict:
     ).json()
 
 
-def check_available():
+def check_available() -> str | None:
     return keyring.get_password("sib-conscribo", "member-admin-bot")
 
-def show():
+def show() -> None:
     """Display Conscribo credentials information with redacted password."""
-    def redact_password(pwd):
+    def redact_password(pwd: str) -> str:
         if not pwd or len(pwd) < 4:
             return "****"
         return pwd[:2] + "*" * (len(pwd) - 2)
@@ -263,7 +261,7 @@ def show():
         print("Password: Not set")
     print()
 
-def signout():
+def signout() -> None:
     try:
         keyring.delete_password("sib-conscribo", "member-admin-bot")
     except keyring.errors.PasswordDeleteError:

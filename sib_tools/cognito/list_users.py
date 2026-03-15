@@ -13,7 +13,7 @@ from .client import cognito_client
 
 cognito_to_canonical_dict = canonical_key.get_cognito_to_key()
 
-def cognito_user_meta_to_canonical(user):
+def cognito_user_meta_to_canonical(user: dict[str, Any]) -> dict[str, Any]:
     to_canonical = cognito_to_canonical_dict
 
     flattened_user = flatten_dict(user)
@@ -31,7 +31,7 @@ def cognito_user_meta_to_canonical(user):
     return canonical
 
 
-def cognito_user_to_canonical(user : dict[str, Any]) -> dict[str, Any]:
+def cognito_user_to_canonical(user: dict[str, Any]) -> dict[str, Any]:
     username = user.get("Username")
     usercreatedate = user.get("UserCreateDate")
     userlastmodifieddate = user.get("UserLastModifiedDate")
@@ -53,7 +53,7 @@ def cognito_user_to_canonical(user : dict[str, Any]) -> dict[str, Any]:
     return cleaned_user
 
 
-def canonical_to_cognito_user(user):
+def canonical_to_cognito_user(user: dict[str, Any]) -> dict[str, Any]:
     to_cognito = canonical_key.get_key_to_cognito()
 
     flattened_user = flatten_dict(user)
@@ -82,12 +82,12 @@ def canonical_to_cognito_user(user):
     }
 
 
-def list_cognito_users_canonical():
+def list_cognito_users_canonical() -> list[dict[str, Any]]:
     cognito_users = list_all_cognito_users()
     return [cognito_user_to_canonical(user) for user in cognito_users]
 
 
-def list_all_cognito_users():
+def list_all_cognito_users() -> list[dict[str, Any]]:
     cognito_users = []
 
     response = cognito_client.list_users(

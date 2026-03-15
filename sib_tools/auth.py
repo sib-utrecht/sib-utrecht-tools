@@ -2,7 +2,7 @@ import os
 import keyring
 import logging
 import sys
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 try:
     from beaupy import select
@@ -10,7 +10,7 @@ except Exception:
     select = None  # type: ignore
 
 
-def configure_keyring():
+def configure_keyring() -> None:
     if "KEYRING_CRYPTFILE_PASSWORD" in os.environ:
         from keyrings.cryptfile.cryptfile import CryptFileKeyring
 
@@ -19,7 +19,7 @@ def configure_keyring():
         keyring.set_keyring(kr)
 
 
-def check_available_auth(logger=None, non_interactive=False, signin_action=None):
+def check_available_auth(logger: logging.Logger | None = None, non_interactive: bool = False, signin_action: str | None = None) -> None:
     from sib_tools.aws import auth as aws_auth
     from sib_tools.conscribo import auth as conscribo_auth
     from sib_tools.laposta import auth as laposta_auth
@@ -122,7 +122,7 @@ def check_available_auth(logger=None, non_interactive=False, signin_action=None)
         msg(
             f"\n{BOLD}Select a service to sign in, rotate, or sign out (or choose 'Cancel' to skip):{RESET}"
         )
-        selection_options: list[tuple[Optional[dict[str, Any]], list[str], str]] = [
+        selection_options: list[tuple[dict[str, Any] | None, list[str], str]] = [
             (None, [], f"{YELLOW}Cancel{RESET}")
         ]
         for svc in services:

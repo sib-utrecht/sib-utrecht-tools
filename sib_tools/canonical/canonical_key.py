@@ -2,6 +2,7 @@ import requests
 import json
 import regex
 import urllib
+from typing import Any
 from urllib.parse import urlparse, urlencode
 
 # url = "https://docs.google.com/spreadsheets/d/1l-DQhGXPq3QlMPor1aZk2Cw_VpxaHUZWDPFnt9Cd0Hg/edit?usp=sharing"
@@ -9,7 +10,7 @@ from urllib.parse import urlparse, urlencode
 # Url as in browser
 url = "https://docs.google.com/spreadsheets/d/1l-DQhGXPq3QlMPor1aZk2Cw_VpxaHUZWDPFnt9Cd0Hg/edit?gid=0#gid=0"
 
-def get_tsv_url(url):
+def get_tsv_url(url: str) -> str:
     id_regex = regex.Regex(r"/d/(?P<spreadsheet_id>[a-zA-Z0-9-_]{10,})/")
     spreatsheet_id = id_regex.search(url).group("spreadsheet_id")
 
@@ -39,7 +40,7 @@ tsv_url = get_tsv_url(url)
 
 
 
-def get_tsv_data(url):
+def get_tsv_data(url: str) -> str:
     """
     Fetches the TSV data from the given URL.
     """
@@ -63,7 +64,7 @@ def get_tsv_data(url):
 #         for row in data
 #     ]
 
-def parse_tsv_data(tsv_data : str):
+def parse_tsv_data(tsv_data: str) -> list[dict[str, str]]:
     """
     Parses the TSV data and returns a list of dictionaries.
     """
@@ -84,7 +85,7 @@ def parse_tsv_data(tsv_data : str):
     
     return data
 
-def fetch_and_parse_tsv_data():
+def fetch_and_parse_tsv_data() -> list[dict[str, str]]:
     """
     Main function to fetch and parse the TSV data.
     """
@@ -94,7 +95,7 @@ def fetch_and_parse_tsv_data():
 
 _parsed_data = None
 
-def get_parsed_data():
+def get_parsed_data() -> list[dict[str, str]]:
     global _parsed_data
 
     if _parsed_data is not None:
@@ -115,7 +116,7 @@ def get_register_form_to_key() -> dict[str, str]:
 
     return register_form_to_key
 
-def get_cognito_to_key() -> dict:
+def get_cognito_to_key() -> dict[str, str]:
     parsed_data = get_parsed_data()
 
     cognito_to_key = {
@@ -127,7 +128,7 @@ def get_cognito_to_key() -> dict:
 
     return cognito_to_key
 
-def get_key_to_cognito() -> dict:
+def get_key_to_cognito() -> dict[str, str]:
     parsed_data = get_parsed_data()
 
     key_to_cognito = {
@@ -139,7 +140,7 @@ def get_key_to_cognito() -> dict:
 
     return key_to_cognito
 
-def get_conscribo_to_key() -> dict:
+def get_conscribo_to_key() -> dict[str, str]:
     parsed_data = get_parsed_data()
 
     conscribo_to_key = {
@@ -152,7 +153,7 @@ def get_conscribo_to_key() -> dict:
     return conscribo_to_key
 
 
-def get_conscribo_alumnus_to_key() -> dict:
+def get_conscribo_alumnus_to_key() -> dict[str, str]:
     parsed_data = get_parsed_data()
 
     conscribo_to_key = {
@@ -165,7 +166,7 @@ def get_conscribo_alumnus_to_key() -> dict:
     return conscribo_to_key
 
 
-def get_key_to_conscribo() -> dict:
+def get_key_to_conscribo() -> dict[str, str]:
     parsed_data = get_parsed_data()
 
     key_to_conscribo = {
@@ -177,7 +178,7 @@ def get_key_to_conscribo() -> dict:
 
     return key_to_conscribo
 
-def get_key_to_conscribo_alumnus() -> dict:
+def get_key_to_conscribo_alumnus() -> dict[str, str]:
     parsed_data = get_parsed_data()
 
     key_to_conscribo_alumnus = {
@@ -190,7 +191,7 @@ def get_key_to_conscribo_alumnus() -> dict:
     return key_to_conscribo_alumnus
 
 
-def get_key_to_laposta() -> dict:
+def get_key_to_laposta() -> dict[str, str]:
     parsed_data = get_parsed_data()
 
     key_to_laposta = {
@@ -202,7 +203,7 @@ def get_key_to_laposta() -> dict:
 
     return key_to_laposta
 
-def get_laposta_to_key() -> dict:
+def get_laposta_to_key() -> dict[str, str]:
     parsed_data = get_parsed_data()
 
     laposta_to_key = {
@@ -214,7 +215,7 @@ def get_laposta_to_key() -> dict:
 
     return laposta_to_key
 
-def flatten_dict(a : dict) -> dict:
+def flatten_dict(a: dict[str, Any]) -> dict[str, Any]:
     result = dict()
 
     for key, value in a.items():
@@ -225,7 +226,7 @@ def flatten_dict(a : dict) -> dict:
             result[key] = value
     return result
 
-def expand_dict(a : dict, base : dict | None = None) -> dict:
+def expand_dict(a: dict[str, Any], base: dict[str, Any] | None = None) -> dict[str, Any]:
     result = base or dict()
 
     for key, value in a.items():
@@ -242,7 +243,7 @@ def expand_dict(a : dict, base : dict | None = None) -> dict:
     return result
 
 
-def main():
+def main() -> None:
     parsed_data = get_parsed_data()    
 
     print("\n\n\nPrinting data")

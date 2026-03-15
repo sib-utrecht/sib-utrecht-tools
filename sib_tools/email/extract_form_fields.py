@@ -8,11 +8,11 @@ from email.message import EmailMessage, Message
 from sib_tools.canonical.canonical_key import get_register_form_to_key
 from typing import Any
 
-def extract_fields_from_mail(path_to_eml):
+def extract_fields_from_mail(path_to_eml: str) -> dict[str, str] | None:
     msg = message_from_file(open(path_to_eml, 'r', encoding='utf-8'))
     return extract_fields_from_mail_message(msg)
 
-def get_html_and_plain_from_mail_message(msg : Message):
+def get_html_and_plain_from_mail_message(msg: Message) -> tuple[str | None, str | None]:
     html_message = None
     text_message = None
     main_part = next(msg.walk())
@@ -45,7 +45,7 @@ def get_html_and_plain_from_mail_message(msg : Message):
 
     return html_message, text_message
 
-def extract_fields_from_mail_message(msg : Message):
+def extract_fields_from_mail_message(msg: Message) -> dict[str, str] | None:
     html_message, text_message = get_html_and_plain_from_mail_message(msg)
 
     # msg.get_body(preferencelist=('related', 'html', 'plain'))
@@ -76,7 +76,7 @@ def extract_fields_from_mail_message(msg : Message):
         print(f"Text message length: {len(text_message)}")
         open('member-admin/add-to-conscribo/sample2.txt', 'w', encoding="utf-8").write(text_message)
 
-def form_to_canonical(fields : dict[str, str]) -> dict:
+def form_to_canonical(fields: dict[str, str]) -> dict[str, Any]:
     to_canonical = get_register_form_to_key()
     canonical : dict[str, str | dict[str, Any] | Any] = dict()
     agreements : dict[str, str] = dict()
