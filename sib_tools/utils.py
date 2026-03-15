@@ -8,7 +8,7 @@ def increase_indent(text: str, num_spaces: int = 2) -> str:
     return "\n".join(indented_lines)
 
 
-def print_header(line: str, logger: logging.Logger) -> None:
+def print_header(line: str, logger: logging.Logger | None) -> None:
     """Log a standardized light-blue header with matching underline and spacing.
 
     - Blank line before and after
@@ -24,7 +24,7 @@ def print_header(line: str, logger: logging.Logger) -> None:
     logger.info(f"\x1b[94m{underline}\x1b[0m")
     logger.info("")
 
-def print_change_count(count: int, logger: logging.Logger) -> None:
+def print_change_count(count: int, logger: logging.Logger | None) -> None:
     """Log the count of changes in a standardized format."""
     if logger is None:
         logger = logging.getLogger(__name__)

@@ -1,20 +1,15 @@
-import keyring.credentials
-import requests
-import json
-import keyring
-from getpass import getpass
+from typing import Any
 
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict
-from . import auth
-from .auth import conscribo_post, conscribo_get, conscribo_patch, conscribo_delete
+from .auth import conscribo_post, conscribo_get, conscribo_delete
 from dataclasses import dataclass
 
 group_wil_geen_email_van_ons_ontvangen = 36
 
-entity_groups = None
+GroupId = int | str
 
-def get_group_members_cached(group_id) -> set[str]:
+entity_groups: list[dict[str, Any]] | None = None
+
+def get_group_members_cached(group_id: GroupId) -> set[str]:
     entity_groups = list_entity_groups()
 
     group = next((g for g in entity_groups if g["id"] == str(group_id)), None)
@@ -24,7 +19,7 @@ def get_group_members_cached(group_id) -> set[str]:
     return {a["entityId"] for a in group["members"]}
 
 
-def get_group_members(group_id) -> set[str]:
+def get_group_members(group_id: GroupId) -> set[str]:
     ans = conscribo_get(f"/relations/groups/{group_id}/")
 
     if len(ans["entityGroups"]) != 1:
@@ -56,17 +51,18 @@ def get_groups() -> Groups:
         wil_geen_email_van_ons_ontvangen=get_group_members_cached("36"),
     )
 
-def get_block_email_members():
+def get_block_email_members() -> set[str]:
     return get_group_members(group_wil_geen_email_van_ons_ontvangen)
 
-def list_entity_groups():
+def list_entity_groups() -> list[dict[str, Any]]:
     global entity_groups
     if entity_groups is None:
         entity_groups = conscribo_get(f"/relations/groups/")["entityGroups"]
 
+    assert entity_groups is not None
     return entity_groups
 
-def list_entity_groups_by_name():
+def list_entity_groups_by_name() -> dict[str, dict[str, Any]]:
     """
     Returns a dictionary of entity groups indexed by their name.
     """
@@ -86,7 +82,7 @@ def find_group_id_by_name(name: str) -> int | None:
     return group["id"] if group else None
 
 def add_relations_to_group(
-    group_id : int,
+    group_id : GroupId,
     user_ids : list[str],
 ):
     return conscribo_post(
@@ -97,7 +93,7 @@ def add_relations_to_group(
     )
 
 def remove_relations_from_group(
-    group_id : int,
+    group_id : GroupId,
     user_ids : list[str],
 ):
     return conscribo_delete(
@@ -109,8 +105,8 @@ def remove_relations_from_group(
 
 
 def set_group_members(
-    group_id: int,
-    canonical_members: list[dict],
+    group_id: GroupId,
+    canonical_members: list[dict[str, Any]],
     dry_run: bool = True
 ):
     """
@@ -134,7 +130,7 @@ def set_group_members(
     print(f"Current group has {len(current_members)} members")
     
     # Extract conscribo_ids from canonical members
-    desired_member_ids = set()
+    desired_member_ids: set[str] = set()
     for member in canonical_members:
         conscribo_id = member.get("conscribo_id")
         if conscribo_id:

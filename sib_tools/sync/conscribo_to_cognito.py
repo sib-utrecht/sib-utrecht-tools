@@ -1,25 +1,69 @@
-import boto3
-from time import sleep
 import json
 import logging
-import sys
+from typing import Any, Callable, Protocol, TypedDict, cast
 
-from sib_tools.conscribo.groups import find_group_id_by_name, get_group_members_cached
+from sib_tools.conscribo import groups as conscribo_groups
 
 from ..conscribo.relations import list_relations_active_members
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict
+from ..cognito import list_users as cognito_list_users
 from ..cognito.list_users import (
     list_all_cognito_users,
     cognito_user_to_canonical,
     canonical_to_cognito_user,
-    cognito_client,
     user_pool_id,
 )
 from ..utils import print_change_count, print_header
 
+
+CanonicalUser = dict[str, Any]
+
+
+class CognitoAttribute(TypedDict):
+    Name: str
+    Value: Any
+
+
+class CognitoUserPayload(TypedDict):
+    Username: str
+    Attributes: list[CognitoAttribute]
+
+
+class CognitoAdminClientProtocol(Protocol):
+    def admin_delete_user(self, *, UserPoolId: str, Username: str) -> Any:
+        ...
+
+    def admin_create_user(
+        self,
+        *,
+        UserPoolId: str,
+        Username: str,
+        UserAttributes: list[CognitoAttribute],
+        DesiredDeliveryMediums: list[str],
+    ) -> Any:
+        ...
+
+    def admin_update_user_attributes(
+        self,
+        *,
+        UserPoolId: str,
+        Username: str,
+        UserAttributes: list[CognitoAttribute],
+    ) -> Any:
+        ...
+
+
+find_group_id_by_name = cast(Callable[[str], int | None], conscribo_groups.find_group_id_by_name)
+get_group_members_cached = cast(
+    Callable[[str | int], set[str]],
+    getattr(conscribo_groups, "get_group_members_cached"),
+)
+cognito_client = cast(
+    CognitoAdminClientProtocol,
+    getattr(cognito_list_users, "cognito_client"),
+)
+
 def sync_conscribo_to_cognito(
-    dry_run=True, logger: logging.Logger | None = None
+    dry_run: bool = True, logger: logging.Logger | None = None
 ) -> int:
     logger = logger or logging.getLogger(__name__)
 
@@ -166,15 +210,17 @@ def sync_conscribo_to_cognito(
             if cognito_user is None:
                 continue
 
-            old_attributes = canonical_to_cognito_user(cognito_user)["Attributes"]
+            old_payload = cast(CognitoUserPayload, canonical_to_cognito_user(cognito_user))
+            old_attributes = old_payload["Attributes"]
             old_attribute_values_by_name = {
                 attr["Name"]: attr["Value"] for attr in old_attributes
             }
 
             # Update user attributes in Cognito based on Conscribo data
-            new_attributes = canonical_to_cognito_user(conscribo_user)["Attributes"]
+            new_payload = cast(CognitoUserPayload, canonical_to_cognito_user(conscribo_user))
+            new_attributes = new_payload["Attributes"]
 
-            update_attributes = []
+            update_attributes: list[CognitoAttribute] = []
             for attr in new_attributes:
                 prev_value = old_attribute_values_by_name.get(attr["Name"], "")
 

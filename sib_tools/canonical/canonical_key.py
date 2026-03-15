@@ -1,9 +1,8 @@
 import requests
 import json
 import regex
-import urllib
-from typing import Any
-from urllib.parse import urlparse, urlencode
+from typing import Any, cast
+from urllib.parse import urlparse
 
 # url = "https://docs.google.com/spreadsheets/d/1l-DQhGXPq3QlMPor1aZk2Cw_VpxaHUZWDPFnt9Cd0Hg/edit?usp=sharing"
 
@@ -12,7 +11,10 @@ url = "https://docs.google.com/spreadsheets/d/1l-DQhGXPq3QlMPor1aZk2Cw_VpxaHUZWD
 
 def get_tsv_url(url: str) -> str:
     id_regex = regex.Regex(r"/d/(?P<spreadsheet_id>[a-zA-Z0-9-_]{10,})/")
-    spreatsheet_id = id_regex.search(url).group("spreadsheet_id")
+    match = id_regex.search(url)
+    if match is None:
+        raise ValueError(f"Could not find spreadsheet ID in URL: {url}")
+    spreatsheet_id = match.group("spreadsheet_id")
 
     # tsv_url = url.replace("/edit", "/gviz/tq?tqx=out:tsv&sheet=Sheet1")
 
@@ -70,7 +72,7 @@ def parse_tsv_data(tsv_data: str) -> list[dict[str, str]]:
     """
     lines = tsv_data.strip().split("\n")
     headers = lines[0].strip().split("\t")
-    data = []
+    data: list[dict[str, str]] = []
     
     for line in lines[1:]:
         values = line.strip().split("\t")
@@ -93,7 +95,7 @@ def fetch_and_parse_tsv_data() -> list[dict[str, str]]:
     parsed_data = parse_tsv_data(tsv_data)
     return parsed_data
 
-_parsed_data = None
+_parsed_data: list[dict[str, str]] | None = None
 
 def get_parsed_data() -> list[dict[str, str]]:
     global _parsed_data
@@ -216,27 +218,36 @@ def get_laposta_to_key() -> dict[str, str]:
     return laposta_to_key
 
 def flatten_dict(a: dict[str, Any]) -> dict[str, Any]:
-    result = dict()
+    result: dict[str, Any] = {}
 
     for key, value in a.items():
         if isinstance(value, dict):
-            for sub_key, sub_value in flatten_dict(value).items():
+            nested = cast(dict[str, Any], value)
+            for sub_key, sub_value in flatten_dict(nested).items():
                 result[f"{key}.{sub_key}"] = sub_value
         else:
             result[key] = value
     return result
 
+
+def _ensure_dict(container: dict[str, Any], key: str) -> dict[str, Any]:
+    existing = container.get(key)
+    if isinstance(existing, dict):
+        return cast(dict[str, Any], existing)
+
+    created: dict[str, Any] = {}
+    container[key] = created
+    return created
+
 def expand_dict(a: dict[str, Any], base: dict[str, Any] | None = None) -> dict[str, Any]:
-    result = base or dict()
+    result: dict[str, Any] = base if base is not None else {}
 
     for key, value in a.items():
         parts = key.split(".")
         current = result
 
         for part in parts[:-1]:
-            if part not in current:
-                current[part] = dict()
-            current = current[part]
+            current = _ensure_dict(current, part)
 
         current[parts[-1]] = value
 

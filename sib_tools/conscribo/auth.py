@@ -7,12 +7,12 @@ import keyring
 import keyring.errors
 from datetime import datetime, timedelta
 from getpass import getpass
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 from .constants import api_url, username
 
 
 session_id: str | None = None
-session_id_expiration = None
+session_id_expiration: datetime | None = None
 
 # Add logging for Conscribo
 import logging
@@ -32,7 +32,7 @@ logger.addHandler(console_handler)
 
 # Define ApiRequestError for better error handling
 class ApiRequestError(Exception):
-    def __init__(self, message, status_code=None):
+    def __init__(self, message: str, status_code: int | None = None) -> None:
         super().__init__(message)
         self.status_code = status_code
 
@@ -106,19 +106,27 @@ def authenticate() -> str:
     logger.debug(f"Auth session ok: {auth_session_response.ok}")
 
     auth_session = auth_session_response.json()
+    auth_session_data: dict[str, Any] = cast(dict[str, Any], auth_session) if isinstance(auth_session, dict) else {}
 
-    for k, v in (auth_session.get("responseMessages") or dict()).items():
-        for message in v:
-            logger.info(f"{k}: {json.dumps(message)}")
+    response_messages_obj = auth_session_data.get("responseMessages")
+    if isinstance(response_messages_obj, dict):
+        response_messages = cast(dict[str, Any], response_messages_obj)
+        for k, v in response_messages.items():
+            if isinstance(v, list):
+                messages = cast(list[Any], v)
+                for message in messages:
+                    logger.info(f"{k}: {json.dumps(message)}")
 
-    if not auth_session_response.ok or auth_session["status"] != 200:
+    status = auth_session_data.get("status")
+    if not auth_session_response.ok or status != 200:
         logger.error(
-            f"Failed to authenticate, status: {auth_session_response.status_code}|{auth_session['status']}."
+            f"Failed to authenticate, status: {auth_session_response.status_code}|{status}."
         )
         raise Exception("Failed to authenticate")
 
-    user_display_name = auth_session["userDisplayName"]
-    auth_session_id : str = auth_session["sessionId"]
+    auth_session_id = auth_session_data.get("sessionId")
+    if not isinstance(auth_session_id, str):
+        raise Exception("Failed to authenticate")
     session_id = auth_session_id
     # Cache session id in keyring
     keyring.set_password("sib-conscribo", "session-id", session_id)

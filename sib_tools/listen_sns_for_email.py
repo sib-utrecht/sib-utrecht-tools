@@ -2,25 +2,22 @@ from flask import Flask, request
 import sys
 import json
 
-import tempfile
-import os
 from datetime import datetime, timezone
 import base64
 import urllib.request
-import hashlib
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 import re
-import boto3
 import traceback
 from pathlib import Path
+from typing import NotRequired, Protocol, Required, TypedDict, cast
 
 
 from .aws.auth import get_s3_client
-from .email.email_handler import process_email
+from .email import email_handler
 
 from .auth import check_available_auth, configure_keyring
 configure_keyring()
@@ -37,6 +34,34 @@ AUTOCONFIRM_SUBSCRIPTION = False
 
 mail_output_dir = Path.cwd() / "mails"
 
+
+class S3ClientProtocol(Protocol):
+    def download_file(self, Bucket: str, Key: str, Filename: str | Path) -> None:
+        ...
+
+
+class ProcessEmailProtocol(Protocol):
+    def __call__(self, eml_path: str | Path, allow_old: bool = False) -> bool:
+        ...
+
+
+class SNSMessageData(TypedDict, total=False):
+    Type: Required[str]
+    SigningCertURL: NotRequired[str]
+    Message: NotRequired[str]
+    MessageId: NotRequired[str]
+    Subject: NotRequired[str]
+    Timestamp: NotRequired[str]
+    TopicArn: NotRequired[str]
+    SubscribeURL: NotRequired[str]
+    Token: NotRequired[str]
+    Signature: NotRequired[str]
+
+
+def process_email_typed(eml_path: str | Path, allow_old: bool = False) -> bool:
+    process_email_callable = cast(ProcessEmailProtocol, getattr(email_handler, "process_email"))
+    return process_email_callable(eml_path, allow_old=allow_old)
+
 # Do credentials check print
 print("Available credentials:")
 check_available_auth(non_interactive=True)
@@ -45,7 +70,7 @@ check_available_auth(non_interactive=True)
 @app.route("/sns-incoming", methods=["POST"])
 def sns_incoming():
     # SNS sends a JSON payload
-    data = request.get_json(force=True)
+    data = cast(SNSMessageData, request.get_json(force=True))
     print(f"Received request. Length: {request.content_length} bytes")
     with open("sns_incoming.log", "a") as log_file:
         log_file.write(f"[{datetime.now(timezone.utc).astimezone().isoformat()}]\n")
@@ -72,7 +97,10 @@ def sns_incoming():
             import requests
 
             try:
-                requests.get(data["SubscribeURL"])
+                if not isinstance(subscription_url, str):
+                    print("Invalid SubscribeURL in subscription confirmation", file=sys.stderr)
+                else:
+                    requests.get(subscription_url)
                 print("Executed confirmation request")
             except Exception as e:
                 print(f"Failed to confirm subscription: {e}", file=sys.stderr)
@@ -82,7 +110,11 @@ def sns_incoming():
     if "Type" in data and data["Type"] == "Notification":
         # The message contains the header of the e-mail and where it is stored,
         # but not the body
-        message = json.loads(data["Message"])
+        message_raw = data.get("Message")
+        if not isinstance(message_raw, str):
+            print("Missing or invalid SNS Message field", file=sys.stderr)
+            return "", 200
+        message = json.loads(message_raw)
 
         mail = message.get("mail", {})
         receipt = message.get("receipt", {})
@@ -138,7 +170,7 @@ def sns_incoming():
 
         # Download the e-mail from the S3 bucket
         try:
-            s3_client = get_s3_client()
+            s3_client = cast(S3ClientProtocol, get_s3_client())
             mail_output_path.parent.mkdir(parents=True, exist_ok=True)
             s3_client.download_file(bucket_name, objectKey, mail_output_path)
 
@@ -147,7 +179,7 @@ def sns_incoming():
                 log_file.write(f"Mail output path: {mail_output_path}\n")
 
             # Process the downloaded e-mail
-            process_email(mail_output_path, allow_old=False)
+            process_email_typed(mail_output_path, allow_old=False)
 
         except Exception as e:
             print(f"Failed to process e-mail: {e}", file=sys.stderr)
@@ -156,11 +188,11 @@ def sns_incoming():
     return "", 400
 
 
-def run_email_listener(host="0.0.0.0", port=8087):
+def run_email_listener(host: str = "0.0.0.0", port: int = 8087) -> None:
     app.run(host=host, port=port)
 
 
-def verify_sns_signature(data):
+def verify_sns_signature(data: SNSMessageData) -> bool:
     # Only verify Notification and SubscriptionConfirmation
     if data.get("Type") not in ("Notification", "SubscriptionConfirmation"):
         return False
@@ -170,7 +202,7 @@ def verify_sns_signature(data):
     pattern = re.compile(
         r"^https://sns\.[a-z0-9_-]+\.amazonaws\.com/SimpleNotificationService-[a-zA-Z0-9_-]+\.pem$"
     )
-    if not cert_url or not pattern.match(cert_url):
+    if not isinstance(cert_url, str) or not pattern.match(cert_url):
         print(f"Invalid SigningCertURL: {cert_url}", file=sys.stderr)
         return False
     # Download the certificate
@@ -179,34 +211,72 @@ def verify_sns_signature(data):
     cert = x509.load_pem_x509_certificate(cert_pem, default_backend())
     public_key = cert.public_key()
     # Build the string to sign
-    fields = []
+    fields: list[tuple[str, str]] = []
     if data["Type"] == "Notification":
+        message = data.get("Message")
+        message_id = data.get("MessageId")
+        timestamp = data.get("Timestamp")
+        topic_arn = data.get("TopicArn")
+        message_type = data.get("Type")
+        if not isinstance(message, str):
+            return False
+        if not isinstance(message_id, str):
+            return False
+        if not isinstance(timestamp, str):
+            return False
+        if not isinstance(topic_arn, str):
+            return False
+
         fields = [
-            ("Message", data["Message"]),
-            ("MessageId", data["MessageId"]),
+            ("Message", message),
+            ("MessageId", message_id),
         ]
-        if "Subject" in data:
-            fields.append(("Subject", data["Subject"]))
+        subject = data.get("Subject")
+        if isinstance(subject, str):
+            fields.append(("Subject", subject))
         fields += [
-            ("Timestamp", data["Timestamp"]),
-            ("TopicArn", data["TopicArn"]),
-            ("Type", data["Type"]),
+            ("Timestamp", timestamp),
+            ("TopicArn", topic_arn),
+            ("Type", message_type),
         ]
     elif data["Type"] == "SubscriptionConfirmation":
+        message = data.get("Message")
+        message_id = data.get("MessageId")
+        subscribe_url = data.get("SubscribeURL")
+        timestamp = data.get("Timestamp")
+        token = data.get("Token")
+        topic_arn = data.get("TopicArn")
+        message_type = data.get("Type")
+        if not isinstance(message, str):
+            return False
+        if not isinstance(message_id, str):
+            return False
+        if not isinstance(subscribe_url, str):
+            return False
+        if not isinstance(timestamp, str):
+            return False
+        if not isinstance(token, str):
+            return False
+        if not isinstance(topic_arn, str):
+            return False
+
         fields = [
-            ("Message", data["Message"]),
-            ("MessageId", data["MessageId"]),
-            ("SubscribeURL", data["SubscribeURL"]),
-            ("Timestamp", data["Timestamp"]),
-            ("Token", data["Token"]),
-            ("TopicArn", data["TopicArn"]),
-            ("Type", data["Type"]),
+            ("Message", message),
+            ("MessageId", message_id),
+            ("SubscribeURL", subscribe_url),
+            ("Timestamp", timestamp),
+            ("Token", token),
+            ("TopicArn", topic_arn),
+            ("Type", message_type),
         ]
     string_to_sign = ""
     for k, v in fields:
         string_to_sign += f"{k}\n{v}\n"
     # Decode the signature
-    signature = base64.b64decode(data["Signature"])
+    signature_raw = data.get("Signature")
+    if not isinstance(signature_raw, str):
+        return False
+    signature = base64.b64decode(signature_raw)
     # Verify the signature
     try:
         if not isinstance(public_key, rsa.RSAPublicKey):

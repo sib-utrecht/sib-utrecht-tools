@@ -1,6 +1,3 @@
-from email import message_from_bytes, message_from_file
-from locale import setlocale
-import locale
 import logging
 import sys
 import json
@@ -19,19 +16,16 @@ tz = pytz.timezone("Europe/Amsterdam")
 
 from sib_tools.conscribo.groups import add_relations_to_group, find_group_id_by_name
 from sib_tools.conscribo.relations import create_relation_member
-from sib_tools.email.extract_form_fields import form_to_canonical
 from sib_tools.aws.auth import get_ses_client
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 
 from sib_tools.email.extract_form_fields import (
-    extract_fields_from_mail,
     extract_fields_from_mail_message,
     form_to_canonical,
-    get_html_and_plain_from_mail_message,
 )
-from .dkim_verify import DKIMDetailsVerified, DKIMVerifiedMail, verify_dkim_signature
+from .dkim_verify import DKIMDetailsVerified, DKIMVerifiedMail
 from datetime import datetime, timezone
 import re
 

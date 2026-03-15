@@ -1,18 +1,46 @@
 import os
+import importlib
 import keyring
 import logging
 import sys
-from typing import Any, cast
+from typing import Any, Callable, Protocol, TypedDict, NotRequired, cast
+
+
+class _SelectFn(Protocol):
+    def __call__(
+        self,
+        options: list[Any],
+        *,
+        cursor: str,
+        cursor_style: str,
+        return_index: bool,
+    ) -> int | None: ...
+
 
 try:
-    from beaupy import select
+    select = cast(_SelectFn | None, importlib.import_module("beaupy").select)
 except Exception:
-    select = None  # type: ignore
+    select = None
+
+
+ActionFn = Callable[[], Any]
+CheckAvailableFn = Callable[[], Any]
+
+
+class ServiceDef(TypedDict):
+    name: str
+    key: str
+    signin: ActionFn
+    show: ActionFn
+    check_available: CheckAvailableFn
+    signout: ActionFn
+    rotate: NotRequired[ActionFn]
 
 
 def configure_keyring() -> None:
     if "KEYRING_CRYPTFILE_PASSWORD" in os.environ:
-        from keyrings.cryptfile.cryptfile import CryptFileKeyring
+        cryptfile_module = importlib.import_module("keyrings.cryptfile.cryptfile")
+        CryptFileKeyring = cast(type[Any], getattr(cryptfile_module, "CryptFileKeyring"))
 
         kr = CryptFileKeyring()
         kr.keyring_key = os.environ["KEYRING_CRYPTFILE_PASSWORD"]
@@ -42,14 +70,14 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
 
     subactions = ["signin", "rotate", "show", "signout"]
 
-    services: list[dict[str, Any]] = [
+    services: list[ServiceDef] = [
         {
             "name": "AWS (used for Cognito and e-mails)",
             "key": "aws",
             "signin": aws_auth.prompt_credentials,
             "rotate": aws_auth.rotate_aws_credentials,
             "show": aws_auth.show,
-            "check-available": aws_auth.check_available,
+            "check_available": aws_auth.check_available,
             "signout": aws_auth.signout,
         },
         {
@@ -57,7 +85,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
             "key": "conscribo",
             "signin": conscribo_auth.prompt_credentials,
             "show": conscribo_auth.show,
-            "check-available": conscribo_auth.check_available,
+            "check_available": conscribo_auth.check_available,
             "signout": conscribo_auth.signout,
         },
         {
@@ -65,7 +93,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
             "key": "laposta",
             "signin": laposta_auth.prompt_credentials,
             "show": laposta_auth.show,
-            "check-available": laposta_auth.check_available,
+            "check_available": laposta_auth.check_available,
             "signout": laposta_auth.signout,
         },
         {
@@ -73,7 +101,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
             "key": "sib_app",
             "signin": sib_app_auth.prompt_credentials,
             "show": sib_app_auth.show,
-            "check-available": sib_app_auth.check_available,
+            "check_available": sib_app_auth.check_available,
             "signout": sib_app_auth.signout,
         },
         {
@@ -81,7 +109,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
             "key": "grist",
             "signin": grist_auth.prompt_credentials,
             "show": grist_auth.show,
-            "check-available": grist_auth.check_available,
+            "check_available": grist_auth.check_available,
             "signout": grist_auth.signout,
         },
         {
@@ -89,16 +117,22 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
             "key": "google",
             "signin": google_auth.prompt_credentials,
             "show": google_auth.show,
-            "check-available": google_auth.check_available,
+            "check_available": google_auth.check_available,
             "signout": google_auth.signout,
         },
     ]
-    msg = lambda s: (logger.info(s) if non_interactive else print(s))
+
+    def msg(s: str) -> None:
+        if non_interactive:
+            logger.info(s)
+        else:
+            print(s)
+
     msg(f"\n{BOLD}{CYAN}Authentication status for services:{RESET}")
-    missing = []
+    missing: list[ServiceDef] = []
     for svc in services:
         try:
-            cred = svc["check-available"]()
+            cred = svc["check_available"]()
             if cred:
                 msg(f"{GREEN}[OK]{RESET} {svc['name']} credentials present.")
             else:
@@ -122,7 +156,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
         msg(
             f"\n{BOLD}Select a service to sign in, rotate, or sign out (or choose 'Cancel' to skip):{RESET}"
         )
-        selection_options: list[tuple[dict[str, Any] | None, list[str], str]] = [
+        selection_options: list[tuple[ServiceDef | None, list[str], str]] = [
             (None, [], f"{YELLOW}Cancel{RESET}")
         ]
         for svc in services:
@@ -177,7 +211,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
     msg(f"{YELLOW}Executing action '{signin_action}'.{RESET}")
         
     # Now handle the action if set
-    action_map = {svc["key"]: svc for svc in services}
+    action_map: dict[str, ServiceDef] = {svc["key"]: svc for svc in services}
     try:
         service_key, action = signin_action.split(":", 1)
         svc = action_map.get(service_key)
