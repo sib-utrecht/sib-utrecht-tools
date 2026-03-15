@@ -23,7 +23,7 @@ from ..utils import print_change_count, print_header
 
 
 def match_laposta_with_conscribo(
-    laposta_members, members, alumni, logger: logging.Logger | None = None
+    laposta_members: list[dict[str, Any]], members: list[dict[str, Any]], alumni: list[dict[str, Any]], logger: logging.Logger | None = None
 ) -> list[tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]]:
     logger = logger or logging.getLogger()
 
@@ -113,18 +113,18 @@ def match_laposta_with_conscribo(
 
         entries.append((member, conscribo_member, conscribo_alumnus))
 
-    unmatched_members = []
-    unmatched_alumni = []
+    unmatched_members: list[str] = []
+    unmatched_alumni: list[str] = []
 
     for email in unmatched_conscribo:
         conscribo_member = members_by_email.get(email, None)
         conscribo_alumnus = alumni_by_email.get(email, None)
 
         if conscribo_member is not None:
-            unmatched_members.append(email)
+            unmatched_members.append(str(email))
             # logger.info(f"Conscribo member not found in Laposta: {email}")
         elif conscribo_alumnus is not None:
-            unmatched_alumni.append(email)
+            unmatched_alumni.append(str(email))
             # logger.info(f"Conscribo alumnus not found in Laposta: {email}")
         else:
             logger.info(f"Conscribo relation not found for email: {email}")
@@ -140,7 +140,7 @@ def match_laposta_with_conscribo(
     return entries
 
 
-def get_participating_lists(member):
+def get_participating_lists(member: dict[str, Any]) -> list[str]:
     list_ids = []
 
     if member.get("send_birthday", False):
@@ -155,7 +155,7 @@ def get_participating_lists(member):
     return list_ids
 
 
-def get_participating_flags(member):
+def get_participating_flags(member: dict[str, Any]) -> str:
     flags = [
         "b" if member.get("send_birthday", False) else "-",
         "n" if member.get("send_newsletter", False) else "-",
@@ -164,7 +164,7 @@ def get_participating_flags(member):
     return "".join(flags)
 
 
-def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None) -> int:
+def sync_conscribo_to_laposta(dry_run: bool = True, logger: logging.Logger | None = None) -> int:
     logger = logger or logging.getLogger(__name__)
     print_header("Syncing Conscribo members to Laposta lists...", logger)
     laposta_members = get_aggregated_relations()
@@ -196,7 +196,7 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
 
     entries = match_laposta_with_conscribo(laposta_members, members, alumni, logger=logger)
 
-    current_and_desired: list[tuple[dict, dict]] = []
+    current_and_desired: list[tuple[dict[str, Any], dict[str, Any]]] = []
 
     now = datetime.now().isoformat()
     logger.info(f"Sync started at {now}")
@@ -204,7 +204,7 @@ def sync_conscribo_to_laposta(dry_run=True, logger: logging.Logger | None = None
     for matched_entry in entries:
         laposta_member, conscribo_member, conscribo_alumnus = matched_entry
 
-        def resolve_field(name):
+        def resolve_field(name: str) -> Any:
             nonlocal conscribo_member, conscribo_alumnus, laposta_member
             values = (
                 a.get(name, None)

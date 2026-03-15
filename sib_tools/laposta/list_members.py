@@ -1,5 +1,6 @@
 import json
 from time import sleep
+from typing import Any
 
 from ..laposta.auth import (
     laposta_get,
@@ -10,32 +11,32 @@ from ..laposta.auth import (
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 from .constants import (
-    account_id,
-    member_birthday_list_id,
-    member_newsletter_list_id,
-    alumni_birthday_list_id,
-    test_list_id,
-    possible_relation_states,
+    account_id as account_id,
+    member_birthday_list_id as member_birthday_list_id,
+    member_newsletter_list_id as member_newsletter_list_id,
+    alumni_birthday_list_id as alumni_birthday_list_id,
+    test_list_id as test_list_id,
+    possible_relation_states as possible_relation_states,
 )
 
 
-def get_list(list_id):
+def get_list(list_id: str) -> dict[str, Any]:
     ans = laposta_get(f"/v2/list/{list_id}")
-    return ans["list"]
+    return dict(ans["list"])
 
 
-def get_list_members_raw(list_id):
+def get_list_members_raw(list_id: str) -> list[dict[str, Any]]:
     ans = laposta_get(
         f"/v2/member",
         parameters={
             "list_id": list_id,
         },
     )
-    return [a["member"] for a in ans["data"]]
+    return [dict(a["member"]) for a in ans["data"]]
 
 
-def relation_to_canonical(relation):
-    canonical = dict()
+def relation_to_canonical(relation: dict[str, Any]) -> dict[str, Any]:
+    canonical: dict[str, Any] = dict()
 
     to_canonical = canonical_key.get_laposta_to_key()
 
@@ -58,12 +59,12 @@ def relation_to_canonical(relation):
     return canonical
 
 
-def get_list_members(list_id):
+def get_list_members(list_id: str) -> list[dict[str, Any]]:
     members = get_list_members_raw(list_id)
     return [relation_to_canonical(member) for member in members]
 
 
-def get_aggregated_relations():
+def get_aggregated_relations() -> list[dict[str, Any]]:
     member_newsletter_members = get_list_members(member_newsletter_list_id)
     sleep(1.5)
 
@@ -72,7 +73,7 @@ def get_aggregated_relations():
 
     alumni_birthday_members = get_list_members(alumni_birthday_list_id)
 
-    by_email = dict()
+    by_email: dict[str, dict[str, dict[str, Any]]] = {}
 
     for member in member_birthday_members:
         email_obj = by_email.setdefault(member["email"], dict())
@@ -92,10 +93,10 @@ def get_aggregated_relations():
         email_obj = by_email.setdefault(relation["email"], dict())
         email_obj["birthday_alumnus"] = relation
 
-    def transform_by_email_entry(entry: dict) -> dict:
-        newsletter: dict | None = entry.get("newsletter", None)
-        birthday: dict | None = entry.get("birthday", None)
-        birthday_alumnus: dict | None = entry.get("birthday_alumnus", None)
+    def transform_by_email_entry(entry: dict[str, dict[str, Any]]) -> dict[str, Any]:
+        newsletter: dict[str, Any] | None = entry.get("newsletter", None)
+        birthday: dict[str, Any] | None = entry.get("birthday", None)
+        birthday_alumnus: dict[str, Any] | None = entry.get("birthday_alumnus", None)
         primary = newsletter or birthday or birthday_alumnus
         if primary is None:
             raise ValueError("Expected at least one Laposta relation entry")

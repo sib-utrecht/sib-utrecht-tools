@@ -1,5 +1,5 @@
 import json
-import beaupy  # type: ignore[import-untyped]
+import beaupy
 from typing import Any
 
 from sib_tools.conscribo.finance import (
@@ -18,8 +18,12 @@ from sib_tools.conscribo.finance import (
 #         next_prefix = prefix + ("     " if is_last else "│    ")
 #         print_account_tree(accounts, account["accountNr"], next_prefix)
 
-def build_account_options(accounts, parent_id=None, prefix=""):
-    options = []
+def build_account_options(
+    accounts: list[dict[str, Any]],
+    parent_id: str | None = None,
+    prefix: str = "",
+) -> list[tuple[str, str, str]]:
+    options: list[tuple[str, str, str]] = []
     children = [a for a in accounts if a.get("parent") == parent_id]
     total = len(children)
     for idx, account in enumerate(children):
@@ -31,7 +35,7 @@ def build_account_options(accounts, parent_id=None, prefix=""):
         options += build_account_options(accounts, account["accountNr"], next_prefix)
     return options
 
-def print_account_tree(accounts: list[dict], parent_id: str | None = None, prefix: str = ""):
+def print_account_tree(accounts: list[dict[str, Any]], parent_id: str | None = None, prefix: str = "") -> None:
     """
     Print a tree structure of accounts.
     """
@@ -56,7 +60,7 @@ def show_choose_account_tall(date : str|None) -> str | None:
     if selected is not None:
         idx = labels.index(selected)
         account_id = options[idx][0]
-        return account_id
+        return str(account_id)
 
     print("No account selected. Exiting.")
     return None
@@ -113,10 +117,10 @@ def show_choose_account(date: str | None) -> str | None:
             continue
         else:
             # Leaf node selected
-            return acc[1]
+            return str(acc[1])
 
 
-def print_list_accounts(date: str | None = None, raw: bool = False):
+def print_list_accounts(date: str | None = None, raw: bool = False) -> None:
     """
     List Conscribo accounts for a given date.
     """

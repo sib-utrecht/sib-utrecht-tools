@@ -13,7 +13,7 @@ def mail_results(
     contents: str,
     subject: str = "Health check report by sib-tools",
     logger: logging.Logger | None = None,
-):
+) -> None:
     """
     Mail the results using AWS SES.
     This function is a placeholder and should be implemented with actual mailing logic.
@@ -35,7 +35,7 @@ def mail_results(
 
 
 
-def handle_check(args: Namespace):
+def handle_check(args: Namespace) -> None:
     logging.getLogger("boto3").setLevel(logging.WARNING)
     logging.getLogger("botocore").setLevel(logging.WARNING)
     logging.getLogger("s3transfer").setLevel(logging.WARNING)
@@ -119,13 +119,13 @@ def handle_check(args: Namespace):
                 )
 
 
-def add_parse_args(parser: ArgumentParser):
+def add_parse_args(parser: ArgumentParser) -> ArgumentParser:
     parser.set_defaults(func=lambda args: parser.print_help())
     subparser = parser.add_subparsers(
         description="Health check to perform", dest="healthcheck"
     )
 
-    def create_subparser(name: str, *, help: str) -> ArgumentParser:
+    def create_subparser(name: str, *, help: str = "") -> ArgumentParser:
         parser = subparser.add_parser(name, help=help)
         parser.set_defaults(func=handle_check)
         parser.add_argument(
@@ -195,7 +195,7 @@ def add_parse_args(parser: ArgumentParser):
     return parser
 
 
-def ansi_to_html(text):
+def ansi_to_html(text: str) -> str:
     # Map ANSI color codes to HTML color styles
     ansi_color_map = {
         "30": "color:#000000;",  # Black
@@ -218,7 +218,7 @@ def ansi_to_html(text):
     # Regex to match ANSI escape sequences
     ansi_escape = re.compile(r"\x1b\[([0-9;]+)m")
     # Stack for nested spans
-    span_stack = []
+    span_stack: list[str] = []
     result = ""
     last_end = 0
     for match in ansi_escape.finditer(text):
@@ -248,7 +248,7 @@ def ansi_to_html(text):
     return result
 
 
-def log_to_html(log_contents: str, dark_mode: bool = False, is_sync = False) -> str:
+def log_to_html(log_contents: str, dark_mode: bool = False, is_sync: bool = False) -> str:
     if dark_mode:
         style = """
             body { background: #222; color: #e0e0e0; }
@@ -323,7 +323,7 @@ def log_to_html(log_contents: str, dark_mode: bool = False, is_sync = False) -> 
     )
 
 
-def check_selftest(logger):
+def check_selftest(logger: logging.Logger) -> None:
     logger.info("ANSI color palette for review:")
     color_names = [
         ("30", "Black"),

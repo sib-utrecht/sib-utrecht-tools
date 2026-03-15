@@ -17,7 +17,7 @@ import os
 import keyring
 
 
-def main(args=None):
+def main(args_list: list[str] | None = None) -> None:
     parser = ArgumentParser(
         prog="sib-tools",
         description="Tools for member administration, made for SIB-Utrecht.",
@@ -63,9 +63,9 @@ def main(args=None):
         )
     )
 
-    args = parser.parse_args(args=args)
+    parsed_args = parser.parse_args(args=args_list)
     try:
-        args.func(args)
+        parsed_args.func(parsed_args)
     except CommandException as e:
         print(f"Error: {e}")
 

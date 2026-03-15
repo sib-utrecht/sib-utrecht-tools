@@ -1,11 +1,15 @@
 import json
 import logging
-from typing import Any, Callable, Protocol, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Callable, TypedDict, cast
+
+if TYPE_CHECKING:
+    from mypy_boto3_cognito_idp import CognitoIdentityProviderClient
 
 from sib_tools.conscribo import groups as conscribo_groups
 
 from ..conscribo.relations import list_relations_active_members
 from ..cognito import list_users as cognito_list_users
+from ..cognito.client import cognito_client as _cognito_client_raw
 from ..cognito.list_users import (
     list_all_cognito_users,
     cognito_user_to_canonical,
@@ -28,39 +32,12 @@ class CognitoUserPayload(TypedDict):
     Attributes: list[CognitoAttribute]
 
 
-class CognitoAdminClientProtocol(Protocol):
-    def admin_delete_user(self, *, UserPoolId: str, Username: str) -> Any:
-        ...
-
-    def admin_create_user(
-        self,
-        *,
-        UserPoolId: str,
-        Username: str,
-        UserAttributes: list[CognitoAttribute],
-        DesiredDeliveryMediums: list[str],
-    ) -> Any:
-        ...
-
-    def admin_update_user_attributes(
-        self,
-        *,
-        UserPoolId: str,
-        Username: str,
-        UserAttributes: list[CognitoAttribute],
-    ) -> Any:
-        ...
-
-
 find_group_id_by_name = cast(Callable[[str], int | None], conscribo_groups.find_group_id_by_name)
 get_group_members_cached = cast(
     Callable[[str | int], set[str]],
     getattr(conscribo_groups, "get_group_members_cached"),
 )
-cognito_client = cast(
-    CognitoAdminClientProtocol,
-    getattr(cognito_list_users, "cognito_client"),
-)
+cognito_client: "CognitoIdentityProviderClient" = _cognito_client_raw
 
 def sync_conscribo_to_cognito(
     dry_run: bool = True, logger: logging.Logger | None = None
@@ -141,7 +118,7 @@ def sync_conscribo_to_cognito(
 
     change_count = 0
 
-    def prune_users():
+    def prune_users() -> None:
         nonlocal change_count
 
         for conscribo_id in cognito_only:
@@ -166,7 +143,7 @@ def sync_conscribo_to_cognito(
             )
             logger.info(f"Deleted {conscribo_id} ({cognito_sub})")
 
-    def create_users():
+    def create_users() -> None:
         nonlocal change_count
         for conscribo_id in conscribo_only:
             conscribo_user = conscribo_by_id[conscribo_id]
@@ -201,7 +178,7 @@ def sync_conscribo_to_cognito(
                 DesiredDeliveryMediums=["EMAIL"],
             )
 
-    def update_users():
+    def update_users() -> None:
         nonlocal change_count
         for conscribo_id in conscribo_by_id.keys():
             cognito_user = cognito_by_id.get(conscribo_id, None)
@@ -248,7 +225,7 @@ def sync_conscribo_to_cognito(
             cognito_client.admin_update_user_attributes(
                 UserPoolId=user_pool_id,
                 Username=cognito_sub,
-                UserAttributes=new_attributes,
+                UserAttributes=new_attributes,  # type: ignore[arg-type]
             )
 
     prune_users()

@@ -7,14 +7,14 @@ import keyring.errors
 from getpass import getpass
 import urllib.parse
 from dotenv import load_dotenv
-from typing import Any
+from typing import Any, cast
 
 load_dotenv()
 
 laposta_api_key = None
 
 
-def prompt_credentials():
+def prompt_credentials() -> None:
     password = getpass(f"API-key for LaPosta: ")
 
     keyring.set_password("laposta", "api-key", password)
@@ -32,7 +32,7 @@ def authenticate() -> str:
     if laposta_api_key is None:
         prompt_credentials()
         return authenticate()
-    
+
     print(f"Laposta API key length: {len(laposta_api_key)}")
 
     return laposta_api_key
@@ -46,12 +46,12 @@ def get_laposta_api_key() -> str:
     return laposta_api_key
 
 
-def laposta_get(url : str, parameters = None) -> dict:
+def laposta_get(url : str, parameters: dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_laposta_api_key()
 
     if parameters is not None:
-        parameters = urllib.parse.urlencode(parameters)
-        url += "?" + parameters
+        encoded_parameters = urllib.parse.urlencode(parameters)
+        url += "?" + encoded_parameters
 
     response = requests.get(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -60,7 +60,7 @@ def laposta_get(url : str, parameters = None) -> dict:
             ""
         ),
     )
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 def make_form_flattened(body : dict[str, Any]) -> dict[str, Any]:
     """
@@ -68,9 +68,9 @@ def make_form_flattened(body : dict[str, Any]) -> dict[str, Any]:
     For example, {'custom_fields': {'prefs': ['optionA', 'optionB']}}
     becomes {'custom_fields[prefs][]=optionA', 'custom_fields[prefs][]=optionB'}.
     """
-    body_flat = {}
+    body_flat: dict[str, Any] = {}
 
-    def insert_value(key, value):
+    def insert_value(key: str, value: Any) -> None:
         nonlocal body_flat
 
         if isinstance(value, list):
@@ -109,9 +109,9 @@ def laposta_post(url : str, body : dict[str, Any]) -> dict[str, Any]:
         ),
         data=body_flat,
     )
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
-def laposta_delete(url : str) -> dict:
+def laposta_delete(url : str) -> dict[str, Any]:
     api_key = get_laposta_api_key()
 
     response = requests.delete(
@@ -121,7 +121,7 @@ def laposta_delete(url : str) -> dict:
             ""
         ),
     )
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 def laposta_patch(url : str, body : dict[str, Any]) -> dict[str, Any]:
     api_key = get_laposta_api_key()
@@ -138,24 +138,24 @@ def laposta_patch(url : str, body : dict[str, Any]) -> dict[str, Any]:
         ),
         data=body,
     )
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
-def check_available():
+def check_available() -> str | None:
     return keyring.get_password("laposta", "api-key")
 
-def show():
+def show() -> None:
     """Display Laposta credentials information with redacted API key."""
-    def redact_key(key):
+    def redact_key(key: str) -> str:
         return "****"
         # if not key or len(key) < 8:
         #     return "****"
         # return key[:4] + "*" * (len(key) - 8) + key[-4:]
-    
+
     api_key = os.environ.get("LAPOSTA_API_KEY") or keyring.get_password("laposta", "api-key")
-    
+
     print("\n=== Laposta Credentials ===")
     print(f"API URL: {api_url}")
-    
+
     if api_key:
         print(f"API Key: {redact_key(api_key)}")
         print(f"Source: {'Environment Variable' if os.environ.get('LAPOSTA_API_KEY') else 'Keyring'}")
@@ -163,15 +163,8 @@ def show():
         print("API Key: Not set")
     print()
 
-def signout():
+def signout() -> None:
     try:
         keyring.delete_password("laposta", "api-key")
     except keyring.errors.PasswordDeleteError:
         pass
-
-
-
-
-
-
-

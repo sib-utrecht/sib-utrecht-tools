@@ -14,7 +14,7 @@ from ..grist.update_relation_source import set_relation_records_as_source, relat
 
 relations = list_relations_alumnus()
 
-def add_relation_type2(rel):
+def add_relation_type2(rel: dict[str, object]) -> dict[str, object]:
     rel["relation_type"] = "Alumnus"
     return rel
 

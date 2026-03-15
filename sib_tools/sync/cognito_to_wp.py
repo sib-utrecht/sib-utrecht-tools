@@ -8,7 +8,7 @@ from time import sleep, time
 import json
 from ..cognito.client import (
     cognito_client,
-    user_pool_id,
+    user_pool_id as user_pool_id,
 )
 
 def sync_cognito_to_wp(dry_run: bool = True, logger: logging.Logger | None = None) -> int:
@@ -47,7 +47,7 @@ def sync_cognito_to_wp(dry_run: bool = True, logger: logging.Logger | None = Non
     matched : list[tuple[dict[str, Any], dict[str, Any]]] = []
 
     for user in cognito_users:
-        wordpress_user = wp_users_by_id.get(user.get("wp_user_id"))
+        wordpress_user = wp_users_by_id.get(user.get("wp_user_id"))  # type: ignore[arg-type]
         if not wordpress_user:
             cognito_only.append(user)
             continue
@@ -55,7 +55,7 @@ def sync_cognito_to_wp(dry_run: bool = True, logger: logging.Logger | None = Non
         matched.append((user, wordpress_user))
 
     # Map for quick lookup by wp_user_id
-    cognito_by_wp_id: dict[int, dict] = {
+    cognito_by_wp_id: dict[int, dict[str, Any]] = {
         int(a["wp_user_id"]): a
         for a in cognito_users
         if isinstance(a.get("wp_user_id"), int)

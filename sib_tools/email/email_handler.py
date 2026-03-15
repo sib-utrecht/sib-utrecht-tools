@@ -1,7 +1,9 @@
 import sys
 import logging
 import json
+from argparse import ArgumentParser, Namespace
 from datetime import datetime, timezone, timedelta
+from typing import Any
 
 from .extract_form_fields import extract_fields_from_mail, extract_fields_from_mail_message, form_to_canonical
 from .dkim_verify import DKIMDetailsVerified, verify_dkim_signature
@@ -9,7 +11,7 @@ from dataclasses import asdict
 from .registration_email import logger, process_registration_email, process_deregistration_email
 
 
-def send_failure_notification(error_message: str, subject: str, eml_path: str):
+def send_failure_notification(error_message: str, subject: str, eml_path: str) -> None:
     """Send email notification when email processing fails using AWS SES."""
     try:
         from ..aws.auth import get_ses_client
@@ -48,7 +50,7 @@ This is an automated notification from sib-tools.
         logger.error(f"Failed to send failure notification: {e}")
 
 
-def handle_incoming_email(args):
+def handle_incoming_email(args: Namespace) -> int:
     eml_path = args.eml_path
     allow_old = args.allow_old
 
@@ -64,9 +66,9 @@ def handle_incoming_email(args):
     return 0
 
 
-def process_email(eml_path, allow_old=False) -> bool:
+def process_email(eml_path: str, allow_old: bool = False) -> bool:
     subject = "(Missing)"
-    def send_fail(error_msg):
+    def send_fail(error_msg: str) -> bool:
         nonlocal subject
 
         logger.error(error_msg)
@@ -213,7 +215,7 @@ def process_email(eml_path, allow_old=False) -> bool:
         sys.exit(1)
 
 
-def extract_receiver_address(message):
+def extract_receiver_address(message: Any) -> str | None:
     """
     Extract the e-mail address to which the e-mail was delivered.
     Returns the first address found in the 'Delivered-To' header, or, if absent, attempts to extract from the 'Received' headers,
@@ -231,7 +233,7 @@ def extract_receiver_address(message):
     delivered_to = message.get_all('delivered_to', [])
     if delivered_to:
         # If multiple Delivered-To headers, return the first one
-        return delivered_to[0]
+        return str(delivered_to[0])
     # Final fallback: use the 'To' header
     to_header = message.get_all('to', [])
     if to_header:
@@ -244,7 +246,7 @@ def extract_receiver_address(message):
     return None
 
 
-def add_parse_args(parser):
+def add_parse_args(parser: ArgumentParser) -> None:
     parser.add_argument("eml_path", help="Path to the .eml file to process")
     parser.add_argument(
         "--allow-old",

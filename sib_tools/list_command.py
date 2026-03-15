@@ -3,7 +3,7 @@ from argparse import ArgumentParser, Namespace
 import sys
 from sib_tools.conscribo.relations import list_relations_alumnus, list_relations_members, list_relations_active_members
 import json
-import beaupy  # type: ignore[import-untyped]
+import beaupy
 from unidecode import unidecode
 from time import sleep
 from datetime import datetime, date, timezone
@@ -30,7 +30,7 @@ from sib_tools.sib_app.wp_old_users import fetch_users
 #  ./sib-tools.sh list conscribo-transactions 2025-01-01 2025-07-07
 
 
-def handle_list_alumnus(args: Namespace):
+def handle_list_alumnus(args: Namespace) -> None:
     alumni = list_relations_alumnus()
     if args.conscribo_id:
         filtered = [
@@ -42,7 +42,7 @@ def handle_list_alumnus(args: Namespace):
         print()
 
 
-def handle_list_members(args: Namespace):
+def handle_list_members(args: Namespace) -> None:
     members = list_relations_members()
     if args.conscribo_id:
         filtered = [
@@ -54,7 +54,7 @@ def handle_list_members(args: Namespace):
         print()
 
 
-def handle_list_education(args: Namespace):
+def handle_list_education(args: Namespace) -> None:
     """List educational institution counts among members."""
     active_date = args.date or date.today().isoformat()
 
@@ -193,14 +193,14 @@ def handle_list_education(args: Namespace):
     print()
 
 
-def handle_list_accounts(args: Namespace):
+def handle_list_accounts(args: Namespace) -> None:
     print_list_accounts(
         date=args.date,
         raw=args.raw,
     )
 
 
-def handle_list_transactions(args: Namespace):
+def handle_list_transactions(args: Namespace) -> None:
     account_id: str | None = args.account_id
     if not account_id:
         answer = beaupy.confirm(
@@ -233,7 +233,7 @@ def handle_list_transactions(args: Namespace):
         print("No more results available.")
 
 
-def handle_list_balance_diff(args: Namespace):
+def handle_list_balance_diff(args: Namespace) -> None:
     print(f"Calculating balance difference from {args.start_date} to {args.end_date}")
     debet_per_account: dict[str, float] = dict()
     credit_per_account: dict[str, float] = dict()
@@ -357,21 +357,21 @@ def handle_list_balance_diff(args: Namespace):
     print("Done")
 
 
-def handle_list_google_groups_directory(args: Namespace):
+def handle_list_google_groups_directory(args: Namespace) -> None:
     """List Google Groups using the Directory API and print as JSON."""
     groups = list_groups_directory_api()
     print(json.dumps(groups, indent=2))
     print()
 
 
-def handle_list_google_groups_settings(args: Namespace):
+def handle_list_google_groups_settings(args: Namespace) -> None:
     """List Google Groups using the Groups Settings API and print as JSON."""
     groups = list_groups_settings_api()
     print(json.dumps(groups, indent=2))
     print()
 
 
-def handle_list_google_groups_members(args: Namespace):
+def handle_list_google_groups_members(args: Namespace) -> None:
     emails = args.email or ["members@sib-utrecht.nl", "alumni@sib-utrecht.nl"]
     if isinstance(emails, str):
         emails = [emails]
@@ -397,7 +397,7 @@ def handle_list_google_groups_members(args: Namespace):
     print()
 
 
-def handle_list_google_contacts(args: Namespace):
+def handle_list_google_contacts(args: Namespace) -> None:
     """
     List Google Contacts with a specific label.
     """
@@ -415,14 +415,14 @@ def handle_list_google_contacts(args: Namespace):
     print()
 
 
-def handle_list_sib_app_users(args: Namespace):
+def handle_list_sib_app_users(args: Namespace) -> None:
     """List users from SIB App (WordPress) via the sib_app API."""
     users = fetch_users(args.min_wp_user_id)
     print(json.dumps(users, indent=2))
     print()
 
 
-def add_parse_args(parser: ArgumentParser):
+def add_parse_args(parser: ArgumentParser) -> ArgumentParser:
     parser.set_defaults(func=lambda args: parser.print_help())
     subparser = parser.add_subparsers(
         description="What resource to list members from", dest="resource"

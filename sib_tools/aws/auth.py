@@ -2,13 +2,17 @@ import os
 from getpass import getpass
 import boto3
 import keyring
+import keyring.errors
 from dotenv import load_dotenv
 import botocore.exceptions
 from importlib import import_module
-from typing import Any, Literal, Protocol, cast
+from typing import TYPE_CHECKING
 
-class PasswordDeleteError(Exception):
-    pass
+if TYPE_CHECKING:
+    from mypy_boto3_iam import IAMClient
+    from mypy_boto3_s3 import S3Client
+    from mypy_boto3_ses import SESClient
+    from mypy_boto3_sts import STSClient
 
 # Optional dependency: avoid static import so missing stubs/packages don't fail type checking.
 try:
@@ -16,39 +20,6 @@ try:
     _cryptfile_keyring_cls = getattr(_cryptfile_module, "CryptFileKeyring", None)
 except Exception:
     _cryptfile_keyring_cls = None
-
-
-class STSClientProtocol(Protocol):
-    def get_caller_identity(self) -> dict[str, Any]: ...
-
-
-class SESClientProtocol(Protocol):
-    def send_email(
-        self,
-        *,
-        Source: str,
-        Destination: dict[str, Any],
-        Message: dict[str, Any],
-    ) -> dict[str, Any]: ...
-
-    def send_raw_email(
-        self,
-        *,
-        Source: str,
-        Destinations: list[str],
-        RawMessage: dict[str, bytes],
-    ) -> dict[str, Any]: ...
-
-
-class S3ClientProtocol(Protocol):
-    pass
-
-
-class IAMClientProtocol(Protocol):
-    def get_user(self) -> dict[str, Any]: ...
-    def list_access_keys(self, *, UserName: str) -> dict[str, Any]: ...
-    def create_access_key(self, *, UserName: str) -> dict[str, Any]: ...
-    def delete_access_key(self, *, UserName: str, AccessKeyId: str) -> dict[str, Any]: ...
 
 load_dotenv()
 
@@ -60,10 +31,6 @@ aws_access_key = None
 aws_secret_key = None
 aws_session_token = None
 allow_from_env = True
-
-def _client(service_name: Literal["sts", "ses", "s3", "iam"], **kwargs: Any) -> Any:
-    client_factory = getattr(boto3, "client")
-    return client_factory(cast(str, service_name), **kwargs)
 
 
 def prompt_credentials() -> None:
@@ -134,15 +101,12 @@ def clear_if_invalid() -> None:
     if not aws_access_key:
         return
 
-    sts = cast(
-        STSClientProtocol,
-        _client(
+    sts = boto3.client(
         'sts',
         aws_access_key_id=aws_access_key,
         aws_secret_access_key=aws_secret_key,
         aws_session_token=aws_session_token,
-        region_name="eu-central-1" 
-        )
+        region_name="eu-central-1",
     )
 
     try:
@@ -158,7 +122,7 @@ def clear_if_invalid() -> None:
                 try:
                     keyring.delete_password("aws-cognito", k)
                     print(f"Deleted AWS Cognito {k} from keyring")
-                except PasswordDeleteError:
+                except keyring.errors.PasswordDeleteError:
                     pass
 
         aws_access_key = None
@@ -181,42 +145,33 @@ def get_aws_credentials() -> tuple[str | None, str | None, str | None]:
         ensure_credentials()
     return aws_access_key, aws_secret_key, aws_session_token
 
-def get_ses_client() -> SESClientProtocol:
+def get_ses_client() -> "SESClient":
     access_key, secret_key, session_token = get_aws_credentials()
-    return cast(
-        SESClientProtocol,
-        _client(
-            'ses',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            aws_session_token=session_token,
-            region_name="eu-central-1"
-        ),
+    return boto3.client(
+        'ses',
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        aws_session_token=session_token,
+        region_name="eu-central-1",
     )
 
-def get_s3_client() -> S3ClientProtocol:
+def get_s3_client() -> "S3Client":
     access_key, secret_key, session_token = get_aws_credentials()
-    return cast(
-        S3ClientProtocol,
-        _client(
-            's3',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            aws_session_token=session_token,
-            region_name="eu-central-1"
-        ),
+    return boto3.client(
+        's3',
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        aws_session_token=session_token,
+        region_name="eu-central-1",
     )
 
-def get_iam_client() -> IAMClientProtocol:
+def get_iam_client() -> "IAMClient":
     access_key, secret_key, session_token = get_aws_credentials()
-    return cast(
-        IAMClientProtocol,
-        _client(
-            'iam',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            aws_session_token=session_token,
-        ),
+    return boto3.client(
+        'iam',
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        aws_session_token=session_token,
     )
 
 def rotate_aws_credentials() -> None:
@@ -237,14 +192,14 @@ def rotate_aws_credentials() -> None:
     print(f"Current IAM user: {user}")
 
     # List current access keys
-    keys = cast(list[dict[str, str]], iam.list_access_keys(UserName=user)["AccessKeyMetadata"])
+    keys = iam.list_access_keys(UserName=user)["AccessKeyMetadata"]
     if len(keys) >= 2:
         print("You already have 2 access keys. Please delete one before rotating.")
         return
     old_key = keys[0]["AccessKeyId"] if keys else None
 
     # Create new access key
-    new_key = cast(dict[str, str], iam.create_access_key(UserName=user)["AccessKey"])
+    new_key = iam.create_access_key(UserName=user)["AccessKey"]
     print(f"New access key created: {new_key['AccessKeyId']}")
 
     # Store new credentials in keyring
@@ -293,15 +248,12 @@ def show() -> None:
     # Try to get caller identity if credentials are available
     if access_key and secret_key:
         try:
-            sts = cast(
-                STSClientProtocol,
-                _client(
+            sts = boto3.client(
                 'sts',
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 aws_session_token=session_token,
-                region_name="eu-central-1"
-                ),
+                region_name="eu-central-1",
             )
             caller_identity = sts.get_caller_identity()
             print(f"IAM User ARN: {caller_identity.get('Arn', 'Unknown')}")
@@ -315,5 +267,5 @@ def signout() -> None:
     for k in ["access-key-id", "secret-access-key", "session-token"]:
         try:
             keyring.delete_password("aws-cognito", k)
-        except PasswordDeleteError:
+        except keyring.errors.PasswordDeleteError:
             pass

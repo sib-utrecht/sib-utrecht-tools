@@ -15,10 +15,11 @@ from googleapiclient.discovery import build
 from time import sleep
 import logging
 from datetime import datetime, timezone
+from typing import cast
 from ..utils import print_change_count, print_header
 
 
-def sync_group_to_emails(group_email, emails, dry_run=True, logger: logging.Logger | None = None) -> int:
+def sync_group_to_emails(group_email: str, emails: set[str], dry_run: bool = True, logger: logging.Logger | None = None) -> int:
     logger = logger or logging.getLogger(__name__)
 
     creds = get_credentials(directory_scopes)
@@ -29,7 +30,7 @@ def sync_group_to_emails(group_email, emails, dry_run=True, logger: logging.Logg
 
     # Get current Google Group members
     google_members = list_group_members_api(group_email)
-    google_emails = set(m.get("email") for m in google_members if m.get("email"))
+    google_emails: set[str] = set(str(m.get("email")) for m in google_members if m.get("email"))
 
     # Google may change the case of e-mail addresses, so let's change case when
     # necessary.
@@ -45,12 +46,12 @@ def sync_group_to_emails(group_email, emails, dry_run=True, logger: logging.Logg
         emails.remove(email)
         emails.add(preferred_case)
 
-    google_always_stay = set(
-        m.get("email")
+    google_always_stay: set[str] = set(
+        str(m.get("email"))
         for m in google_members
         if (
             m.get("role") in ["MANAGER", "OWNER"]
-            or m.get("email", "").endswith("@sib-utrecht.nl")
+            or str(m.get("email", "")).endswith("@sib-utrecht.nl")
         )
     )
 
@@ -97,7 +98,7 @@ def sync_group_to_emails(group_email, emails, dry_run=True, logger: logging.Logg
     return change_count
 
 
-def sync_conscribo_to_google_groups(dry_run=True, group="alumni", logger: logging.Logger | None = None) -> int:
+def sync_conscribo_to_google_groups(dry_run: bool = True, group: str = "alumni", logger: logging.Logger | None = None) -> int:
     """
     Synchronize Conscribo members to Google Groups.
     group: 'alumni' or 'members'
@@ -109,7 +110,7 @@ def sync_conscribo_to_google_groups(dry_run=True, group="alumni", logger: loggin
     if group == "alumni":
         logger.info("Syncing alumni emails:")
         alumni = list_relations_active_alumni()
-        emails = set(a.get("email") for a in alumni) - {"", None}
+        emails: set[str] = cast(set[str], set(a.get("email") for a in alumni) - {"", None})
         return sync_group_to_emails("alumni@sib-utrecht.nl", emails, dry_run=dry_run, logger=logger)
     elif group == "members":
         logger.info("Syncing members emails:")
@@ -127,7 +128,7 @@ def sync_conscribo_to_google_groups(dry_run=True, group="alumni", logger: loggin
 
         logger.info(f"Excluding {prev_members_length - next_members_length} members who aren't members yet (by their Conscribo membership_start field).")
 
-        emails = set(a.get("email") for a in members) - {"", None}
-        return sync_group_to_emails("members@sib-utrecht.nl", emails, dry_run=dry_run, logger=logger)
+        member_emails: set[str] = cast(set[str], set(a.get("email") for a in members) - {"", None})
+        return sync_group_to_emails("members@sib-utrecht.nl", member_emails, dry_run=dry_run, logger=logger)
     else:
         raise ValueError(f"Unknown group: {group}")

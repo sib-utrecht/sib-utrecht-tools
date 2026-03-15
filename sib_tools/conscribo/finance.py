@@ -12,7 +12,7 @@ from .constants import api_url
 from .auth import conscribo_post, conscribo_get, conscribo_patch
 
 
-def list_conscribo_accounts(date: str | None = None):
+def list_conscribo_accounts(date: str | None = None) -> dict[str, Any]:
     """
     List Conscribo accounts for a given date.
 
@@ -30,7 +30,7 @@ def list_conscribo_transactions(
     account_id: str | None,
     limit: int | None = None,
     offset: int = 0,
-):
+) -> dict[str, Any]:
     """
     List Conscribo transactions for a given date range and account ID.
     """

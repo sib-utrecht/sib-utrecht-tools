@@ -70,7 +70,7 @@ def validate_session(session_id: str) -> bool | int:
             return False
 
         secsToLogout = res.json().get("secsToLogout")
-        return secsToLogout
+        return cast(bool | int, secsToLogout)
     
     except Exception as e:
         logger.error(f"Error validating session: {e}")
@@ -113,7 +113,7 @@ def authenticate() -> str:
         response_messages = cast(dict[str, Any], response_messages_obj)
         for k, v in response_messages.items():
             if isinstance(v, list):
-                messages = cast(list[Any], v)
+                messages = list(v)
                 for message in messages:
                     logger.info(f"{k}: {json.dumps(message)}")
 
@@ -184,7 +184,7 @@ def conscribo_get(url: str) -> dict[str, Any]:
     if not res.ok:
         raise ApiRequestError(f"Failed to get {url}: {res.text}", status_code=res.status_code)
 
-    return res.json()
+    return cast(dict[str, Any], res.json())
 
 def conscribo_delete(url: str, params: None | Mapping[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
@@ -195,13 +195,13 @@ def conscribo_delete(url: str, params: None | Mapping[str, Any]) -> dict[str, An
             "X-Conscribo-SessionId": session_id,
             "X-Conscribo-API-Version": "1.20240610",
         },
-        params=params, # type: ignore
+        params=params,
     )
 
     if not res.ok:
         raise ApiRequestError(f"Failed to delete {url}: {res.text}", status_code=res.status_code)
 
-    return res.json()
+    return cast(dict[str, Any], res.json())
 
 def conscribo_post(url: str, json: dict[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
@@ -217,21 +217,21 @@ def conscribo_post(url: str, json: dict[str, Any]) -> dict[str, Any]:
     
     if not res.ok:
         raise ApiRequestError(f"Failed to post to {url}: {res.text}", status_code=res.status_code)
-    
-    return res.json()
+
+    return cast(dict[str, Any], res.json())
 
 
 def conscribo_patch(url: str, json: dict[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
 
-    return requests.patch(
+    return cast(dict[str, Any], requests.patch(
         f"{api_url}/{url.removeprefix('/')}",
         headers={
             "X-Conscribo-SessionId": session_id,
             "X-Conscribo-API-Version": "1.20240610",
         },
         json=json,
-    ).json()
+    ).json())
 
 
 def check_available() -> str | None:

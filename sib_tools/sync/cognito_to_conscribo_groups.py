@@ -15,8 +15,8 @@ from ..cognito.list_users import (
     list_all_cognito_users,
     cognito_user_to_canonical,
     canonical_to_cognito_user,
-    cognito_client,
-    user_pool_id,
+    cognito_client as cognito_client,
+    user_pool_id as user_pool_id,
 )
 from ..cognito.groups import (
     cognito_list_groups,
@@ -24,7 +24,7 @@ from ..cognito.groups import (
     cognito_list_users_in_group_canonical,
 )
 
-def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None = None) -> int:
+def sync_cognito_to_conscribo_groups(dry_run: bool = True, logger: logging.Logger | None = None) -> int:
     logger = logger or logging.getLogger(__name__)
 
     print_header("Syncing Cognito groups to Conscribo groups...", logger)

@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 import re
 import traceback
 from pathlib import Path
-from typing import NotRequired, Protocol, Required, TypedDict, cast
+from typing import Callable, NotRequired, Required, TypedDict, cast
 
 
 from .aws.auth import get_s3_client
@@ -35,15 +35,6 @@ AUTOCONFIRM_SUBSCRIPTION = False
 mail_output_dir = Path.cwd() / "mails"
 
 
-class S3ClientProtocol(Protocol):
-    def download_file(self, Bucket: str, Key: str, Filename: str | Path) -> None:
-        ...
-
-
-class ProcessEmailProtocol(Protocol):
-    def __call__(self, eml_path: str | Path, allow_old: bool = False) -> bool:
-        ...
-
 
 class SNSMessageData(TypedDict, total=False):
     Type: Required[str]
@@ -59,8 +50,8 @@ class SNSMessageData(TypedDict, total=False):
 
 
 def process_email_typed(eml_path: str | Path, allow_old: bool = False) -> bool:
-    process_email_callable = cast(ProcessEmailProtocol, getattr(email_handler, "process_email"))
-    return process_email_callable(eml_path, allow_old=allow_old)
+    process_email_callable = cast(Callable[[str | Path, bool], bool], getattr(email_handler, "process_email"))
+    return process_email_callable(eml_path, allow_old)
 
 # Do credentials check print
 print("Available credentials:")
@@ -68,7 +59,7 @@ check_available_auth(non_interactive=True)
 
 
 @app.route("/sns-incoming", methods=["POST"])
-def sns_incoming():
+def sns_incoming() -> tuple[str, int]:
     # SNS sends a JSON payload
     data = cast(SNSMessageData, request.get_json(force=True))
     print(f"Received request. Length: {request.content_length} bytes")
@@ -170,9 +161,9 @@ def sns_incoming():
 
         # Download the e-mail from the S3 bucket
         try:
-            s3_client = cast(S3ClientProtocol, get_s3_client())
+            s3_client = get_s3_client()
             mail_output_path.parent.mkdir(parents=True, exist_ok=True)
-            s3_client.download_file(bucket_name, objectKey, mail_output_path)
+            s3_client.download_file(Bucket=bucket_name, Key=objectKey, Filename=str(mail_output_path))
 
             print(f"Downloaded e-mail to {mail_output_path}")
             with open("sns_incoming.log", "a") as log_file:

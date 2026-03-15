@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Callable, Mapping, TypedDict, cast
 
 from .relations import list_relations_persoon, list_relations_alumnus
 from dataclasses import dataclass
-from .check_numbering import is_external_number as _is_external_number  # type: ignore
+from .check_numbering import is_external_number as _is_external_number
 from .file_cache import file_cache, make_cache_key
 
 if TYPE_CHECKING:

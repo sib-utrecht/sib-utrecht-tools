@@ -1,20 +1,23 @@
-import email.headerregistry
 import email.utils
-import json
-from bs4 import BeautifulSoup
 import re
-import uuid
 from dataclasses import dataclass
 import email
-import dkim  # type: ignore[import-untyped]
-from dkim import DKIM, DKIMException  # type: ignore[import-untyped]
+import dkim
+from dkim import DKIM, DKIMException
 from email.message import EmailMessage
-from email.parser import Parser
-from email.headerregistry import HeaderRegistry, Address
+from email.headerregistry import Address
 from email import policy
 from logging import Logger
+from typing import Protocol, cast
 
-# print(HeaderRegistry().registry)
+class _TypedDKIM(Protocol):
+    domain: bytes
+    selector: bytes | None
+    include_headers: tuple[bytes, ...]
+    signed_headers: list[tuple[bytes, bytes]]
+
+    def verify(self, idx: int = 0, dnsfunc: object = ...) -> bool:
+        ...
 
 
 
@@ -33,7 +36,7 @@ class DKIMVerifiedMail(DKIMDetailsVerified):
     email : EmailMessage
 
 
-def check_aws_ses_verification_headers(msg : EmailMessage):
+def check_aws_ses_verification_headers(msg: EmailMessage) -> None:
     auth_results = [
         a.strip()
         for a in msg["Authentication-Results"].split(";")
@@ -52,7 +55,12 @@ def check_aws_ses_verification_headers(msg : EmailMessage):
         raise Exception("DMARC failed")
 
 
-def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: list[str] | None = None, check_aws_verification_headers = True) -> DKIMVerifiedMail | None:
+def verify_dkim_signature(
+    email_message_eml: bytes | str,
+    logger: Logger,
+    allowed_domains: list[str] | None = None,
+    check_aws_verification_headers: bool = True,
+) -> DKIMVerifiedMail | None:
     """
     Verify DKIM signature of an email message.
     
@@ -76,7 +84,7 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
 
         logger.info("Starting DKIM verification")
 
-        d = DKIM(email_message_eml, logger=logger)
+        d = cast(_TypedDKIM, DKIM(email_message_eml, logger=logger))
         try:
             if not d.verify():
                 return None
@@ -86,10 +94,10 @@ def verify_dkim_signature(email_message_eml, logger : Logger, allowed_domains: l
 
         domain: bytes = d.domain
         selector: bytes | None = d.selector
-        include_headers = d.include_headers
-        signed_headers = d.signed_headers
+        include_headers: tuple[bytes, ...] = d.include_headers
+        signed_headers: list[tuple[bytes, bytes]] = d.signed_headers
 
-        signed_headers_keys = [k.lower().decode("ascii") for k, v in signed_headers]
+        signed_headers_keys = [k.lower().decode("ascii") for k, _ in signed_headers]
 
         # senders = [
         #     v

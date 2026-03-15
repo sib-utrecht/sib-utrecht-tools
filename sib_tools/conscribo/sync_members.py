@@ -55,8 +55,8 @@ relations = list_relations_persoon()
 #     }
 # ]
 
-def add_relation_type1(rel):
-    if int(rel["conscribo_id"]) < 2000:
+def add_relation_type1(rel: dict[str, object]) -> dict[str, object]:
+    if int(rel["conscribo_id"]) < 2000:  # type: ignore[call-overload]
         rel["relation_type"] = "Member"
     else:
         rel["relation_type"] = "External"

@@ -6,10 +6,10 @@ import sys
 
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
-from .constants import user_pool_id
+from .constants import user_pool_id as user_pool_id
 from .auth import get_cognito_credentials
-from typing import Any
-from .client import cognito_client
+from typing import Any, cast
+from .client import cognito_client as cognito_client
 
 cognito_to_canonical_dict = canonical_key.get_cognito_to_key()
 
@@ -88,7 +88,7 @@ def list_cognito_users_canonical() -> list[dict[str, Any]]:
 
 
 def list_all_cognito_users() -> list[dict[str, Any]]:
-    cognito_users = []
+    cognito_users: list[dict[str, Any]] = []
 
     response = cognito_client.list_users(
         UserPoolId=user_pool_id,
@@ -96,7 +96,7 @@ def list_all_cognito_users() -> list[dict[str, Any]]:
     )
 
     while True:
-        cognito_users.extend(response["Users"])
+        cognito_users.extend(cast(list[dict[str, Any]], response["Users"]))
 
         paginationToken = response.get("PaginationToken")
         if paginationToken is None:

@@ -11,7 +11,7 @@ table_name = ""
 # print("\n")
 # print(json.dumps(orgs))
 
-def main():
+def main() -> None:
 
     recs = grist_get(f"/docs/{relations_doc}/tables/Laposta/records")
     print(json.dumps(recs, indent=2))

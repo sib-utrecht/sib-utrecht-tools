@@ -184,7 +184,7 @@ def create_relation_member(canonical: dict[str, Any], logger: logging.Logger) ->
     conscribo_id = ans["code"]
 
     logger.info("\n\n")
-    return conscribo_id
+    return str(conscribo_id)
 
 
 def list_relations_persoon() -> list[dict[str, Any]]:

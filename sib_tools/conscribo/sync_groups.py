@@ -3,6 +3,7 @@ import requests
 import json
 import keyring
 from getpass import getpass
+from typing import Any
 from ..canonical import canonical_key
 from . import auth
 from .auth import conscribo_post, conscribo_get
@@ -16,7 +17,7 @@ from uuid import uuid4
 table_name = "Conscribo_Memberships"
 
 
-records : list[dict] = grist_get(
+records : list[dict[str, Any]] = grist_get(
     f"/docs/{relations_doc}/tables/{table_name}/records")["records"]
 
 

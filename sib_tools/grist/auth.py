@@ -1,18 +1,18 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-import keyring.credentials
 import requests
 import json
 import keyring
+from keyring.errors import PasswordDeleteError
 from getpass import getpass
 import urllib.parse
-from typing import Any
-from .constants import relations_doc, api_url
+from typing import Any, cast
+from .constants import relations_doc as relations_doc, api_url
 
 grist_api_key = None
 
-def prompt_credentials():
+def prompt_credentials() -> None:
     password = getpass(f"API-key for Grist: ")
 
     keyring.set_password("grist", "member-admin-bot", password)
@@ -67,7 +67,7 @@ def grist_get(url : str, parameters: dict[str, Any] | None = None) -> dict[str, 
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 def grist_put(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     print(f"Grist: Doing put on {url}")
@@ -99,7 +99,7 @@ def grist_put(url : str, body : dict[str, Any] | list[Any], query : dict[str, An
 
         raise Exception(message)
 
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 def grist_post(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
@@ -129,7 +129,7 @@ def grist_post(url : str, body : dict[str, Any] | list[Any], query : dict[str, A
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 def grist_delete(url : str, query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
@@ -158,7 +158,7 @@ def grist_delete(url : str, query : dict[str, Any] | None = None) -> dict[str, A
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 def grist_patch(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
@@ -188,14 +188,14 @@ def grist_patch(url : str, body : dict[str, Any] | list[Any], query : dict[str, 
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
-def check_available():
+def check_available() -> str | None:
     return keyring.get_password("grist", "member-admin-bot")
 
-def show():
+def show() -> None:
     """Display Grist credentials information with redacted API key."""
-    def redact_key(key):
+    def redact_key(key: str) -> str:
         return "****"
         # if not key or len(key) < 8:
         #     return "****"
@@ -214,8 +214,8 @@ def show():
         print("API Key: Not set")
     print()
 
-def signout():
+def signout() -> None:
     try:
         keyring.delete_password("grist", "member-admin-bot")
-    except keyring.errors.PasswordDeleteError:
+    except PasswordDeleteError:
         pass

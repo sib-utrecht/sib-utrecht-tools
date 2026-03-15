@@ -84,7 +84,7 @@ def find_group_id_by_name(name: str) -> int | None:
 def add_relations_to_group(
     group_id : GroupId,
     user_ids : list[str],
-):
+) -> dict[str, Any]:
     return conscribo_post(
         f"/relations/groups/{group_id}/members/",
         json={
@@ -95,12 +95,12 @@ def add_relations_to_group(
 def remove_relations_from_group(
     group_id : GroupId,
     user_ids : list[str],
-):
+) -> dict[str, Any]:
     return conscribo_delete(
         f"/relations/groups/{group_id}/members/",
         params={
             "relationIds": user_ids
-        }, # type: ignore
+        },
     )
 
 
@@ -108,7 +108,7 @@ def set_group_members(
     group_id: GroupId,
     canonical_members: list[dict[str, Any]],
     dry_run: bool = True
-):
+) -> None:
     """
     Set the members of a Conscribo group based on a list of canonical members.
     
