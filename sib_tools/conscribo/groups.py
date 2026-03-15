@@ -1,13 +1,18 @@
-from typing import Any
+from typing import Any, cast
+from dataclasses import dataclass
 
 from .auth import conscribo_post, conscribo_get, conscribo_delete
-from dataclasses import dataclass
+from .types import (
+    ConscriboEntityGroup,
+    ConscriboEntityGroupsResponse,
+    ConscriboGroupMembersOperationResponse,
+)
 
 group_wil_geen_email_van_ons_ontvangen = 36
 
 GroupId = int | str
 
-entity_groups: list[dict[str, Any]] | None = None
+entity_groups: list[ConscriboEntityGroup] | None = None
 
 def get_group_members_cached(group_id: GroupId) -> set[str]:
     entity_groups = list_entity_groups()
@@ -16,22 +21,22 @@ def get_group_members_cached(group_id: GroupId) -> set[str]:
     if group is None:
         return get_group_members(group_id)
 
-    return {a["entityId"] for a in group["members"]}
+    return {a["entityId"] for a in group.get("members", [])}
 
 
 def get_group_members(group_id: GroupId) -> set[str]:
-    ans = conscribo_get(f"/relations/groups/{group_id}/")
+    ans = cast(ConscriboEntityGroupsResponse, conscribo_get(f"/relations/groups/{group_id}/"))
 
     if len(ans["entityGroups"]) != 1:
         print(f"Error: {ans}")
         raise Exception("Unexpected number of entity groups")
 
-    ans = ans["entityGroups"][0]
-    name = ans["name"]
+    group = ans["entityGroups"][0]
+    name = group["name"]
 
-    print(f"{name} ({ans['id']}) has {len(ans['members'])} members")
+    print(f"{name} ({group['id']}) has {len(group.get('members', []))} members")
 
-    return {a["entityId"] for a in ans["members"]}
+    return {a["entityId"] for a in group.get("members", [])}
 
 @dataclass
 class Groups:
@@ -54,15 +59,16 @@ def get_groups() -> Groups:
 def get_block_email_members() -> set[str]:
     return get_group_members(group_wil_geen_email_van_ons_ontvangen)
 
-def list_entity_groups() -> list[dict[str, Any]]:
+def list_entity_groups() -> list[ConscriboEntityGroup]:
     global entity_groups
     if entity_groups is None:
-        entity_groups = conscribo_get("/relations/groups/")["entityGroups"]
+        ans = cast(ConscriboEntityGroupsResponse, conscribo_get("/relations/groups/"))
+        entity_groups = ans["entityGroups"]
 
     assert entity_groups is not None
     return entity_groups
 
-def list_entity_groups_by_name() -> dict[str, dict[str, Any]]:
+def list_entity_groups_by_name() -> dict[str, ConscriboEntityGroup]:
     """
     Returns a dictionary of entity groups indexed by their name.
     """
@@ -70,7 +76,7 @@ def list_entity_groups_by_name() -> dict[str, dict[str, Any]]:
         group["name"]: group for group in list_entity_groups()
     }
 
-def find_group_id_by_name(name: str) -> int | None:
+def find_group_id_by_name(name: str) -> str | None:
     def normalize(name : str) -> str:
         return name.lower().replace(" ", "_").replace("-", "_")
     
@@ -82,25 +88,28 @@ def find_group_id_by_name(name: str) -> int | None:
     return group["id"] if group else None
 
 def add_relations_to_group(
-    group_id : GroupId,
-    user_ids : list[str],
-) -> dict[str, Any]:
-    return conscribo_post(
-        f"/relations/groups/{group_id}/members/",
-        json={
-            "relationIds": user_ids
-        },
+    group_id: GroupId,
+    user_ids: list[str],
+) -> ConscriboGroupMembersOperationResponse:
+    return cast(
+        ConscriboGroupMembersOperationResponse,
+        conscribo_post(
+            f"/relations/groups/{group_id}/members/",
+            json={"relationIds": user_ids},
+        ),
     )
 
+
 def remove_relations_from_group(
-    group_id : GroupId,
-    user_ids : list[str],
-) -> dict[str, Any]:
-    return conscribo_delete(
-        f"/relations/groups/{group_id}/members/",
-        params={
-            "relationIds": user_ids
-        },
+    group_id: GroupId,
+    user_ids: list[str],
+) -> ConscriboGroupMembersOperationResponse:
+    return cast(
+        ConscriboGroupMembersOperationResponse,
+        conscribo_delete(
+            f"/relations/groups/{group_id}/members/",
+            params={"relationIds": user_ids},
+        ),
     )
 
 

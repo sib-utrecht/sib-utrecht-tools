@@ -7,6 +7,8 @@ from time import sleep
 from datetime import datetime, date, timezone
 from typing import TypedDict, NotRequired
 
+from sib_tools.conscribo.types import ConscriboTransaction, ConscriboTransactionRow
+
 
 from sib_tools.conscribo.finance import (
     list_conscribo_transactions,
@@ -84,8 +86,8 @@ def handle_list_education(args: Namespace) -> None:
     # Sort by count (descending) then by name
     sorted_education = sorted(education_counts.items(), key=lambda x: (-x[1], x[0]))
 
-    print(f"Educational Institution Statistics")
-    print(f"=================================")
+    print("Educational Institution Statistics")
+    print("=================================")
     print(f"Total members: {total_members}")
     print(f"Unique educational institutions: {len(education_counts)}")
     print()
@@ -250,13 +252,11 @@ def handle_list_balance_diff(args: Namespace) -> None:
         )["transactions"].values()
 
         for tx in transactions:
-            transactionId = tx["transactionId"]
-            date = tx["date"]
-            tx_description = tx.get("description", "")
+            tx: ConscriboTransaction
 
             for rowId, row in tx.get("transactionRows", {}).items():
+                row: ConscriboTransactionRow
                 account = row["accountNr"]
-                row_description = row.get("description", "")
 
                 if row["side"] == "debet":
                     debet_per_account[account] = debet_per_account.get(

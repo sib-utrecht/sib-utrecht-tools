@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from .auth import conscribo_post, conscribo_get
+from .types import ConscriboAccountsResponse, ConscriboTransactionsResponse
 
 
-def list_conscribo_accounts(date: str | None = None) -> dict[str, Any]:
+def list_conscribo_accounts(date: str | None = None) -> ConscriboAccountsResponse:
     """
     List Conscribo accounts for a given date.
 
@@ -13,7 +14,7 @@ def list_conscribo_accounts(date: str | None = None) -> dict[str, Any]:
     if date is None:
         date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    return conscribo_get(f"/financial/accounts/?date={date}")
+    return cast(ConscriboAccountsResponse, conscribo_get(f"/financial/accounts/?date={date}"))
 
 
 def list_conscribo_transactions(
@@ -22,7 +23,7 @@ def list_conscribo_transactions(
     account_id: str | None,
     limit: int | None = None,
     offset: int = 0,
-) -> dict[str, Any]:
+) -> ConscriboTransactionsResponse:
     """
     List Conscribo transactions for a given date range and account ID.
     """
@@ -31,11 +32,11 @@ def list_conscribo_transactions(
         "dateStart": start_date,
         "dateEnd": end_date,
     }
-   
+
     if account_id is not None:
         filters["accounts"] = [account_id]
 
-    payload = {
+    payload: dict[str, Any] = {
         "filters": filters,
         "offset": offset,
     }
@@ -43,4 +44,4 @@ def list_conscribo_transactions(
     if limit is not None:
         payload["limit"] = limit
 
-    return conscribo_post("/financial/transactions/filters/", json=payload)
+    return cast(ConscriboTransactionsResponse, conscribo_post("/financial/transactions/filters/", json=payload))

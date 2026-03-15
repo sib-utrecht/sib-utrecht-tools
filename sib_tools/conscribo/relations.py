@@ -1,17 +1,22 @@
 import logging
 import json
-from typing import Any
+from typing import Any, cast
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 
 from .auth import conscribo_post, conscribo_get, conscribo_patch
+from .types import (
+    ConscriboCreateRelationResponse,
+    ConscriboFieldDefinitionsResponse,
+    ConscriboRelationFiltersResponse,
+)
 
 ENTITY_TYPE_PERSON = "persoon"
 ENTITY_TYPE_ALUMNUS = "re__nisten"
 
 # print(json.dumps(entity_groups, indent=2))
 
-def list_filter_raw(fieldNames: list[str], filters: list[dict[str, Any]]) -> dict[str, Any]:
+def list_filter_raw(fieldNames: list[str], filters: list[dict[str, Any]]) -> ConscriboRelationFiltersResponse:
     """
     List relations with the given field names and filters.
 
@@ -26,12 +31,15 @@ def list_filter_raw(fieldNames: list[str], filters: list[dict[str, Any]]) -> dic
 
     See https://www.conscribo.nl/APIDocs/#?route=post-/relations/filters/
     """
-    return conscribo_post(
-        "/relations/filters/",
-        json={
-            "requestedFields": fieldNames,
-            "filters": filters,
-        },
+    return cast(
+        ConscriboRelationFiltersResponse,
+        conscribo_post(
+            "/relations/filters/",
+            json={
+                "requestedFields": fieldNames,
+                "filters": filters,
+            },
+        ),
     )
 
 def relation_to_canonical(relation: dict[str, Any]) -> dict[str, Any]:
@@ -168,12 +176,15 @@ def create_relation_member(canonical: dict[str, Any], logger: logging.Logger) ->
 
     logger.info(f"Creating Conscribo relation with\n{json.dumps(conscribo_relation, indent=4)}")
 
-    ans = conscribo_post(
-        "/relations/",
-        json={
-            "entityType": canonical.get("conscribo_entity_type", ENTITY_TYPE_PERSON),
-            "fields": conscribo_relation,
-        },
+    ans = cast(
+        ConscriboCreateRelationResponse,
+        conscribo_post(
+            "/relations/",
+            json={
+                "entityType": canonical.get("conscribo_entity_type", ENTITY_TYPE_PERSON),
+                "fields": conscribo_relation,
+            },
+        ),
     )
 
     conscribo_id = ans["code"]
@@ -183,32 +194,25 @@ def create_relation_member(canonical: dict[str, Any], logger: logging.Logger) ->
 
 
 def list_relations_persoon() -> list[dict[str, Any]]:
-    fieldDefinitions = conscribo_get("/relations/fieldDefinitions/persoon")["fields"]
+    field_defs_response = cast(
+        ConscriboFieldDefinitionsResponse,
+        conscribo_get("/relations/fieldDefinitions/persoon"),
+    )
+    fieldNames = [field["fieldName"] for field in field_defs_response["fields"]]
 
-    fieldNames = [field["fieldName"] for field in fieldDefinitions]
-
-    # print(f"Field definitions: {fieldDefinitions}")
-
-    result = conscribo_post(
-        "/relations/filters/",
-        json={
-            "entityType": "persoon",
-            "requestedFields": fieldNames,
-            "filters": [
-                # {
-                #     "fieldName": "code",
-                #     "operator": "=",
-                #     "value": [329],  # Vincent
-                # }
-            ],
-        },
+    result = cast(
+        ConscriboRelationFiltersResponse,
+        conscribo_post(
+            "/relations/filters/",
+            json={
+                "entityType": "persoon",
+                "requestedFields": fieldNames,
+                "filters": [],
+            },
+        ),
     )
 
-    relations = [
-        relation_to_canonical(relation) for relation in result["relations"].values()
-    ]
-
-    return relations
+    return [relation_to_canonical(relation) for relation in result["relations"].values()]
 
 
 def list_relations_members() -> list[dict[str, Any]]:
@@ -220,33 +224,28 @@ def list_relations_members() -> list[dict[str, Any]]:
 
 
 def list_relations_alumnus() -> list[dict[str, Any]]:
-    fieldDefinitions = conscribo_get("/relations/fieldDefinitions/re__nisten")[
-        "fields"
-    ]
+    field_defs_response = cast(
+        ConscriboFieldDefinitionsResponse,
+        conscribo_get("/relations/fieldDefinitions/re__nisten"),
+    )
+    fieldNames = [field["fieldName"] for field in field_defs_response["fields"]]
 
-    fieldNames = [field["fieldName"] for field in fieldDefinitions]
-
-    result = conscribo_post(
-        "/relations/filters/",
-        json={
-            "entityType": "re__nisten",
-            "requestedFields": fieldNames,
-            "filters": [
-                # {
-                #     "fieldName": "code",
-                #     "operator": "=",
-                #     "value": [329],  # Vincent
-                # }
-            ],
-        },
+    result = cast(
+        ConscriboRelationFiltersResponse,
+        conscribo_post(
+            "/relations/filters/",
+            json={
+                "entityType": "re__nisten",
+                "requestedFields": fieldNames,
+                "filters": [],
+            },
+        ),
     )
 
-    relations = [
+    return [
         relation_to_canonical_alumnus(relation)
         for relation in result["relations"].values()
     ]
-
-    return relations
 
 
 def list_relations_active_members(date: str | None = None) -> list[dict[str, Any]]:
