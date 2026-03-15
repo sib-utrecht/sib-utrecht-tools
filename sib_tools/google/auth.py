@@ -98,7 +98,7 @@ def ensure_credentials() -> None:
         )
 
 
-def get_credentials(scopes: List[str]) -> Any:
+def get_credentials(scopes: List[str]) -> service_account.Credentials:
     """
     Returns service account credentials with domain-wide delegation.
     """
@@ -120,7 +120,7 @@ def list_groups_directory_api() -> List[Dict[str, Any]]:
     service = build("admin", "directory_v1", credentials=creds)
     try:
         results = service.groups().list(customer="my_customer").execute()
-        return cast(List[Dict[str, Any]], results.get("groups", []))
+        return cast("List[Dict[str, Any]]", results.get("groups", []))
     except Exception as e:
         print(f"Error listing groups via Directory API: {e}")
         return []
@@ -155,7 +155,7 @@ def list_group_members_api(group_email: str) -> list[dict[str, Any]]:
     service = build("admin", "directory_v1", credentials=creds)
     try:
         results = service.members().list(groupKey=group_email).execute()
-        return cast(list[dict[str, Any]], results.get("members", []))
+        return cast("list[dict[str, Any]]", results.get("members", []))
     except Exception as e:
         print(f"Error listing members for group {group_email}: {e}")
         return []

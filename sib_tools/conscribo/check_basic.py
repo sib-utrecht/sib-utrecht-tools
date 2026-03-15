@@ -1,17 +1,8 @@
-from time import sleep
 import logging
-import sys
-import re
-import requests
 from typing import Any
 
-from . import auth
-from .relations import list_relations_persoon, update_relation, list_relations_alumnus
-from .groups import get_group_members
-from . import groups
+from .relations import list_relations_persoon, list_relations_alumnus
 from .check_numbering import check_relation_number_correct
-from dataclasses import dataclass
-from .check_address import check_address
 from .check_numbering import is_external_number
 
 should_be_nonempty = [

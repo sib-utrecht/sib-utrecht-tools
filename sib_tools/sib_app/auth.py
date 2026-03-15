@@ -1,7 +1,6 @@
 import os
 from .constants import api_url
 import requests
-import json
 import keyring
 import keyring.errors
 from getpass import getpass
@@ -62,7 +61,7 @@ def sib_app_get(url : str, parameters: dict[str, Any] | None = None) -> dict[str
     )
     response.raise_for_status()
 
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def sib_app_post(url : str, body : dict[str, Any]) -> dict[str, Any]:
     api_key = get_sib_app_api_key()
@@ -79,7 +78,7 @@ def sib_app_post(url : str, body : dict[str, Any]) -> dict[str, Any]:
     )
     response.raise_for_status()
 
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def sib_app_delete(url : str) -> dict[str, Any]:
     api_key = get_sib_app_api_key()
@@ -93,7 +92,7 @@ def sib_app_delete(url : str) -> dict[str, Any]:
     )
     response.raise_for_status()
 
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def sib_app_put(url : str, body : dict[str, Any]) -> dict[str, Any]:
     api_key = get_sib_app_api_key()
@@ -108,7 +107,7 @@ def sib_app_put(url : str, body : dict[str, Any]) -> dict[str, Any]:
     )
     response.raise_for_status()
 
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def check_available() -> str | None:
     return keyring.get_password("sib_app", "api-key")

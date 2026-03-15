@@ -1,14 +1,8 @@
 import boto3
-from time import sleep
-import json
-import logging
-import sys
 
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict
 from .constants import user_pool_id as user_pool_id
 from .auth import get_cognito_credentials
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mypy_boto3_cognito_idp import CognitoIdentityProviderClient

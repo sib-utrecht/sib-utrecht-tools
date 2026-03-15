@@ -1,20 +1,15 @@
-import boto3
 from time import sleep
 import json
 import logging
-import sys
 from typing import Any
 
 from ..conscribo.relations import (
-    list_relations_members,
-    list_relations_alumnus,
     list_relations_active_members,
     list_relations_active_alumni,
 )
 from ..conscribo.groups import get_block_email_members
 
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict, get_key_to_laposta, expand_dict
+from ..canonical.canonical_key import get_key_to_laposta, expand_dict
 from ..laposta import auth
 from ..laposta import list_members
 from ..laposta.list_members import get_aggregated_relations
@@ -204,7 +199,7 @@ def sync_conscribo_to_laposta(dry_run: bool = True, logger: logging.Logger | Non
     for matched_entry in entries:
         laposta_member, conscribo_member, conscribo_alumnus = matched_entry
 
-        def resolve_field(name: str) -> Any:
+        def resolve_field(name: str) -> str | int | float | bool | None:
             nonlocal conscribo_member, conscribo_alumnus, laposta_member
             values = (
                 a.get(name, None)

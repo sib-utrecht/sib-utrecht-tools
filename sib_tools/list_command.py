@@ -1,6 +1,4 @@
-import argparse
 from argparse import ArgumentParser, Namespace
-import sys
 from sib_tools.conscribo.relations import list_relations_alumnus, list_relations_members, list_relations_active_members
 import json
 import beaupy

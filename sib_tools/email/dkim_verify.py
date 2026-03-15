@@ -2,7 +2,6 @@ import email.utils
 import re
 from dataclasses import dataclass
 import email
-import dkim
 from dkim import DKIM, DKIMException
 from email.message import EmailMessage
 from email.headerregistry import Address
@@ -84,7 +83,7 @@ def verify_dkim_signature(
 
         logger.info("Starting DKIM verification")
 
-        d = cast(_TypedDKIM, DKIM(email_message_eml, logger=logger))
+        d = cast("_TypedDKIM", DKIM(email_message_eml, logger=logger))
         try:
             if not d.verify():
                 return None

@@ -1,16 +1,7 @@
-import keyring.credentials
-import requests
-import json
-import keyring
-from getpass import getpass
 from typing import Any
-from ..canonical import canonical_key
-from . import auth
-from .auth import conscribo_post, conscribo_get
-from .relations import list_relations_persoon, update_relation
-from ..grist.auth import grist_patch, grist_delete, grist_get, relations_doc, grist_post
+from .auth import conscribo_get
+from ..grist.auth import grist_get, relations_doc
 # from ..grist.list import relations_doc
-from time import sleep
 from uuid import uuid4
 
 

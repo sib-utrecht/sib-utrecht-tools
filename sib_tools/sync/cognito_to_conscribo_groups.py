@@ -1,26 +1,18 @@
 import logging
-import sys
 import json
 from time import sleep
 
 from sib_tools.utils import increase_indent, print_change_count, print_header
 
-from ..conscribo.relations import list_relations_members
 from ..conscribo.groups import list_entity_groups
 from ..conscribo.groups import add_relations_to_group, remove_relations_from_group
 
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict
 from ..cognito.list_users import (
-    list_all_cognito_users,
-    cognito_user_to_canonical,
-    canonical_to_cognito_user,
     cognito_client as cognito_client,
     user_pool_id as user_pool_id,
 )
 from ..cognito.groups import (
     cognito_list_groups,
-    cognito_list_users_in_group,
     cognito_list_users_in_group_canonical,
 )
 

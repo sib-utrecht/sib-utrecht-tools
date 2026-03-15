@@ -1,17 +1,10 @@
-import boto3
 from time import sleep
 import json
 import logging
-import sys
 
-from ..conscribo.relations import list_relations_members
 from ..conscribo.groups import list_entity_groups
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict
 from ..cognito.list_users import (
-    list_all_cognito_users,
     cognito_user_to_canonical,
-    canonical_to_cognito_user,
     cognito_client as cognito_client,
     user_pool_id as user_pool_id,
     list_cognito_users_canonical,

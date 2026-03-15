@@ -1,8 +1,6 @@
-from .auth import grist_get, grist_put, grist_post
+from .auth import grist_get, grist_put
 from .constants import relations_doc
 import json
-import datetime
-from time import sleep
 
 table_name = ""
 

@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from mypy_boto3_iam import IAMClient
     from mypy_boto3_s3 import S3Client
     from mypy_boto3_ses import SESClient
-    from mypy_boto3_sts import STSClient
 
 # Optional dependency: avoid static import so missing stubs/packages don't fail type checking.
 try:

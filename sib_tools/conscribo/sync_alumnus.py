@@ -1,5 +1,3 @@
-import requests
-import json
 # from getpass import getpass
 # import canonical_key
 # import conscribo_auth
@@ -7,9 +5,8 @@ import json
 # from grist_auth import grist_post, grist_patch
 from .relations import (
     list_relations_alumnus,
-    update_relation,
 )
-from ..grist.update_relation_source import set_relation_records_as_source, relations_doc
+from ..grist.update_relation_source import set_relation_records_as_source
 
 
 relations = list_relations_alumnus()

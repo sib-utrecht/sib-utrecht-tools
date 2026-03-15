@@ -18,7 +18,7 @@ class _SelectFn(Protocol):
 
 
 try:
-    select = cast(_SelectFn | None, importlib.import_module("beaupy").select)
+    select = cast("_SelectFn | None", importlib.import_module("beaupy").select)
 except Exception:
     select = None
 
@@ -40,7 +40,7 @@ class ServiceDef(TypedDict):
 def configure_keyring() -> None:
     if "KEYRING_CRYPTFILE_PASSWORD" in os.environ:
         cryptfile_module = importlib.import_module("keyrings.cryptfile.cryptfile")
-        CryptFileKeyring = cast(type[Any], getattr(cryptfile_module, "CryptFileKeyring"))
+        CryptFileKeyring = cast("type[Any]", getattr(cryptfile_module, "CryptFileKeyring"))
 
         kr = CryptFileKeyring()
         kr.keyring_key = os.environ["KEYRING_CRYPTFILE_PASSWORD"]
@@ -172,7 +172,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
 
         assert select is not None
         service_index = select(
-            cast(list[Any], option_descriptions), cursor="→", cursor_style="blue", return_index=True
+            cast("list[Any]", option_descriptions), cursor="→", cursor_style="blue", return_index=True
         )
 
         service: ServiceDef | None = None
@@ -196,7 +196,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
         option_descriptions = [desc for _, desc in subaction_options]
         assert select is not None
         idx = select(
-            cast(list[Any], option_descriptions), cursor="→", cursor_style="blue", return_index=True
+            cast("list[Any]", option_descriptions), cursor="→", cursor_style="blue", return_index=True
         )
 
         signin_action = None
@@ -218,7 +218,7 @@ def check_available_auth(logger: logging.Logger | None = None, non_interactive: 
         if not selected_service:
             msg(f"{YELLOW}Unknown service '{service_key}'.{RESET}")
             return
-        trigger = cast(ActionFn | None, selected_service.get(action))
+        trigger = cast("ActionFn | None", selected_service.get(action))
 
         if not trigger:
             msg(f"{YELLOW}Action '{action}' not supported for {selected_service['name']}.{RESET}")

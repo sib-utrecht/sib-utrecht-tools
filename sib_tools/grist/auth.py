@@ -67,7 +67,7 @@ def grist_get(url : str, parameters: dict[str, Any] | None = None) -> dict[str, 
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def grist_put(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     print(f"Grist: Doing put on {url}")
@@ -99,7 +99,7 @@ def grist_put(url : str, body : dict[str, Any] | list[Any], query : dict[str, An
 
         raise Exception(message)
 
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def grist_post(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
@@ -129,7 +129,7 @@ def grist_post(url : str, body : dict[str, Any] | list[Any], query : dict[str, A
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def grist_delete(url : str, query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
@@ -158,7 +158,7 @@ def grist_delete(url : str, query : dict[str, Any] | None = None) -> dict[str, A
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def grist_patch(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
@@ -188,7 +188,7 @@ def grist_patch(url : str, body : dict[str, Any] | list[Any], query : dict[str, 
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def check_available() -> str | None:
     return keyring.get_password("grist", "member-admin-bot")

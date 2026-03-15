@@ -1,13 +1,8 @@
-import boto3
 from time import sleep
-import json
-import logging
-import sys
 
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 from .constants import user_pool_id as user_pool_id
-from .auth import get_cognito_credentials
 from typing import Any, cast
 from .client import cognito_client as cognito_client
 
@@ -96,7 +91,7 @@ def list_all_cognito_users() -> list[dict[str, Any]]:
     )
 
     while True:
-        cognito_users.extend(cast(list[dict[str, Any]], response["Users"]))
+        cognito_users.extend(cast("list[dict[str, Any]]", response["Users"]))
 
         paginationToken = response.get("PaginationToken")
         if paginationToken is None:

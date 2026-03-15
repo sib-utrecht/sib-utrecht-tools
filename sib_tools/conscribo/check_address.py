@@ -37,7 +37,7 @@ class AddressRecord(TypedDict):
 
 
 is_external_number: Callable[[object], bool] = cast(
-    Callable[[object], bool], _is_external_number
+    "Callable[[object], bool]", _is_external_number
 )
 
 
@@ -108,7 +108,7 @@ def get_for_postal_code(postal_code: str) -> AddressOutput:
             data: dict[str, object]
             if cached is not None:
                 if isinstance(cached, dict):
-                    data = cast(dict[str, object], cached)
+                    data = cast("dict[str, object]", cached)
                 else:
                     data = {}
             else:
@@ -120,7 +120,7 @@ def get_for_postal_code(postal_code: str) -> AddressOutput:
                     response.raise_for_status()
                     response_json = response.json()
                     if isinstance(response_json, dict):
-                        data = cast(dict[str, object], response_json)
+                        data = cast("dict[str, object]", response_json)
                     else:
                         data = {}
                     with open(
@@ -138,12 +138,12 @@ def get_for_postal_code(postal_code: str) -> AddressOutput:
                     )
             response_data = data.get("response")
             if isinstance(response_data, dict):
-                response_dict = cast(dict[str, object], response_data)
+                response_dict = cast("dict[str, object]", response_data)
                 raw_docs = response_dict.get("docs")
                 if isinstance(raw_docs, list):
                     docs = [
-                        cast(dict[str, object], raw_doc)
-                        for raw_doc in cast(list[object], raw_docs)
+                        cast("dict[str, object]", raw_doc)
+                        for raw_doc in cast("list[object]", raw_docs)
                         if isinstance(raw_doc, dict)
                     ]
 
@@ -245,7 +245,7 @@ def check_address(
     selector = "Unknown selector"
     other = relation.get("other")
     if isinstance(other, dict):
-        other_dict = cast(dict[str, object], other)
+        other_dict = cast("dict[str, object]", other)
         maybe_selector = other_dict.get("selector")
         if isinstance(maybe_selector, str):
             selector = maybe_selector
@@ -362,7 +362,7 @@ def check_addresses(
     logger.info("\x1b[94mPreparing...\x1b[0m")
     personen: list[Mapping[str, object]]
     if include_members:
-        personen = cast(list[Mapping[str, object]], list_relations_persoon())
+        personen = cast("list[Mapping[str, object]]", list_relations_persoon())
         logger.info(f"Fetched {len(personen)} persons from Conscribo.")
         logger.info("")
     else:
@@ -385,7 +385,7 @@ def check_addresses(
         logger.info("")
     if include_alumni:
         logger.info("Checking for alumni...")
-        alumni = cast(list[Mapping[str, object]], list_relations_alumnus())
+        alumni = cast("list[Mapping[str, object]]", list_relations_alumnus())
         logger.info(f"Fetched {len(alumni)} alumni from Conscribo.")    
         for relation in alumni:
             check_address(

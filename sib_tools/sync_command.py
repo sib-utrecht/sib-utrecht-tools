@@ -1,4 +1,3 @@
-import argparse
 from argparse import ArgumentParser, Namespace
 import logging
 import sys

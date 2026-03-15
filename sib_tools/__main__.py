@@ -13,8 +13,6 @@ from . import (
     auth_command,
 )
 from .command_exception import CommandException
-import os
-import keyring
 
 
 def main(args_list: list[str] | None = None) -> None:

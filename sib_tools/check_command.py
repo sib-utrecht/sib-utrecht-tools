@@ -1,12 +1,10 @@
-import argparse
 from argparse import ArgumentParser, Namespace
 import logging
 import sys
 import io
 from html import escape
 import re
-import importlib
-from datetime import datetime, timezone
+from datetime import datetime
 from .auth import check_available_auth
 
 def mail_results(
@@ -18,9 +16,7 @@ def mail_results(
     Mail the results using AWS SES.
     This function is a placeholder and should be implemented with actual mailing logic.
     """
-    import boto3
     from .aws.auth import get_ses_client
-    from .cognito import auth as cognito_auth
 
     if logger is None:
         logger = logging.getLogger()

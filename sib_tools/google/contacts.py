@@ -3,9 +3,7 @@ Sync Conscribo members to Google Contacts, only considering contacts with label 
 """
 
 from sib_tools.google.auth import get_credentials
-from googleapiclient.discovery import build
-import logging
-import json
+from googleapiclient.discovery import build, Resource
 from typing import Any, cast
 
 CONTACTS_SCOPES = [
@@ -85,7 +83,7 @@ def contact_to_canonical(contact: dict[str, Any]) -> dict[str, Any]:
         }
     }
 
-def get_contact_group(service: Any, group_name: str) -> dict[str, Any] | None:
+def get_contact_group(service: Resource, group_name: str) -> dict[str, Any] | None:
     """
     Get a contact group by name.
     """
@@ -93,7 +91,7 @@ def get_contact_group(service: Any, group_name: str) -> dict[str, Any] | None:
     groups = groups_result.get("contactGroups", [])
     for group in groups:
         if group.get("name") == group_name:
-            return cast(dict[str, Any], group)
+            return cast("dict[str, Any]", group)
     return None
 
 def list_google_contacts(label_name: str = GOOGLE_CONTACTS_MEMBER_LABEL, raw: bool = False, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:

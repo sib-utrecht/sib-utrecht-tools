@@ -50,7 +50,7 @@ class SNSMessageData(TypedDict, total=False):
 
 
 def process_email_typed(eml_path: str | Path, allow_old: bool = False) -> bool:
-    process_email_callable = cast(Callable[[str | Path, bool], bool], getattr(email_handler, "process_email"))
+    process_email_callable = cast("Callable[[str | Path, bool], bool]", getattr(email_handler, "process_email"))
     return process_email_callable(eml_path, allow_old)
 
 # Do credentials check print
@@ -61,7 +61,7 @@ check_available_auth(non_interactive=True)
 @app.route("/sns-incoming", methods=["POST"])
 def sns_incoming() -> tuple[str, int]:
     # SNS sends a JSON payload
-    data = cast(SNSMessageData, request.get_json(force=True))
+    data = cast("SNSMessageData", request.get_json(force=True))
     print(f"Received request. Length: {request.content_length} bytes")
     with open("sns_incoming.log", "a") as log_file:
         log_file.write(f"[{datetime.now(timezone.utc).astimezone().isoformat()}]\n")

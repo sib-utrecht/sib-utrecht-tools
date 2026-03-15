@@ -1,5 +1,4 @@
 import json
-import logging
 from argparse import ArgumentParser, Namespace
 from typing import Any
 
@@ -11,7 +10,7 @@ def _attributes_to_dict(attrs: list[Any]) -> dict[str, Any]:
     return {a.get("Name"): a.get("Value") for a in (attrs or [])}
 
 
-def _find_user_by_email(email: str) -> Any:
+def _find_user_by_email(email: str) -> dict[str, Any] | None:
     # Cognito filter syntax requires quoted value
     resp = cognito_client.list_users(UserPoolId=user_pool_id, Filter=f'email = "{email}"')
     users = resp.get("Users", [])
@@ -45,7 +44,7 @@ def _list_webauthn_credentials_with_token(access_token: str) -> list[dict[str, A
 
 def _get_user_auth_factors_with_token(access_token: str) -> dict[str, Any]:
     from typing import cast as _cast
-    return _cast(dict[str, Any], cognito_client.get_user_auth_factors(AccessToken=access_token))
+    return _cast("dict[str, Any]", cognito_client.get_user_auth_factors(AccessToken=access_token))
 
 
 def handle_auth_show(args: Namespace) -> None:

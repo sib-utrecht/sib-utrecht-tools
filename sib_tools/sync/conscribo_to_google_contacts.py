@@ -3,7 +3,7 @@ Sync Conscribo members to Google Contacts, only considering contacts with label 
 """
 
 from sib_tools.google.auth import get_credentials
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build, Resource
 import logging
 import json
 from time import sleep
@@ -132,7 +132,7 @@ def get_fresh_anon_number() -> int:
     return number
 
 
-def do_add(contact: dict[str, Any], logger: logging.Logger, dry_run: bool, service: Any, group: Any) -> None:
+def do_add(contact: dict[str, Any], logger: logging.Logger, dry_run: bool, service: Resource, group: Resource) -> None:
     today = datetime.now(tz=timezone.utc).astimezone()
     today_date = today.date().isoformat()
     this_year = today.year

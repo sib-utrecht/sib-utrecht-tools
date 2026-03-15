@@ -1,12 +1,8 @@
-import json
 from time import sleep
 from typing import Any
 
 from ..laposta.auth import (
     laposta_get,
-    laposta_post,
-    laposta_patch,
-    laposta_delete,
 )
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict

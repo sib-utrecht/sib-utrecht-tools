@@ -1,6 +1,6 @@
 import logging
 
-from ..cognito.list_users import list_all_cognito_users, cognito_user_to_canonical, list_cognito_users_canonical
+from ..cognito.list_users import list_cognito_users_canonical
 from ..sib_app.wp_old_users import fetch_users_by_wp_user_id, create_user, delete_user
 from ..utils import print_header
 from typing import Any

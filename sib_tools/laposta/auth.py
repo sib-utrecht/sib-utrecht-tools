@@ -60,7 +60,7 @@ def laposta_get(url : str, parameters: dict[str, Any] | None = None) -> dict[str
             ""
         ),
     )
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def make_form_flattened(body : dict[str, Any]) -> dict[str, Any]:
     """
@@ -70,7 +70,7 @@ def make_form_flattened(body : dict[str, Any]) -> dict[str, Any]:
     """
     body_flat: dict[str, Any] = {}
 
-    def insert_value(key: str, value: Any) -> None:
+    def insert_value(key: str, value: str | int | float | bool | list[Any] | dict[str, Any] | None) -> None:
         nonlocal body_flat
 
         if isinstance(value, list):
@@ -109,7 +109,7 @@ def laposta_post(url : str, body : dict[str, Any]) -> dict[str, Any]:
         ),
         data=body_flat,
     )
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def laposta_delete(url : str) -> dict[str, Any]:
     api_key = get_laposta_api_key()
@@ -121,7 +121,7 @@ def laposta_delete(url : str) -> dict[str, Any]:
             ""
         ),
     )
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def laposta_patch(url : str, body : dict[str, Any]) -> dict[str, Any]:
     api_key = get_laposta_api_key()
@@ -138,7 +138,7 @@ def laposta_patch(url : str, body : dict[str, Any]) -> dict[str, Any]:
         ),
         data=body,
     )
-    return cast(dict[str, Any], response.json())
+    return cast("dict[str, Any]", response.json())
 
 def check_available() -> str | None:
     return keyring.get_password("laposta", "api-key")

@@ -110,7 +110,7 @@ def sync_conscribo_to_google_groups(dry_run: bool = True, group: str = "alumni",
     if group == "alumni":
         logger.info("Syncing alumni emails:")
         alumni = list_relations_active_alumni()
-        emails: set[str] = cast(set[str], set(a.get("email") for a in alumni) - {"", None})
+        emails: set[str] = cast("set[str]", set(a.get("email") for a in alumni) - {"", None})
         return sync_group_to_emails("alumni@sib-utrecht.nl", emails, dry_run=dry_run, logger=logger)
     elif group == "members":
         logger.info("Syncing members emails:")
@@ -128,7 +128,7 @@ def sync_conscribo_to_google_groups(dry_run: bool = True, group: str = "alumni",
 
         logger.info(f"Excluding {prev_members_length - next_members_length} members who aren't members yet (by their Conscribo membership_start field).")
 
-        member_emails: set[str] = cast(set[str], set(a.get("email") for a in members) - {"", None})
+        member_emails: set[str] = cast("set[str]", set(a.get("email") for a in members) - {"", None})
         return sync_group_to_emails("members@sib-utrecht.nl", member_emails, dry_run=dry_run, logger=logger)
     else:
         raise ValueError(f"Unknown group: {group}")

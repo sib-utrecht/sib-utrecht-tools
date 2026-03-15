@@ -222,7 +222,7 @@ def flatten_dict(a: dict[str, Any]) -> dict[str, Any]:
 
     for key, value in a.items():
         if isinstance(value, dict):
-            nested = cast(dict[str, Any], value)
+            nested = cast("dict[str, Any]", value)
             for sub_key, sub_value in flatten_dict(nested).items():
                 result[f"{key}.{sub_key}"] = sub_value
         else:
@@ -233,7 +233,7 @@ def flatten_dict(a: dict[str, Any]) -> dict[str, Any]:
 def _ensure_dict(container: dict[str, Any], key: str) -> dict[str, Any]:
     existing = container.get(key)
     if isinstance(existing, dict):
-        return cast(dict[str, Any], existing)
+        return cast("dict[str, Any]", existing)
 
     created: dict[str, Any] = {}
     container[key] = created

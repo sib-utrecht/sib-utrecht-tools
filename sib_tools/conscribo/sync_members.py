@@ -1,7 +1,4 @@
 # import keyring.credentials
-import requests
-import json
-import keyring
 # from getpass import getpass
 # import canonical_key
 # from . import auth
@@ -9,10 +6,8 @@ import keyring
 # from ..grist.auth import grist_post, grist_patch
 from .relations import (
     list_relations_persoon,
-    update_relation,
 )
-from time import sleep
-from ..grist.update_relation_source import set_relation_records_as_source, relations_doc
+from ..grist.update_relation_source import set_relation_records_as_source
 
 
 relations = list_relations_persoon()

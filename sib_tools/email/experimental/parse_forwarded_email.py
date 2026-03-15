@@ -1,6 +1,6 @@
 # This was an experimental script whose development has been suspended.
 
-def process_deregistration_email(dkim_result: DKIMDetailsVerified):
+def process_deregistration_email(dkim_result: DKIMDetailsVerified) -> bool | None:
     html_content, text_content = (
         get_html_and_plain_from_mail_message(dkim_result.email)
     )

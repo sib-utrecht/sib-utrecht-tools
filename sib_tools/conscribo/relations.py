@@ -1,14 +1,9 @@
 import logging
-import keyring.credentials
-import requests
 import json
-import keyring
-from getpass import getpass
 from typing import Any
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 
-from .constants import api_url
 from .auth import conscribo_post, conscribo_get, conscribo_patch
 
 ENTITY_TYPE_PERSON = "persoon"

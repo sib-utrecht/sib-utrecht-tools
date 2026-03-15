@@ -1,12 +1,11 @@
 import sys
-import logging
 import json
 from argparse import ArgumentParser, Namespace
 from datetime import datetime, timezone, timedelta
+from email.message import Message
 from typing import Any
 
-from .extract_form_fields import extract_fields_from_mail, extract_fields_from_mail_message, form_to_canonical
-from .dkim_verify import DKIMDetailsVerified, verify_dkim_signature
+from .dkim_verify import verify_dkim_signature
 from dataclasses import asdict
 from .registration_email import logger, process_registration_email, process_deregistration_email
 
@@ -215,7 +214,7 @@ def process_email(eml_path: str, allow_old: bool = False) -> bool:
         sys.exit(1)
 
 
-def extract_receiver_address(message: Any) -> str | None:
+def extract_receiver_address(message: Message) -> str | None:
     """
     Extract the e-mail address to which the e-mail was delivered.
     Returns the first address found in the 'Delivered-To' header, or, if absent, attempts to extract from the 'Received' headers,

@@ -70,7 +70,7 @@ def validate_session(session_id: str) -> bool | int:
             return False
 
         secsToLogout = res.json().get("secsToLogout")
-        return cast(bool | int, secsToLogout)
+        return cast("bool | int", secsToLogout)
     
     except Exception as e:
         logger.error(f"Error validating session: {e}")
@@ -106,11 +106,11 @@ def authenticate() -> str:
     logger.debug(f"Auth session ok: {auth_session_response.ok}")
 
     auth_session = auth_session_response.json()
-    auth_session_data: dict[str, Any] = cast(dict[str, Any], auth_session) if isinstance(auth_session, dict) else {}
+    auth_session_data: dict[str, Any] = cast("dict[str, Any]", auth_session) if isinstance(auth_session, dict) else {}
 
     response_messages_obj = auth_session_data.get("responseMessages")
     if isinstance(response_messages_obj, dict):
-        response_messages = cast(dict[str, Any], response_messages_obj)
+        response_messages = cast("dict[str, Any]", response_messages_obj)
         for k, v in response_messages.items():
             if isinstance(v, list):
                 messages = list(v)
@@ -184,7 +184,7 @@ def conscribo_get(url: str) -> dict[str, Any]:
     if not res.ok:
         raise ApiRequestError(f"Failed to get {url}: {res.text}", status_code=res.status_code)
 
-    return cast(dict[str, Any], res.json())
+    return cast("dict[str, Any]", res.json())
 
 def conscribo_delete(url: str, params: None | Mapping[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
@@ -201,7 +201,7 @@ def conscribo_delete(url: str, params: None | Mapping[str, Any]) -> dict[str, An
     if not res.ok:
         raise ApiRequestError(f"Failed to delete {url}: {res.text}", status_code=res.status_code)
 
-    return cast(dict[str, Any], res.json())
+    return cast("dict[str, Any]", res.json())
 
 def conscribo_post(url: str, json: dict[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
@@ -218,13 +218,13 @@ def conscribo_post(url: str, json: dict[str, Any]) -> dict[str, Any]:
     if not res.ok:
         raise ApiRequestError(f"Failed to post to {url}: {res.text}", status_code=res.status_code)
 
-    return cast(dict[str, Any], res.json())
+    return cast("dict[str, Any]", res.json())
 
 
 def conscribo_patch(url: str, json: dict[str, Any]) -> dict[str, Any]:
     session_id = get_conscribo_session_id()
 
-    return cast(dict[str, Any], requests.patch(
+    return cast("dict[str, Any]", requests.patch(
         f"{api_url}/{url.removeprefix('/')}",
         headers={
             "X-Conscribo-SessionId": session_id,

@@ -8,7 +8,6 @@ if TYPE_CHECKING:
 from sib_tools.conscribo import groups as conscribo_groups
 
 from ..conscribo.relations import list_relations_active_members
-from ..cognito import list_users as cognito_list_users
 from ..cognito.client import cognito_client as _cognito_client_raw
 from ..cognito.list_users import (
     list_all_cognito_users,
@@ -32,9 +31,9 @@ class CognitoUserPayload(TypedDict):
     Attributes: list[CognitoAttribute]
 
 
-find_group_id_by_name = cast(Callable[[str], int | None], conscribo_groups.find_group_id_by_name)
+find_group_id_by_name = cast("Callable[[str], int | None]", conscribo_groups.find_group_id_by_name)
 get_group_members_cached = cast(
-    Callable[[str | int], set[str]],
+    "Callable[[str | int], set[str]]",
     getattr(conscribo_groups, "get_group_members_cached"),
 )
 cognito_client: "CognitoIdentityProviderClient" = _cognito_client_raw
@@ -187,14 +186,14 @@ def sync_conscribo_to_cognito(
             if cognito_user is None:
                 continue
 
-            old_payload = cast(CognitoUserPayload, canonical_to_cognito_user(cognito_user))
+            old_payload = cast("CognitoUserPayload", canonical_to_cognito_user(cognito_user))
             old_attributes = old_payload["Attributes"]
             old_attribute_values_by_name = {
                 attr["Name"]: attr["Value"] for attr in old_attributes
             }
 
             # Update user attributes in Cognito based on Conscribo data
-            new_payload = cast(CognitoUserPayload, canonical_to_cognito_user(conscribo_user))
+            new_payload = cast("CognitoUserPayload", canonical_to_cognito_user(conscribo_user))
             new_attributes = new_payload["Attributes"]
 
             update_attributes: list[CognitoAttribute] = []

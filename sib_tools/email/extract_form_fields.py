@@ -1,10 +1,9 @@
-import json
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from email import message_from_file
 import re
 import uuid
-from email.message import EmailMessage, Message
+from email.message import Message
 from sib_tools.canonical.canonical_key import get_register_form_to_key
 from typing import Any
 
