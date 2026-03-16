@@ -57,12 +57,12 @@ class ConscriboTransaction(TypedDict, total=False):
     date: str  # YYYY-MM-DD
     description: str
     transactionNr: str
-    transactionRows: dict[str, ConscriboTransactionRow]
+    transactionRows: list[ConscriboTransactionRow]
 
 
 class ConscriboTransactionsResponse(TypedDict):
-    transactions: dict[str, ConscriboTransaction]
-    nrTransactions: int
+    transactions: list[ConscriboTransaction]
+    nrTransactions: int | str
     status: NotRequired[int]
     responseMessages: NotRequired[ConscriboResponseMessages]
 

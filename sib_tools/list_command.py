@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
 from sib_tools.conscribo.relations import list_relations_alumnus, list_relations_members, list_relations_active_members
 import json
-import beaupy
+import beaupy  # pyright: ignore[reportMissingTypeStubs]
 from unidecode import unidecode
 from time import sleep
 from datetime import datetime, date, timezone
@@ -94,7 +94,7 @@ def handle_list_education(args: Namespace) -> None:
 
     if args.raw:
         # Print raw JSON output
-        result = {
+        result: dict[str, int | dict[str, int]] = {
             "total_members": total_members,
             "unique_institutions": len(education_counts),
             "institution_counts": dict(sorted_education),
@@ -152,7 +152,7 @@ def handle_list_education(args: Namespace) -> None:
             )
             
             # Print the CSV data
-            institution_group = None
+            institution_group: str | None = None
             count_for_institution = 0
 
             for row in members_with_institutions:
@@ -249,23 +249,28 @@ def handle_list_balance_diff(args: Namespace) -> None:
             account_id,
             limit=limit,
             offset=offset,
-        )["transactions"].values()
+        )["transactions"]
 
         for tx in transactions:
             tx: ConscriboTransaction
 
-            for rowId, row in tx.get("transactionRows", {}).items():
+            for row in tx.get("transactionRows", []):
                 row: ConscriboTransactionRow
-                account = row["accountNr"]
+                account = row.get("accountNr")
+                side = row.get("side")
+                amount = row.get("amount")
 
-                if row["side"] == "debet":
-                    debet_per_account[account] = debet_per_account.get(
-                        account, 0
-                    ) + float(row["amount"])
-                elif row["side"] == "credit":
+                if account is None or side is None or amount is None:
+                    continue
+
+                if side == "debet":
+                    debet_per_account[account] = debet_per_account.get(account, 0) + float(
+                        amount
+                    )
+                elif side == "credit":
                     credit_per_account[account] = credit_per_account.get(
                         account, 0
-                    ) + float(row["amount"])
+                    ) + float(amount)
 
         if len(transactions) < limit:
             print("No more transactions available.")
@@ -313,7 +318,7 @@ def handle_list_balance_diff(args: Namespace) -> None:
     # Print a tree with the details
     tree = build_account_options(accounts)
 
-    included_accounts = set()
+    included_accounts: set[str] = set()
     for accountNr, label, prefix in tree:
         credit = credit_per_account.get(accountNr, 0)
         debet = debet_per_account.get(accountNr, 0)
@@ -421,7 +426,10 @@ def handle_list_sib_app_users(args: Namespace) -> None:
 
 
 def add_parse_args(parser: ArgumentParser) -> ArgumentParser:
-    parser.set_defaults(func=lambda args: parser.print_help())
+    def _print_help(_: Namespace) -> None:
+        parser.print_help()
+
+    parser.set_defaults(func=_print_help)
     subparser = parser.add_subparsers(
         description="What resource to list members from", dest="resource"
     )
