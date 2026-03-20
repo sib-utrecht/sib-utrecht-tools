@@ -1,5 +1,6 @@
 from typing import Any
 from .auth import conscribo_get
+from .types import ConscriboEntityGroupsResponse
 from ..grist.auth import grist_get, relations_doc
 # from ..grist.list import relations_doc
 from uuid import uuid4
@@ -12,9 +13,7 @@ records : list[dict[str, Any]] = grist_get(
     f"/docs/{relations_doc}/tables/{table_name}/records")["records"]
 
 
-ans = conscribo_get(
-    "/relations/groups/"
-)
+ans = conscribo_get("/relations/groups/", return_type=ConscriboEntityGroupsResponse)
 entity_groups = ans["entityGroups"]
 
 
@@ -33,7 +32,7 @@ for group in entity_groups:
     group_name = group["name"]
 
     for member in group["members"]:
-        entity_id = member["entity_id"]
+        entity_id = member["entityId"]
 
         existing_record = lookup_dict.get(f"{group_id}:{entity_id}", None)
 

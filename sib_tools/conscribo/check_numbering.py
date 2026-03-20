@@ -22,7 +22,7 @@ def check_relation_number_correct(relation: dict[str, Any], logger: 'Logger') ->
     overige_externen_voor_incassos = memberGroups.overige_externen_voor_incassos
 
     expected_member = int(relation["conscribo_id"]) < 2000
-    external_groups = []
+    external_groups: list[str] = []
     if conscribo_id in externen:
         external_groups.append("externen")
     if conscribo_id in overige_externen_voor_incassos:

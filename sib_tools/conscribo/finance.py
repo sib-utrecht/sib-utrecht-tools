@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any
 
 from .auth import conscribo_post, conscribo_get
 from .types import ConscriboAccountsResponse, ConscriboTransactionsResponse
@@ -14,7 +14,7 @@ def list_conscribo_accounts(date: str | None = None) -> ConscriboAccountsRespons
     if date is None:
         date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    return cast(ConscriboAccountsResponse, conscribo_get(f"/financial/accounts/?date={date}"))
+    return conscribo_get(f"/financial/accounts/?date={date}", return_type=ConscriboAccountsResponse)
 
 
 def list_conscribo_transactions(
@@ -44,4 +44,4 @@ def list_conscribo_transactions(
     if limit is not None:
         payload["limit"] = limit
 
-    return cast(ConscriboTransactionsResponse, conscribo_post("/financial/transactions/filters/", json=payload))
+    return conscribo_post("/financial/transactions/filters/", json=payload, return_type=ConscriboTransactionsResponse)

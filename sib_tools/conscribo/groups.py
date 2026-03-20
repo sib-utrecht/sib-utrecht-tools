@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 from dataclasses import dataclass
 
 from .auth import conscribo_post, conscribo_get, conscribo_delete
@@ -25,7 +25,7 @@ def get_group_members_cached(group_id: GroupId) -> set[str]:
 
 
 def get_group_members(group_id: GroupId) -> set[str]:
-    ans = cast(ConscriboEntityGroupsResponse, conscribo_get(f"/relations/groups/{group_id}/"))
+    ans = conscribo_get(f"/relations/groups/{group_id}/", return_type=ConscriboEntityGroupsResponse)
 
     if len(ans["entityGroups"]) != 1:
         print(f"Error: {ans}")
@@ -62,7 +62,7 @@ def get_block_email_members() -> set[str]:
 def list_entity_groups() -> list[ConscriboEntityGroup]:
     global entity_groups
     if entity_groups is None:
-        ans = cast(ConscriboEntityGroupsResponse, conscribo_get("/relations/groups/"))
+        ans = conscribo_get("/relations/groups/", return_type=ConscriboEntityGroupsResponse)
         entity_groups = ans["entityGroups"]
 
     assert entity_groups is not None
@@ -79,7 +79,7 @@ def list_entity_groups_by_name() -> dict[str, ConscriboEntityGroup]:
 def find_group_id_by_name(name: str) -> str | None:
     def normalize(name : str) -> str:
         return name.lower().replace(" ", "_").replace("-", "_")
-    
+
     groups = {
         normalize(group["name"]): group for group in list_entity_groups()
     }
@@ -91,12 +91,10 @@ def add_relations_to_group(
     group_id: GroupId,
     user_ids: list[str],
 ) -> ConscriboGroupMembersOperationResponse:
-    return cast(
-        ConscriboGroupMembersOperationResponse,
-        conscribo_post(
-            f"/relations/groups/{group_id}/members/",
-            json={"relationIds": user_ids},
-        ),
+    return conscribo_post(
+        f"/relations/groups/{group_id}/members/",
+        json={"relationIds": user_ids},
+        return_type=ConscriboGroupMembersOperationResponse,
     )
 
 
@@ -104,12 +102,10 @@ def remove_relations_from_group(
     group_id: GroupId,
     user_ids: list[str],
 ) -> ConscriboGroupMembersOperationResponse:
-    return cast(
-        ConscriboGroupMembersOperationResponse,
-        conscribo_delete(
-            f"/relations/groups/{group_id}/members/",
-            params={"relationIds": user_ids},
-        ),
+    return conscribo_delete(
+        f"/relations/groups/{group_id}/members/",
+        params={"relationIds": user_ids},
+        return_type=ConscriboGroupMembersOperationResponse,
     )
 
 
@@ -120,12 +116,12 @@ def set_group_members(
 ) -> None:
     """
     Set the members of a Conscribo group based on a list of canonical members.
-    
+
     Args:
         group_id: The ID of the Conscribo group
         canonical_members: List of canonical member dictionaries
         dry_run: If True, only show what would be changed without making actual changes
-    
+
     This function will:
     1. Get the current group members
     2. Extract conscribo_ids from the canonical members
@@ -133,30 +129,30 @@ def set_group_members(
     4. Remove members that shouldn't be in the group
     """
     print(f"Setting members for group {group_id}")
-    
+
     # Get current group members
     current_members = get_group_members_cached(group_id)
     print(f"Current group has {len(current_members)} members")
-    
+
     # Extract conscribo_ids from canonical members
     desired_member_ids: set[str] = set()
     for member in canonical_members:
         conscribo_id = member.get("conscribo_id")
         if conscribo_id:
             desired_member_ids.add(str(conscribo_id))
-    
+
     print(f"Target group should have {len(desired_member_ids)} members")
-    
+
     # Determine what changes need to be made
     members_to_add = desired_member_ids - current_members
     members_to_remove = current_members - desired_member_ids
-    
+
     print(f"Need to add {len(members_to_add)} members")
     print(f"Need to remove {len(members_to_remove)} members")
 
     print(f"Adding members: {list(members_to_add)}")
     print(f"Removing members: {list(members_to_remove)}")
-    
+
     if dry_run:
         print("DRY RUN MODE - No actual changes will be made")
         if members_to_add:
@@ -164,20 +160,18 @@ def set_group_members(
         if members_to_remove:
             print(f"Would remove members: {list(members_to_remove)}")
         return
-    
+
     # Add missing members
     if members_to_add:
         print(f"Adding {len(members_to_add)} members to group {group_id}")
         add_relations_to_group(group_id, list(members_to_add))
-    
+
     # Remove extra members
     if members_to_remove:
         print(f"Removing {len(members_to_remove)} members from group {group_id}")
         remove_relations_from_group(group_id, list(members_to_remove))
-    
+
     if not members_to_add and not members_to_remove:
         print("Group membership is already up to date")
     else:
         print(f"Group {group_id} membership updated successfully")
-
-

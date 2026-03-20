@@ -4,11 +4,11 @@ import re
 import requests
 import os
 import json
-from typing import TYPE_CHECKING, Callable, Mapping, TypedDict, cast
+from typing import TYPE_CHECKING, Callable, Mapping, TypedDict
 
 from .relations import list_relations_persoon, list_relations_alumnus
 from dataclasses import dataclass
-from .check_numbering import is_external_number as _is_external_number
+from .check_numbering import is_external_number
 from .file_cache import file_cache, make_cache_key
 
 if TYPE_CHECKING:
@@ -34,11 +34,6 @@ class AddressRecord(TypedDict):
     street_name: str
     rdf: str
     details: str
-
-
-is_external_number: Callable[[object], bool] = cast(
-    "Callable[[object], bool]", _is_external_number
-)
 
 
 def _as_str(value: object) -> str | None:
@@ -108,7 +103,7 @@ def get_for_postal_code(postal_code: str) -> AddressOutput:
             data: dict[str, object]
             if cached is not None:
                 if isinstance(cached, dict):
-                    data = cast("dict[str, object]", cached)
+                    data = cached
                 else:
                     data = {}
             else:
@@ -116,11 +111,11 @@ def get_for_postal_code(postal_code: str) -> AddressOutput:
                     logging.debug(
                         f"Fetching postal code data for {postal_code} from PDOK API"
                     )
-                    response = requests.get(url)
+                    response = requests.get(url, timeout=10)
                     response.raise_for_status()
                     response_json = response.json()
                     if isinstance(response_json, dict):
-                        data = cast("dict[str, object]", response_json)
+                        data = response_json
                     else:
                         data = {}
                     with open(
@@ -138,12 +133,11 @@ def get_for_postal_code(postal_code: str) -> AddressOutput:
                     )
             response_data = data.get("response")
             if isinstance(response_data, dict):
-                response_dict = cast("dict[str, object]", response_data)
-                raw_docs = response_dict.get("docs")
+                raw_docs = response_data.get("docs")
                 if isinstance(raw_docs, list):
                     docs = [
-                        cast("dict[str, object]", raw_doc)
-                        for raw_doc in cast("list[object]", raw_docs)
+                        raw_doc
+                        for raw_doc in raw_docs
                         if isinstance(raw_doc, dict)
                     ]
 
@@ -245,8 +239,7 @@ def check_address(
     selector = "Unknown selector"
     other = relation.get("other")
     if isinstance(other, dict):
-        other_dict = cast("dict[str, object]", other)
-        maybe_selector = other_dict.get("selector")
+        maybe_selector = other.get("selector")
         if isinstance(maybe_selector, str):
             selector = maybe_selector
     selector_colored = color_selector(selector)
@@ -360,9 +353,9 @@ def check_addresses(
     logger: "Logger", include_alumni: bool = True, include_members: bool = True
 ) -> None:
     logger.info("\x1b[94mPreparing...\x1b[0m")
-    personen: list[Mapping[str, object]]
+    personen: list[dict[str, object]]
     if include_members:
-        personen = cast("list[Mapping[str, object]]", list_relations_persoon())
+        personen = list_relations_persoon()
         logger.info(f"Fetched {len(personen)} persons from Conscribo.")
         logger.info("")
     else:
@@ -385,8 +378,8 @@ def check_addresses(
         logger.info("")
     if include_alumni:
         logger.info("Checking for alumni...")
-        alumni = cast("list[Mapping[str, object]]", list_relations_alumnus())
-        logger.info(f"Fetched {len(alumni)} alumni from Conscribo.")    
+        alumni = list_relations_alumnus()
+        logger.info(f"Fetched {len(alumni)} alumni from Conscribo.")
         for relation in alumni:
             check_address(
                 relation,

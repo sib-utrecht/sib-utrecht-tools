@@ -7,8 +7,9 @@ import keyring  # noqa: E402
 import keyring.errors  # noqa: E402
 from datetime import datetime, timedelta  # noqa: E402
 from getpass import getpass  # noqa: E402
-from typing import Any, Mapping, cast  # noqa: E402
+from typing import Any, Mapping, TypeVar, cast  # noqa: E402
 from .constants import api_url, username  # noqa: E402
+from .types_sessions import ConscriboSessionResponse, ConscriboSessionStatusResponse  # noqa: E402
 
 
 session_id: str | None = None
@@ -35,6 +36,9 @@ class ApiRequestError(Exception):
     def __init__(self, message: str, status_code: int | None = None) -> None:
         super().__init__(message)
         self.status_code = status_code
+
+
+_T = TypeVar("_T")
 
 
 def prompt_credentials() -> None:
@@ -69,9 +73,9 @@ def validate_session(session_id: str) -> bool | int:
             logger.error(f"Failed to validate session: {res.text}")
             return False
 
-        secsToLogout = res.json().get("secsToLogout")
-        return cast("bool | int", secsToLogout)
-    
+        data: ConscriboSessionStatusResponse = res.json()
+        return data.get("secsToLogout", False)
+
     except Exception as e:
         logger.error(f"Error validating session: {e}")
         return False
@@ -105,17 +109,13 @@ def authenticate() -> str:
 
     logger.debug(f"Auth session ok: {auth_session_response.ok}")
 
-    auth_session = auth_session_response.json()
-    auth_session_data: dict[str, Any] = cast("dict[str, Any]", auth_session) if isinstance(auth_session, dict) else {}
+    auth_session_data: ConscriboSessionResponse = auth_session_response.json()
 
-    response_messages_obj = auth_session_data.get("responseMessages")
-    if isinstance(response_messages_obj, dict):
-        response_messages = cast("dict[str, Any]", response_messages_obj)
-        for k, v in response_messages.items():
-            if isinstance(v, list):
-                messages = list(v)
-                for message in messages:
-                    logger.info(f"{k}: {json.dumps(message)}")
+    response_messages = auth_session_data.get("responseMessages")
+    if response_messages is not None:
+        for k in ("error", "warning", "info"):
+            for message in response_messages[k]:
+                logger.info(f"{k}: {json.dumps(message)}")
 
     status = auth_session_data.get("status")
     if not auth_session_response.ok or status != 200:
@@ -124,7 +124,7 @@ def authenticate() -> str:
         )
         raise Exception("Failed to authenticate")
 
-    auth_session_id = auth_session_data.get("sessionId")
+    auth_session_id: str | None = auth_session_data.get("sessionId")
     if not isinstance(auth_session_id, str):
         raise Exception("Failed to authenticate")
     session_id = auth_session_id
@@ -170,7 +170,7 @@ def get_conscribo_session_id() -> str:
     return session_id
 
 
-def conscribo_get(url: str) -> dict[str, Any]:
+def conscribo_get(url: str, return_type: type[_T]) -> _T:
     session_id = get_conscribo_session_id()
 
     res = requests.get(
@@ -184,9 +184,9 @@ def conscribo_get(url: str) -> dict[str, Any]:
     if not res.ok:
         raise ApiRequestError(f"Failed to get {url}: {res.text}", status_code=res.status_code)
 
-    return cast("dict[str, Any]", res.json())
+    return cast(_T, res.json())
 
-def conscribo_delete(url: str, params: None | Mapping[str, Any]) -> dict[str, Any]:
+def conscribo_delete(url: str, params: None | Mapping[str, Any], return_type: type[_T]) -> _T:
     session_id = get_conscribo_session_id()
 
     res = requests.delete(
@@ -201,9 +201,9 @@ def conscribo_delete(url: str, params: None | Mapping[str, Any]) -> dict[str, An
     if not res.ok:
         raise ApiRequestError(f"Failed to delete {url}: {res.text}", status_code=res.status_code)
 
-    return cast("dict[str, Any]", res.json())
+    return cast(_T, res.json())
 
-def conscribo_post(url: str, json: dict[str, Any]) -> dict[str, Any]:
+def conscribo_post(url: str, json: Mapping[str, Any], return_type: type[_T]) -> _T:
     session_id = get_conscribo_session_id()
 
     res = requests.post(
@@ -214,24 +214,29 @@ def conscribo_post(url: str, json: dict[str, Any]) -> dict[str, Any]:
         },
         json=json,
     )
-    
+
     if not res.ok:
         raise ApiRequestError(f"Failed to post to {url}: {res.text}", status_code=res.status_code)
 
-    return cast("dict[str, Any]", res.json())
+    return cast(_T, res.json())
 
 
-def conscribo_patch(url: str, json: dict[str, Any]) -> dict[str, Any]:
+def conscribo_patch(url: str, json: Mapping[str, Any], return_type: type[_T]) -> _T:
     session_id = get_conscribo_session_id()
 
-    return cast("dict[str, Any]", requests.patch(
+    res = requests.patch(
         f"{api_url}/{url.removeprefix('/')}",
         headers={
             "X-Conscribo-SessionId": session_id,
             "X-Conscribo-API-Version": "1.20240610",
         },
         json=json,
-    ).json())
+    )
+
+    if not res.ok:
+        raise ApiRequestError(f"Failed to patch {url}: {res.text}", status_code=res.status_code)
+
+    return cast(_T, res.json())
 
 
 def check_available() -> str | None:
@@ -243,18 +248,18 @@ def show() -> None:
         if not pwd or len(pwd) < 4:
             return "****"
         return pwd[:2] + "*" * (len(pwd) - 2)
-    
+
     password = os.environ.get("CONSCRIBO_PASSWORD") or keyring.get_password("sib-conscribo", "member-admin-bot")
     user = os.environ.get("CONSCRIBO_USERNAME", username)
-    
+
     print("\n=== Conscribo Credentials ===")
     print(f"Username: {user}")
     print(f"API URL: {api_url}")
-    
+
     if password:
         print(f"Password: {redact_password(password)}")
         print(f"Source: {'Environment Variable' if os.environ.get('CONSCRIBO_PASSWORD') else 'Keyring'}")
-        
+
         # Try to validate session
         global session_id
         if session_id:

@@ -2,7 +2,7 @@ import email.utils
 import re
 from dataclasses import dataclass
 import email
-from dkim import DKIM, DKIMException
+from dkim import DKIM, DKIMException # pyright: ignore[reportMissingTypeStubs]
 from email.message import EmailMessage
 from email.headerregistry import Address
 from email import policy

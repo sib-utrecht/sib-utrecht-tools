@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import Any, cast
+from typing import Any
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 
@@ -31,15 +31,13 @@ def list_filter_raw(fieldNames: list[str], filters: list[dict[str, Any]]) -> Con
 
     See https://www.conscribo.nl/APIDocs/#?route=post-/relations/filters/
     """
-    return cast(
-        ConscriboRelationFiltersResponse,
-        conscribo_post(
-            "/relations/filters/",
-            json={
-                "requestedFields": fieldNames,
-                "filters": filters,
-            },
-        ),
+    return conscribo_post(
+        "/relations/filters/",
+        json={
+            "requestedFields": fieldNames,
+            "filters": filters,
+        },
+        return_type=ConscriboRelationFiltersResponse,
     )
 
 def relation_to_canonical(relation: dict[str, Any]) -> dict[str, Any]:
@@ -125,6 +123,7 @@ def update_relation(canonical: dict[str, Any]) -> None:
         json={
             "fields": conscribo_relation,
         },
+        return_type=ConscriboCreateRelationResponse,
     )
 
     print("\n\n")
@@ -176,15 +175,13 @@ def create_relation_member(canonical: dict[str, Any], logger: logging.Logger) ->
 
     logger.info(f"Creating Conscribo relation with\n{json.dumps(conscribo_relation, indent=4)}")
 
-    ans = cast(
-        ConscriboCreateRelationResponse,
-        conscribo_post(
-            "/relations/",
-            json={
-                "entityType": canonical.get("conscribo_entity_type", ENTITY_TYPE_PERSON),
-                "fields": conscribo_relation,
-            },
-        ),
+    ans = conscribo_post(
+        "/relations/",
+        json={
+            "entityType": canonical.get("conscribo_entity_type", ENTITY_TYPE_PERSON),
+            "fields": conscribo_relation,
+        },
+        return_type=ConscriboCreateRelationResponse,
     )
 
     conscribo_id = ans["code"]
@@ -194,22 +191,20 @@ def create_relation_member(canonical: dict[str, Any], logger: logging.Logger) ->
 
 
 def list_relations_persoon() -> list[dict[str, Any]]:
-    field_defs_response = cast(
-        ConscriboFieldDefinitionsResponse,
-        conscribo_get("/relations/fieldDefinitions/persoon"),
+    field_defs_response = conscribo_get(
+        "/relations/fieldDefinitions/persoon",
+        return_type=ConscriboFieldDefinitionsResponse,
     )
     fieldNames = [field["fieldName"] for field in field_defs_response["fields"]]
 
-    result = cast(
-        ConscriboRelationFiltersResponse,
-        conscribo_post(
-            "/relations/filters/",
-            json={
-                "entityType": "persoon",
-                "requestedFields": fieldNames,
-                "filters": [],
-            },
-        ),
+    result = conscribo_post(
+        "/relations/filters/",
+        json={
+            "entityType": "persoon",
+            "requestedFields": fieldNames,
+            "filters": [],
+        },
+        return_type=ConscriboRelationFiltersResponse,
     )
 
     return [relation_to_canonical(relation) for relation in result["relations"].values()]
@@ -224,22 +219,20 @@ def list_relations_members() -> list[dict[str, Any]]:
 
 
 def list_relations_alumnus() -> list[dict[str, Any]]:
-    field_defs_response = cast(
-        ConscriboFieldDefinitionsResponse,
-        conscribo_get("/relations/fieldDefinitions/re__nisten"),
+    field_defs_response = conscribo_get(
+        "/relations/fieldDefinitions/re__nisten",
+        return_type=ConscriboFieldDefinitionsResponse,
     )
     fieldNames = [field["fieldName"] for field in field_defs_response["fields"]]
 
-    result = cast(
-        ConscriboRelationFiltersResponse,
-        conscribo_post(
-            "/relations/filters/",
-            json={
-                "entityType": "re__nisten",
-                "requestedFields": fieldNames,
-                "filters": [],
-            },
-        ),
+    result = conscribo_post(
+        "/relations/filters/",
+        json={
+            "entityType": "re__nisten",
+            "requestedFields": fieldNames,
+            "filters": [],
+        },
+        return_type=ConscriboRelationFiltersResponse,
     )
 
     return [
