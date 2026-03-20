@@ -1,18 +1,19 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-import keyring.credentials
-import requests
-import json
-import keyring
-from getpass import getpass
-import urllib.parse
-from .constants import relations_doc, api_url
+import requests  # noqa: E402
+import json  # noqa: E402
+import keyring  # noqa: E402
+from keyring.errors import PasswordDeleteError  # noqa: E402
+from getpass import getpass  # noqa: E402
+import urllib.parse  # noqa: E402
+from typing import Any, cast  # noqa: E402
+from .constants import relations_doc as relations_doc, api_url  # noqa: E402
 
 grist_api_key = None
 
-def prompt_credentials():
-    password = getpass(f"API-key for Grist: ")
+def prompt_credentials() -> None:
+    password = getpass("API-key for Grist: ")
 
     keyring.set_password("grist", "member-admin-bot", password)
 
@@ -40,12 +41,12 @@ def get_grist_api_key() -> str:
 
     return grist_api_key
 
-def grist_get(url : str, parameters = None) -> dict:
+def grist_get(url : str, parameters: dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
 
     if parameters is not None:
-        parameters = urllib.parse.urlencode(parameters)
-        url += "?" + parameters
+        encoded_parameters = urllib.parse.urlencode(parameters)
+        url += "?" + encoded_parameters
 
     response = requests.get(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -58,7 +59,7 @@ def grist_get(url : str, parameters = None) -> dict:
         error_msg = None
         try:
             error_msg = response.json().get("error", None)
-        except:
+        except Exception:
             pass
         message = f"Error on GET to Grist route {repr(url)}, got status code {response.status_code}: {repr(error_msg)}"
         print(message)
@@ -66,16 +67,16 @@ def grist_get(url : str, parameters = None) -> dict:
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
-def grist_put(url : str, body : dict | list, query : dict = None) -> dict:
+def grist_put(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     print(f"Grist: Doing put on {url}")
     
     api_key = get_grist_api_key()
 
     if query is not None:
-        query = urllib.parse.urlencode(query)
-        url += "?" + query
+        encoded_query = urllib.parse.urlencode(query)
+        url += "?" + encoded_query
 
     response = requests.put(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -89,7 +90,7 @@ def grist_put(url : str, body : dict | list, query : dict = None) -> dict:
         error_msg = None
         try:
             error_msg = response.json().get("error", None)
-        except:
+        except Exception:
             pass
         message = f"Error on PUT to Grist route {repr(url)}, got status code {response.status_code}: {repr(error_msg)}"
         print(message)
@@ -98,14 +99,14 @@ def grist_put(url : str, body : dict | list, query : dict = None) -> dict:
 
         raise Exception(message)
 
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
-def grist_post(url : str, body : dict | list, query : dict = None) -> dict:
+def grist_post(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
 
     if query is not None:
-        query = urllib.parse.urlencode(query)
-        url += "?" + query
+        encoded_query = urllib.parse.urlencode(query)
+        url += "?" + encoded_query
 
     response = requests.post(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -120,7 +121,7 @@ def grist_post(url : str, body : dict | list, query : dict = None) -> dict:
         error_msg = None
         try:
             error_msg = response.json().get("error", None)
-        except:
+        except Exception:
             pass
         message = f"Error on POST to Grist route {repr(url)}, got status code {response.status_code}: {repr(error_msg)}"
         print(message)
@@ -128,14 +129,14 @@ def grist_post(url : str, body : dict | list, query : dict = None) -> dict:
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
-def grist_delete(url : str, query : dict = None) -> dict:
+def grist_delete(url : str, query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
 
     if query is not None:
-        query = urllib.parse.urlencode(query)
-        url += "?" + query
+        encoded_query = urllib.parse.urlencode(query)
+        url += "?" + encoded_query
 
     response = requests.delete(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -149,7 +150,7 @@ def grist_delete(url : str, query : dict = None) -> dict:
         error_msg = None
         try:
             error_msg = response.json().get("error", None)
-        except:
+        except Exception:
             pass
         message = f"Error on DELETE to Grist route {repr(url)}, got status code {response.status_code}: {repr(error_msg)}"
         print(message)
@@ -157,14 +158,14 @@ def grist_delete(url : str, query : dict = None) -> dict:
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
-def grist_patch(url : str, body : dict | list, query : dict = None) -> dict:
+def grist_patch(url : str, body : dict[str, Any] | list[Any], query : dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_grist_api_key()
 
     if query is not None:
-        query = urllib.parse.urlencode(query)
-        url += "?" + query
+        encoded_query = urllib.parse.urlencode(query)
+        url += "?" + encoded_query
 
     response = requests.patch(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -179,7 +180,7 @@ def grist_patch(url : str, body : dict | list, query : dict = None) -> dict:
         error_msg = None
         try:
             error_msg = response.json().get("error", None)
-        except:
+        except Exception:
             pass
         message = f"Error on PATCH to Grist route {repr(url)}, got status code {response.status_code}: {repr(error_msg)}"
         print(message)
@@ -187,14 +188,14 @@ def grist_patch(url : str, body : dict | list, query : dict = None) -> dict:
         print(json.dumps(response.json()))
 
         raise Exception(message)
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
-def check_available():
+def check_available() -> str | None:
     return keyring.get_password("grist", "member-admin-bot")
 
-def show():
+def show() -> None:
     """Display Grist credentials information with redacted API key."""
-    def redact_key(key):
+    def redact_key(key: str) -> str:
         return "****"
         # if not key or len(key) < 8:
         #     return "****"
@@ -213,8 +214,8 @@ def show():
         print("API Key: Not set")
     print()
 
-def signout():
+def signout() -> None:
     try:
         keyring.delete_password("grist", "member-admin-bot")
-    except keyring.errors.PasswordDeleteError:
+    except PasswordDeleteError:
         pass

@@ -1,16 +1,16 @@
 import json
-import logging
 from argparse import ArgumentParser, Namespace
+from typing import Any
 
 from .cognito.client import cognito_client
 from .cognito.constants import user_pool_id
 
 
-def _attributes_to_dict(attrs: list[dict]) -> dict:
+def _attributes_to_dict(attrs: list[Any]) -> dict[str, Any]:
     return {a.get("Name"): a.get("Value") for a in (attrs or [])}
 
 
-def _find_user_by_email(email: str):
+def _find_user_by_email(email: str) -> dict[str, Any] | None:
     # Cognito filter syntax requires quoted value
     resp = cognito_client.list_users(UserPoolId=user_pool_id, Filter=f'email = "{email}"')
     users = resp.get("Users", [])
@@ -26,14 +26,14 @@ def _find_user_by_email(email: str):
     return users[0]
 
 
-def _list_webauthn_credentials_with_token(access_token: str) -> list:
-    creds_all = []
+def _list_webauthn_credentials_with_token(access_token: str) -> list[dict[str, Any]]:
+    creds_all: list[dict[str, Any]] = []
     next_token = None
     while True:
         params = {"AccessToken": access_token}
         if next_token:
             params["NextToken"] = next_token
-        resp = cognito_client.list_webauthn_credentials(**params)
+        resp = cognito_client.list_webauthn_credentials(**params)  # type: ignore[attr-defined]
         creds = resp.get("WebAuthnCredentials") or resp.get("Credentials") or []
         creds_all.extend(creds)
         next_token = resp.get("NextToken") or resp.get("PaginationToken")
@@ -42,11 +42,12 @@ def _list_webauthn_credentials_with_token(access_token: str) -> list:
     return creds_all
 
 
-def _get_user_auth_factors_with_token(access_token: str) -> dict:
-    return cognito_client.get_user_auth_factors(AccessToken=access_token)
+def _get_user_auth_factors_with_token(access_token: str) -> dict[str, Any]:
+    from typing import cast as _cast
+    return _cast("dict[str, Any]", cognito_client.get_user_auth_factors(AccessToken=access_token))
 
 
-def handle_auth_show(args: Namespace):
+def handle_auth_show(args: Namespace) -> None:
     email = args.email
     user = _find_user_by_email(email)
     if not user:
@@ -91,7 +92,7 @@ def handle_auth_show(args: Namespace):
     print(json.dumps(out, indent=2))
 
 
-def handle_auth_remove_password(args: Namespace):
+def handle_auth_remove_password(args: Namespace) -> None:
     email = args.email
     user = _find_user_by_email(email)
     if not user:
@@ -105,7 +106,7 @@ def handle_auth_remove_password(args: Namespace):
         print(f"Failed to reset/remove password for {email}: {e}")
 
 
-def handle_auth_remove_passkeys(args: Namespace):
+def handle_auth_remove_passkeys(args: Namespace) -> None:
     email = args.email
     user = _find_user_by_email(email)
     if not user:
@@ -129,7 +130,7 @@ def handle_auth_remove_passkeys(args: Namespace):
             if not cred_id:
                 continue
             try:
-                cognito_client.delete_webauthn_credential(
+                cognito_client.delete_webauthn_credential(  # type: ignore[attr-defined]
                     AccessToken=access_token,
                     CredentialId=cred_id,
                 )
@@ -142,7 +143,7 @@ def handle_auth_remove_passkeys(args: Namespace):
         print(f"Failed to list/remove passkeys for {email}: {e}")
 
 
-def _set_email_verified(email: str, verified: bool):
+def _set_email_verified(email: str, verified: bool) -> None:
     user = _find_user_by_email(email)
     if not user:
         print(f"No Cognito user found for email: {email}")
@@ -161,15 +162,15 @@ def _set_email_verified(email: str, verified: bool):
         print(f"Failed to update email_verified for {email}: {e}")
 
 
-def handle_auth_mark_email_verified(args: Namespace):
+def handle_auth_mark_email_verified(args: Namespace) -> None:
     _set_email_verified(args.email, True)
 
 
-def handle_auth_mark_email_unverified(args: Namespace):
+def handle_auth_mark_email_unverified(args: Namespace) -> None:
     _set_email_verified(args.email, False)
 
 
-def handle_auth_set_mfa_preference(args: Namespace):
+def handle_auth_set_mfa_preference(args: Namespace) -> None:
     """Set a user's MFA preference using AdminSetUserMFAPreference.
 
     Supports 'email' (EmailMfaSettings) and 'totp' (SoftwareTokenMfaSettings / TOTP).
@@ -216,7 +217,7 @@ def handle_auth_set_mfa_preference(args: Namespace):
         print(f"Failed to set {method} MFA '{state}' for {email}: {e}")
 
 
-def add_parse_args(parser: ArgumentParser):
+def add_parse_args(parser: ArgumentParser) -> ArgumentParser:
     parser.set_defaults(func=lambda args: parser.print_help())
     sub = parser.add_subparsers(dest="auth_cmd", title="Auth actions")
 

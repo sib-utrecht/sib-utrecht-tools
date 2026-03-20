@@ -1,21 +1,22 @@
 import logging
-import keyring.credentials
-import requests
 import json
-import keyring
-from getpass import getpass
+from typing import Any
 from ..canonical import canonical_key
 from ..canonical.canonical_key import flatten_dict
 
-from .constants import api_url
 from .auth import conscribo_post, conscribo_get, conscribo_patch
+from .types import (
+    ConscriboCreateRelationResponse,
+    ConscriboFieldDefinitionsResponse,
+    ConscriboRelationFiltersResponse,
+)
 
 ENTITY_TYPE_PERSON = "persoon"
 ENTITY_TYPE_ALUMNUS = "re__nisten"
 
 # print(json.dumps(entity_groups, indent=2))
 
-def list_filter_raw(fieldNames, filters):
+def list_filter_raw(fieldNames: list[str], filters: list[dict[str, Any]]) -> ConscriboRelationFiltersResponse:
     """
     List relations with the given field names and filters.
 
@@ -31,14 +32,15 @@ def list_filter_raw(fieldNames, filters):
     See https://www.conscribo.nl/APIDocs/#?route=post-/relations/filters/
     """
     return conscribo_post(
-        f"/relations/filters/",
+        "/relations/filters/",
         json={
             "requestedFields": fieldNames,
             "filters": filters,
         },
+        return_type=ConscriboRelationFiltersResponse,
     )
 
-def relation_to_canonical(relation):
+def relation_to_canonical(relation: dict[str, Any]) -> dict[str, Any]:
     canonical = dict()
 
     to_canonical = canonical_key.get_conscribo_to_key()
@@ -69,7 +71,7 @@ def relation_to_canonical(relation):
     return canonical
 
 
-def relation_to_canonical_alumnus(relation):
+def relation_to_canonical_alumnus(relation: dict[str, Any]) -> dict[str, Any]:
     canonical = dict()
     to_canonical = canonical_key.get_conscribo_alumnus_to_key()
 
@@ -99,7 +101,7 @@ def relation_to_canonical_alumnus(relation):
     return canonical
 
 
-def update_relation(canonical):
+def update_relation(canonical: dict[str, Any]) -> None:
     canonical = flatten_dict(canonical)
     to_conscribo = canonical_key.get_key_to_conscribo()
 
@@ -121,11 +123,12 @@ def update_relation(canonical):
         json={
             "fields": conscribo_relation,
         },
+        return_type=ConscriboCreateRelationResponse,
     )
 
     print("\n\n")
 
-def create_relation_member(canonical, logger : logging.Logger) -> str:
+def create_relation_member(canonical: dict[str, Any], logger: logging.Logger) -> str:
     canonical = flatten_dict(canonical)
     to_conscribo = canonical_key.get_key_to_conscribo()
 
@@ -178,44 +181,36 @@ def create_relation_member(canonical, logger : logging.Logger) -> str:
             "entityType": canonical.get("conscribo_entity_type", ENTITY_TYPE_PERSON),
             "fields": conscribo_relation,
         },
+        return_type=ConscriboCreateRelationResponse,
     )
 
     conscribo_id = ans["code"]
 
     logger.info("\n\n")
-    return conscribo_id
+    return str(conscribo_id)
 
 
-def list_relations_persoon():
-    fieldDefinitions = conscribo_get(f"/relations/fieldDefinitions/persoon")["fields"]
-
-    fieldNames = [field["fieldName"] for field in fieldDefinitions]
-
-    # print(f"Field definitions: {fieldDefinitions}")
+def list_relations_persoon() -> list[dict[str, Any]]:
+    field_defs_response = conscribo_get(
+        "/relations/fieldDefinitions/persoon",
+        return_type=ConscriboFieldDefinitionsResponse,
+    )
+    fieldNames = [field["fieldName"] for field in field_defs_response["fields"]]
 
     result = conscribo_post(
         "/relations/filters/",
         json={
             "entityType": "persoon",
             "requestedFields": fieldNames,
-            "filters": [
-                # {
-                #     "fieldName": "code",
-                #     "operator": "=",
-                #     "value": [329],  # Vincent
-                # }
-            ],
+            "filters": [],
         },
+        return_type=ConscriboRelationFiltersResponse,
     )
 
-    relations = [
-        relation_to_canonical(relation) for relation in result["relations"].values()
-    ]
-
-    return relations
+    return [relation_to_canonical(relation) for relation in result["relations"].values()]
 
 
-def list_relations_members():
+def list_relations_members() -> list[dict[str, Any]]:
     personen = list_relations_persoon()
 
     members = [person for person in personen if int(person["conscribo_id"]) < 2000]
@@ -223,37 +218,30 @@ def list_relations_members():
     return members
 
 
-def list_relations_alumnus():
-    fieldDefinitions = conscribo_get(f"/relations/fieldDefinitions/re__nisten")[
-        "fields"
-    ]
-
-    fieldNames = [field["fieldName"] for field in fieldDefinitions]
+def list_relations_alumnus() -> list[dict[str, Any]]:
+    field_defs_response = conscribo_get(
+        "/relations/fieldDefinitions/re__nisten",
+        return_type=ConscriboFieldDefinitionsResponse,
+    )
+    fieldNames = [field["fieldName"] for field in field_defs_response["fields"]]
 
     result = conscribo_post(
         "/relations/filters/",
         json={
             "entityType": "re__nisten",
             "requestedFields": fieldNames,
-            "filters": [
-                # {
-                #     "fieldName": "code",
-                #     "operator": "=",
-                #     "value": [329],  # Vincent
-                # }
-            ],
+            "filters": [],
         },
+        return_type=ConscriboRelationFiltersResponse,
     )
 
-    relations = [
+    return [
         relation_to_canonical_alumnus(relation)
         for relation in result["relations"].values()
     ]
 
-    return relations
 
-
-def list_relations_active_members(date=None):
+def list_relations_active_members(date: str | None = None) -> list[dict[str, Any]]:
     """
     Returns members whose membership_end is None or in the future (active members).
     """
@@ -278,7 +266,7 @@ def list_relations_active_members(date=None):
     return active_members
 
 
-def list_relations_active_alumni():
+def list_relations_active_alumni() -> list[dict[str, Any]]:
     """
     Returns alumni whose requested_deregistration_alumnus is False or not set (active alumni).
     """

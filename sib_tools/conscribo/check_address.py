@@ -1,18 +1,12 @@
 from time import sleep
 import logging
-import sys
 import re
 import requests
 import os
 import json
-import hashlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Mapping, TypedDict
 
-from . import auth
-from .relations import list_relations_persoon, update_relation, list_relations_alumnus
-from .groups import get_group_members
-from . import groups
-from .check_numbering import check_relation_number_correct
+from .relations import list_relations_persoon, list_relations_alumnus
 from dataclasses import dataclass
 from .check_numbering import is_external_number
 from .file_cache import file_cache, make_cache_key
@@ -22,14 +16,40 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class AddressOuput:
+class AddressOutput:
     postal_code: str
     street_names: list[str]
     place_names: list[str]
-    addresses: list[dict]
+    addresses: list["AddressRecord"]
 
 
-def format_house_number(number, addition, house_letter, house_number):
+# Backward compatibility for old class name.
+AddressOuput = AddressOutput
+
+
+class AddressRecord(TypedDict):
+    number: str
+    house_number: str
+    place_name: str
+    street_name: str
+    rdf: str
+    details: str
+
+
+def _as_str(value: object) -> str | None:
+    if isinstance(value, str):
+        return value
+    if value is None:
+        return None
+    return str(value)
+
+
+def format_house_number(
+    number: object,
+    addition: str | None,
+    house_letter: str | None,
+    house_number: str | None,
+) -> str:
     """
     Format house number with addition and house letter.
 
@@ -42,11 +62,13 @@ def format_house_number(number, addition, house_letter, house_number):
     Returns:
         Formatted house number string
     """
+    _ = house_letter  # currently unused
+
     if addition is not None:
         match = re.match(r"^(BS)?([A-Z]?)$", addition)
 
         if match is None:
-            return house_number
+            return house_number or ""
 
         val = str(number)
         if match.group(1) is not None:
@@ -57,10 +79,10 @@ def format_house_number(number, addition, house_letter, house_number):
 
         return val
 
-    return house_number
+    return house_number or ""
 
 
-def get_for_postal_code(postal_code) -> AddressOuput:
+def get_for_postal_code(postal_code: str) -> AddressOutput:
     """
     Get address information for a postal code from the Dutch PDOK API.
 
@@ -71,23 +93,31 @@ def get_for_postal_code(postal_code) -> AddressOuput:
         AddressOuput containing place names, street names, and addresses
     """
     postal_code = postal_code.replace(" ", "")
-    docs = []
+    docs: list[dict[str, object]] = []
 
     if len(postal_code) == 6:
         url = f"https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q={postal_code}&rows=100&df=postcode"
         cache_dir = os.path.expanduser("~/.sib_pdok_cache")
         cache_key = make_cache_key(url, postal_code=postal_code)
         with file_cache(cache_dir, cache_key) as cached:
+            data: dict[str, object]
             if cached is not None:
-                data = cached
+                if isinstance(cached, dict):
+                    data = cached
+                else:
+                    data = {}
             else:
                 try:
                     logging.debug(
                         f"Fetching postal code data for {postal_code} from PDOK API"
                     )
-                    response = requests.get(url)
+                    response = requests.get(url, timeout=10)
                     response.raise_for_status()
-                    data = response.json()
+                    response_json = response.json()
+                    if isinstance(response_json, dict):
+                        data = response_json
+                    else:
+                        data = {}
                     with open(
                         os.path.join(cache_dir, cache_key), "w", encoding="utf-8"
                     ) as f:
@@ -95,31 +125,39 @@ def get_for_postal_code(postal_code) -> AddressOuput:
                     sleep(1)  # Rate limiting
                 except requests.exceptions.RequestException as e:
                     logging.error(f"Error fetching postal code data: {e}")
-                    return AddressOuput(
+                    return AddressOutput(
                         postal_code=postal_code,
                         street_names=[],
                         place_names=[],
                         addresses=[],
                     )
-            docs = data.get("response", {}).get("docs", [])
+            response_data = data.get("response")
+            if isinstance(response_data, dict):
+                raw_docs = response_data.get("docs")
+                if isinstance(raw_docs, list):
+                    docs = [
+                        raw_doc
+                        for raw_doc in raw_docs
+                        if isinstance(raw_doc, dict)
+                    ]
 
     # Filter for postal code information
     postal_code_infos = [doc for doc in docs if doc.get("type") == "postcode"]
     place_names = sorted(
         list(
             set(
-                info.get("woonplaatsnaam", "")
+                value
                 for info in postal_code_infos
-                if info.get("woonplaatsnaam")
+                if (value := _as_str(info.get("woonplaatsnaam")))
             )
         )
     )
     street_names = sorted(
         list(
             set(
-                info.get("straatnaam", "")
+                value
                 for info in postal_code_infos
-                if info.get("straatnaam")
+                if (value := _as_str(info.get("straatnaam")))
             )
         )
     )
@@ -128,32 +166,32 @@ def get_for_postal_code(postal_code) -> AddressOuput:
     addresses = [doc for doc in docs if doc.get("type") == "adres"]
 
     # Format addresses
-    formatted_addresses = []
+    formatted_addresses: list[AddressRecord] = []
     for address in addresses:
         formatted_addresses.append(
             {
                 "number": format_house_number(
                     address.get("huisnummer"),
-                    address.get("huisnummertoevoeging"),
-                    address.get("huisletter"),
-                    address.get("huis_nlt"),
+                    _as_str(address.get("huisnummertoevoeging")),
+                    _as_str(address.get("huisletter")),
+                    _as_str(address.get("huis_nlt")),
                 ),
-                "house_number": address.get("huis_nlt"),
-                "place_name": address.get("woonplaatsnaam"),
-                "street_name": address.get("straatnaam"),
-                "rdf": address.get("rdf_seealso"),
-                "details": address.get("rdf_seealso"),
+                "house_number": _as_str(address.get("huis_nlt")) or "",
+                "place_name": _as_str(address.get("woonplaatsnaam")) or "",
+                "street_name": _as_str(address.get("straatnaam")) or "",
+                "rdf": _as_str(address.get("rdf_seealso")) or "",
+                "details": _as_str(address.get("rdf_seealso")) or "",
             }
         )
 
-    return AddressOuput(
+    return AddressOutput(
         postal_code=postal_code,
         street_names=street_names,
         place_names=place_names,
         addresses=formatted_addresses,
     )
 
-def color_selector(selector):
+def color_selector(selector: str | None) -> str:
     """
     Colorize the selector for better visibility in logs.
 
@@ -165,7 +203,7 @@ def color_selector(selector):
     """
     return f"\x1b[93m{selector}\x1b[0m" if selector else "No selector"
 
-def color_fix_suggestion(suggestion):
+def color_fix_suggestion(suggestion: str | None) -> str:
     """
     Colorize the fix suggestion for better visibility in logs.
 
@@ -177,7 +215,7 @@ def color_fix_suggestion(suggestion):
     """
     return f"\x1b[32m{suggestion}\x1b[0m" if suggestion else "No fix suggestion"
 
-def color_wrong_value(value):
+def color_wrong_value(value: str | None) -> str:
     """
     Colorize the wrong value for better visibility in logs.
 
@@ -190,26 +228,39 @@ def color_wrong_value(value):
     return f"\x1b[31m{value or 'missing'}\x1b[0m"
 
 def check_address(
-    relation, logger: 'Logger', report_if_empty=True, report_if_correct=True, report_if_external=False,
-    relation_type="Relation"
-):
-    selector = relation["other"]["selector"]
+    relation: Mapping[str, object],
+    logger: "Logger",
+    report_if_empty: bool = True,
+    report_if_correct: bool = True,
+    report_if_external: bool = False,
+    relation_type: str = "Relation",
+) -> bool:
+    _ = relation_type  # reserved for future use
+    selector = "Unknown selector"
+    other = relation.get("other")
+    if isinstance(other, dict):
+        maybe_selector = other.get("selector")
+        if isinstance(maybe_selector, str):
+            selector = maybe_selector
     selector_colored = color_selector(selector)
-    def format_problem_found(problem):
+
+    def format_problem_found(problem: str) -> str:
         return f"\x1b[31mProblem found: {problem}\x1b[0m\n"
-    if is_external_number(relation["conscribo_id"]):
+
+    conscribo_id = relation.get("conscribo_id")
+    if conscribo_id is not None and bool(is_external_number(conscribo_id)):
         if report_if_external:
             logger.debug(
-                f"Skipping address check for external relation: {selector} ({relation['conscribo_id']})"
+                f"Skipping address check for external relation: {selector} ({conscribo_id})"
             )
         return True
-    street_name = relation.get("street")
-    place_name = relation.get("place")
+    street_name = _as_str(relation.get("street"))
+    place_name = _as_str(relation.get("place"))
     missing_value = color_wrong_value("missing")
-    postal_code = relation.get("postal_code")
-    house_number = relation.get("house_number_full")
+    postal_code = _as_str(relation.get("postal_code"))
+    house_number = _as_str(relation.get("house_number_full"))
     if house_number is None:
-        house_number = relation.get("house_number_decimal")
+        house_number = _as_str(relation.get("house_number_decimal"))
         if house_number is None:
             if report_if_empty:
                 msg = (
@@ -223,7 +274,7 @@ def check_address(
                 for line in msg.rstrip().split("\n"):
                     logger.warning(line)
             return True
-        house_number += relation.get("house_number_addition", "")
+        house_number += _as_str(relation.get("house_number_addition")) or ""
     if postal_code is None:
         if report_if_empty:
             msg = (
@@ -296,9 +347,13 @@ def check_address(
         )
         logger.info("")
     # logger.debug(f"Address output for {selector}: {address_output}")
+    return False
 
-def check_addresses(logger: 'Logger', include_alumni=True, include_members=True):
+def check_addresses(
+    logger: "Logger", include_alumni: bool = True, include_members: bool = True
+) -> None:
     logger.info("\x1b[94mPreparing...\x1b[0m")
+    personen: list[dict[str, object]]
     if include_members:
         personen = list_relations_persoon()
         logger.info(f"Fetched {len(personen)} persons from Conscribo.")
@@ -324,7 +379,7 @@ def check_addresses(logger: 'Logger', include_alumni=True, include_members=True)
     if include_alumni:
         logger.info("Checking for alumni...")
         alumni = list_relations_alumnus()
-        logger.info(f"Fetched {len(alumni)} alumni from Conscribo.")    
+        logger.info(f"Fetched {len(alumni)} alumni from Conscribo.")
         for relation in alumni:
             check_address(
                 relation,

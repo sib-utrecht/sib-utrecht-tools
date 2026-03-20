@@ -1,4 +1,3 @@
-import argparse
 from argparse import ArgumentParser, Namespace
 import logging
 import sys
@@ -7,7 +6,7 @@ import io
 from sib_tools.utils import print_change_count
 from .check_command import mail_results, log_to_html
 
-def handle_sync(args: Namespace):
+def handle_sync(args: Namespace) -> None:
     """
     Handle the sync command based on the provided arguments.
     This function will be called when the sync command is executed.
@@ -141,7 +140,7 @@ def handle_sync(args: Namespace):
             mail_results(html, subject=subject, logger=logger)
 
 
-def add_parse_args(parser: ArgumentParser):
+def add_parse_args(parser: ArgumentParser) -> ArgumentParser:
     parser.set_defaults(func=handle_sync)
     parser.add_argument(
         "dest",

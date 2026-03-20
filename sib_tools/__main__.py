@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from .auth import configure_keyring
 configure_keyring()
 
-from . import (
+from . import (  # noqa: E402
     sync_command,
     list_command,
     api_command,
@@ -12,12 +12,10 @@ from . import (
     serve_command,
     auth_command,
 )
-from .command_exception import CommandException
-import os
-import keyring
+from .command_exception import CommandException  # noqa: E402
 
 
-def main(args=None):
+def main(args_list: list[str] | None = None) -> None:
     parser = ArgumentParser(
         prog="sib-tools",
         description="Tools for member administration, made for SIB-Utrecht.",
@@ -63,9 +61,9 @@ def main(args=None):
         )
     )
 
-    args = parser.parse_args(args=args)
+    parsed_args = parser.parse_args(args=args_list)
     try:
-        args.func(args)
+        parsed_args.func(parsed_args)
     except CommandException as e:
         print(f"Error: {e}")
 

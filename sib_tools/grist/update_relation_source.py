@@ -1,7 +1,6 @@
-from .auth import grist_get, grist_put, grist_post
-from .constants import relations_doc
-import json
-import datetime
+from .auth import grist_get, grist_put
+from .constants import relations_doc as relations_doc
+from typing import Any
 from time import sleep
 import re
 
@@ -22,7 +21,7 @@ if force_batch:
 # print("\n")
 # print(json.dumps(orgs))
 
-def match_keys_case_insensitive(table_name : str, records : list[dict]) -> list[dict]:
+def match_keys_case_insensitive(table_name : str, records : list[dict[str, Any]]) -> list[dict[str, Any]]:
     columns_response = grist_get(f"/docs/{relations_doc}/tables/{table_name}/columns")
     column_ids = [
         column_desc["id"]
@@ -35,7 +34,7 @@ def match_keys_case_insensitive(table_name : str, records : list[dict]) -> list[
 
     excluded_records = set()
 
-    def project_record(record : dict[str]) -> dict[str]:
+    def project_record(record : dict[str, Any]) -> dict[str, Any]:
         nonlocal excluded_records
 
         new_record = {}
@@ -62,7 +61,7 @@ def match_keys_case_insensitive(table_name : str, records : list[dict]) -> list[
 
     return projected_records
 
-def set_relation_records_as_source(table_name : str, records : list[dict]):
+def set_relation_records_as_source(table_name : str, records : list[dict[str, Any]]) -> None:
     if not re.fullmatch(r"^[a-zA-Z0-9_]+$", table_name):
         raise ValueError(f"Invalid table name {repr(table_name)}")
     

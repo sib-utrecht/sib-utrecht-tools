@@ -1,19 +1,12 @@
-import boto3
 from time import sleep
 import json
 import logging
-import sys
 
-from ..conscribo.relations import list_relations_members
 from ..conscribo.groups import list_entity_groups
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict
 from ..cognito.list_users import (
-    list_all_cognito_users,
     cognito_user_to_canonical,
-    canonical_to_cognito_user,
-    cognito_client,
-    user_pool_id,
+    cognito_client as cognito_client,
+    user_pool_id as user_pool_id,
     list_cognito_users_canonical,
 )
 from ..cognito.groups import (
@@ -22,7 +15,7 @@ from ..cognito.groups import (
 )
 from ..utils import increase_indent, print_change_count, print_header
 
-def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None = None) -> int:
+def sync_conscribo_to_cognito_groups(dry_run: bool = True, logger: logging.Logger | None = None) -> int:
     logger = logger or logging.getLogger(__name__)
     print_header("Syncing Conscribo groups to AWS Cognito groups...", logger)
     
@@ -31,7 +24,6 @@ def sync_conscribo_to_cognito_groups(dry_run=True, logger: logging.Logger | None
     if dry_run:
         logger.info(f"Dry run: {dry_run}")
 
-    cognito_groups_by_name = {group["GroupName"]: group for group in cognito_groups}
     cognito_group_members = {
         group["GroupName"]: cognito_list_users_in_group(group["GroupName"])
         for group in cognito_groups

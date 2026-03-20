@@ -1,21 +1,20 @@
 import os
 from .constants import api_url
 import requests
-import json
 import keyring
 import keyring.errors
 from getpass import getpass
 import urllib.parse
 from dotenv import load_dotenv
-from typing import Any
+from typing import Any, cast
 
 load_dotenv()
 
 sib_app_api_key = None
 
 
-def prompt_credentials():
-    password = getpass(f"API-key for sib_app: ")
+def prompt_credentials() -> None:
+    password = getpass("API-key for sib_app: ")
 
     keyring.set_password("sib_app", "api-key", password)
 
@@ -46,12 +45,12 @@ def get_sib_app_api_key() -> str:
     return sib_app_api_key
 
 
-def sib_app_get(url : str, parameters = None) -> dict:
+def sib_app_get(url : str, parameters: dict[str, Any] | None = None) -> dict[str, Any]:
     api_key = get_sib_app_api_key()
 
     if parameters is not None:
-        parameters = urllib.parse.urlencode(parameters)
-        url += "?" + parameters
+        encoded_parameters = urllib.parse.urlencode(parameters)
+        url += "?" + encoded_parameters
 
     response = requests.get(
         f"{api_url.removesuffix('/')}/{url.removeprefix('/')}",
@@ -62,7 +61,7 @@ def sib_app_get(url : str, parameters = None) -> dict:
     )
     response.raise_for_status()
 
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
 def sib_app_post(url : str, body : dict[str, Any]) -> dict[str, Any]:
     api_key = get_sib_app_api_key()
@@ -79,9 +78,9 @@ def sib_app_post(url : str, body : dict[str, Any]) -> dict[str, Any]:
     )
     response.raise_for_status()
 
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
-def sib_app_delete(url : str) -> dict:
+def sib_app_delete(url : str) -> dict[str, Any]:
     api_key = get_sib_app_api_key()
 
     response = requests.delete(
@@ -93,7 +92,7 @@ def sib_app_delete(url : str) -> dict:
     )
     response.raise_for_status()
 
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
 def sib_app_put(url : str, body : dict[str, Any]) -> dict[str, Any]:
     api_key = get_sib_app_api_key()
@@ -108,19 +107,18 @@ def sib_app_put(url : str, body : dict[str, Any]) -> dict[str, Any]:
     )
     response.raise_for_status()
 
-    return response.json()
+    return cast("dict[str, Any]", response.json())
 
-def check_available():
+def check_available() -> str | None:
     return keyring.get_password("sib_app", "api-key")
 
-def show():
+def show() -> None:
     """Display SIB App credentials information with redacted API key."""
-    def redact_key(key):
+    def redact_key(key: str) -> str:
         return "****"
         # if not key or len(key) < 8:
         #     return "****"
         # return key[:4] + "*" * (len(key) - 8) + key[-4:]
-    0
     api_key = os.environ.get("SIB_APP_API_KEY") or keyring.get_password("sib_app", "api-key")
     
     print("\n=== SIB App Credentials ===")
@@ -133,7 +131,7 @@ def show():
         print("API Key: Not set")
     print()
 
-def signout():
+def signout() -> None:
     try:
         keyring.delete_password("sib_app", "api-key")
     except keyring.errors.PasswordDeleteError:

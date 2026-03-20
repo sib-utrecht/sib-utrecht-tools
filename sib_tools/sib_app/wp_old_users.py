@@ -1,15 +1,16 @@
 from .auth import sib_app_get, sib_app_post, sib_app_delete
 from datetime import datetime
+from typing import Any
 
-def fetch_users(min_wp_user_id):
+def fetch_users(min_wp_user_id: int) -> list[dict[str, Any]]:
     response = sib_app_get("/v2/users", parameters={"min_wp_user_id": min_wp_user_id})
-    return response["data"]["users"]
+    return list(response["data"]["users"])
 
-def fetch_users_by_wp_user_id(min_wp_user_id):
+def fetch_users_by_wp_user_id(min_wp_user_id: int) -> dict[int, dict[str, Any]]:
     res = fetch_users(min_wp_user_id)
     return {u['wordpress_user_id']: u for u in res}
 
-def create_user(canonical):
+def create_user(canonical: dict[str, Any]) -> dict[str, Any]:
     conscribo_id = canonical.get("conscribo_id")
     first_name = canonical.get("first_name")
     last_name = canonical.get("last_name")
@@ -18,7 +19,7 @@ def create_user(canonical):
     wp_user_id = canonical.get("wp_user_id")
 
     if not wp_user_id:
-        wp_user_id = int(conscribo_id) + 1000
+        wp_user_id = int(conscribo_id) + 1000  # type: ignore[arg-type]
 
     entity_name = f"user-2025-{wp_user_id}"
 
@@ -44,7 +45,7 @@ def create_user(canonical):
         "entity_id": entity_name
     }
 
-def delete_user(entity_name):
+def delete_user(entity_name: str) -> None:
     if len(entity_name) == 0:
         raise ValueError("Empty entity_name not allowed for delete_user()")
 

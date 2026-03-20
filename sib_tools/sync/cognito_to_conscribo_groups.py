@@ -1,30 +1,22 @@
 import logging
-import sys
 import json
 from time import sleep
 
 from sib_tools.utils import increase_indent, print_change_count, print_header
 
-from ..conscribo.relations import list_relations_members
 from ..conscribo.groups import list_entity_groups
 from ..conscribo.groups import add_relations_to_group, remove_relations_from_group
 
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict
 from ..cognito.list_users import (
-    list_all_cognito_users,
-    cognito_user_to_canonical,
-    canonical_to_cognito_user,
-    cognito_client,
-    user_pool_id,
+    cognito_client as cognito_client,
+    user_pool_id as user_pool_id,
 )
 from ..cognito.groups import (
     cognito_list_groups,
-    cognito_list_users_in_group,
     cognito_list_users_in_group_canonical,
 )
 
-def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None = None) -> int:
+def sync_cognito_to_conscribo_groups(dry_run: bool = True, logger: logging.Logger | None = None) -> int:
     logger = logger or logging.getLogger(__name__)
 
     print_header("Syncing Cognito groups to Conscribo groups...", logger)
@@ -32,7 +24,6 @@ def sync_cognito_to_conscribo_groups(dry_run=True, logger: logging.Logger | None
     cognito_groups = cognito_list_groups()
     logger.info(f"Groups count: {len(cognito_groups)}")
 
-    cognito_groups_by_name = {group["GroupName"]: group for group in cognito_groups}
     cognito_group_members = {
         group["GroupName"]: cognito_list_users_in_group_canonical(group["GroupName"])
         for group in cognito_groups

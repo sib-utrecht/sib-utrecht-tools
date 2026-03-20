@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 import os
-from typing import List, Dict
+from typing import Any, List, Dict, cast
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import keyring
@@ -33,7 +33,7 @@ groups_settings_scopes = [
 ]
 
 
-def get_env_or_keyring(key: str, keyring_service: str = "sib_tools_google") -> str:
+def get_env_or_keyring(key: str, keyring_service: str = "sib_tools_google") -> str | None:
     """
     Get a value from environment or keyring. If not found, return None.
     """
@@ -62,7 +62,7 @@ def prompt_and_store_in_keyring(
 SERVICE_ACCOUNT_FILE = None
 ADMIN_EMAIL = None
 
-def prompt_credentials():
+def prompt_credentials() -> None:
     global SERVICE_ACCOUNT_FILE, ADMIN_EMAIL
 
     ADMIN_EMAIL = prompt_and_store_in_keyring(
@@ -73,7 +73,7 @@ def prompt_credentials():
         "Enter the path to your Google service account JSON file: ",
     )
 
-def ensure_credentials():
+def ensure_credentials() -> None:
     global SERVICE_ACCOUNT_FILE
     global ADMIN_EMAIL
 
@@ -98,12 +98,12 @@ def ensure_credentials():
         )
 
 
-def get_credentials(scopes: List[str]):
+def get_credentials(scopes: List[str]) -> service_account.Credentials:
     """
     Returns service account credentials with domain-wide delegation.
     """
     ensure_credentials()
-    credentials = service_account.Credentials.from_service_account_file(
+    credentials = service_account.Credentials.from_service_account_file(  # type: ignore[no-untyped-call]
         SERVICE_ACCOUNT_FILE, scopes=scopes
     )
     if ADMIN_EMAIL:
@@ -111,7 +111,7 @@ def get_credentials(scopes: List[str]):
     return credentials
 
 
-def list_groups_directory_api() -> List[Dict]:
+def list_groups_directory_api() -> List[Dict[str, Any]]:
     """
     List Google Groups using the Directory API.
     Returns a list of group resource dicts.
@@ -120,13 +120,13 @@ def list_groups_directory_api() -> List[Dict]:
     service = build("admin", "directory_v1", credentials=creds)
     try:
         results = service.groups().list(customer="my_customer").execute()
-        return results.get("groups", [])
+        return cast("List[Dict[str, Any]]", results.get("groups", []))
     except Exception as e:
         print(f"Error listing groups via Directory API: {e}")
         return []
 
 
-def list_groups_settings_api() -> List[Dict]:
+def list_groups_settings_api() -> List[Dict[str, Any]]:
     """
     List Google Groups using the Groups Settings API (requires group emails).
     Returns a list of group settings dicts.
@@ -146,7 +146,7 @@ def list_groups_settings_api() -> List[Dict]:
     return group_settings
 
 
-def list_group_members_api(group_email: str) -> list:
+def list_group_members_api(group_email: str) -> list[dict[str, Any]]:
     """
     List members of a Google Group using the Directory API.
     Returns a list of member dicts.
@@ -155,7 +155,7 @@ def list_group_members_api(group_email: str) -> list:
     service = build("admin", "directory_v1", credentials=creds)
     try:
         results = service.members().list(groupKey=group_email).execute()
-        return results.get("members", [])
+        return cast("list[dict[str, Any]]", results.get("members", []))
     except Exception as e:
         print(f"Error listing members for group {group_email}: {e}")
         return []
@@ -163,14 +163,14 @@ def list_group_members_api(group_email: str) -> list:
 
 
 
-def check_available():
+def check_available() -> str | None:
     """
     Check if Google admin email is available in keyring.
     """
     return keyring.get_password("sib_tools_google", "GOOGLE_ADMIN_EMAIL")
 
 
-def show():
+def show() -> None:
     """Display Google credentials information."""
     service_account_file = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE") or keyring.get_password("sib_tools_google", "GOOGLE_SERVICE_ACCOUNT_FILE")
     admin_email = os.environ.get("GOOGLE_ADMIN_EMAIL") or keyring.get_password("sib_tools_google", "GOOGLE_ADMIN_EMAIL")
@@ -201,13 +201,13 @@ def show():
     else:
         print("Service Account File: Not set")
     
-    print(f"\nScopes:")
+    print("\nScopes:")
     print(f"  Directory API: {', '.join(directory_scopes)}")
     print(f"  Groups Settings API: {', '.join(groups_settings_scopes)}")
     print()
 
 
-def signout():
+def signout() -> None:
     """
     Sign out of Google by removing admin email from keyring.
     """

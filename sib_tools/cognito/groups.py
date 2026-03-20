@@ -1,52 +1,49 @@
-import boto3
 from time import sleep
-import json
-import logging
-import sys
 
 from .list_users import (
-    list_all_cognito_users,
     cognito_user_to_canonical,
-    canonical_to_cognito_user,
-    cognito_client,
-    user_pool_id,
+    cognito_client as cognito_client,
+    user_pool_id as user_pool_id,
 )
+from typing import Any, cast
 
 
-def cognito_list_groups():
+def cognito_list_groups() -> list[dict[str, Any]]:
     response = cognito_client.list_groups(
         UserPoolId=user_pool_id,
     )
 
-    groups = response.get("Groups", [])
+    groups: list[dict[str, Any]] = cast("list[dict[str, Any]]", list(response.get("Groups", [])))
     while "NextToken" in response:
         response = cognito_client.list_groups(
             UserPoolId=user_pool_id,
             NextToken=response["NextToken"],
         )
-        groups.extend(response.get("Groups", []))
+        groups.extend(cast("list[dict[str, Any]]", response.get("Groups", [])))
         sleep(0.1)
 
     return groups
 
-def cognito_list_users_in_group_canonical(group_name):
+def cognito_list_users_in_group_canonical(group_name: str) -> list[dict[str, Any]]:
     users = cognito_list_users_in_group(group_name)
     return [cognito_user_to_canonical(user) for user in users]
 
-def cognito_list_users_in_group(group_name):
+def cognito_list_users_in_group(group_name: str) -> list[dict[str, Any]]:
     response = cognito_client.list_users_in_group(
         UserPoolId=user_pool_id,
         GroupName=group_name,
     )
 
-    users = response.get("Users", [])
-    while "NextToken" in response:
+    users: list[dict[str, Any]] = cast("list[dict[str, Any]]", list(response.get("Users", [])))
+    next_token = response.get("NextToken")
+    while next_token:
         response = cognito_client.list_users_in_group(
             UserPoolId=user_pool_id,
             GroupName=group_name,
-            PaginationToken=response["NextToken"],
+            NextToken=next_token,
         )
-        users.extend(response.get("Users", []))
+        users.extend(cast("list[dict[str, Any]]", response.get("Users", [])))
+        next_token = response.get("NextToken")
         sleep(0.1)
 
     return users

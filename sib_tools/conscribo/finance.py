@@ -1,17 +1,11 @@
-import keyring.credentials
-import requests
-import json
-import keyring
-from getpass import getpass
-from ..canonical import canonical_key
-from ..canonical.canonical_key import flatten_dict
 from datetime import datetime, timedelta
+from typing import Any
 
-from .constants import api_url
-from .auth import conscribo_post, conscribo_get, conscribo_patch
+from .auth import conscribo_post, conscribo_get
+from .types import ConscriboAccountsResponse, ConscriboTransactionsResponse
 
 
-def list_conscribo_accounts(date: str | None = None):
+def list_conscribo_accounts(date: str | None = None) -> ConscriboAccountsResponse:
     """
     List Conscribo accounts for a given date.
 
@@ -20,7 +14,7 @@ def list_conscribo_accounts(date: str | None = None):
     if date is None:
         date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    return conscribo_get(f"/financial/accounts/?date={date}")
+    return conscribo_get(f"/financial/accounts/?date={date}", return_type=ConscriboAccountsResponse)
 
 
 def list_conscribo_transactions(
@@ -29,20 +23,20 @@ def list_conscribo_transactions(
     account_id: str | None,
     limit: int | None = None,
     offset: int = 0,
-):
+) -> ConscriboTransactionsResponse:
     """
     List Conscribo transactions for a given date range and account ID.
     """
 
-    filters = {
+    filters: dict[str, Any] = {
         "dateStart": start_date,
         "dateEnd": end_date,
     }
-   
+
     if account_id is not None:
         filters["accounts"] = [account_id]
 
-    payload = {
+    payload: dict[str, Any] = {
         "filters": filters,
         "offset": offset,
     }
@@ -50,4 +44,4 @@ def list_conscribo_transactions(
     if limit is not None:
         payload["limit"] = limit
 
-    return conscribo_post("/financial/transactions/filters/", json=payload)
+    return conscribo_post("/financial/transactions/filters/", json=payload, return_type=ConscriboTransactionsResponse)
