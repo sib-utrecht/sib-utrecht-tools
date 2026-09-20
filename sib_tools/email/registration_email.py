@@ -1,10 +1,8 @@
-from email import message_from_bytes, message_from_file
-from locale import setlocale
-import locale
 import logging
 import sys
 import json
 import pytz
+from typing import Any
 from urllib.parse import quote_plus
 
 # After changing something, make sure to run `./restart.sh`. In VS Code:
@@ -16,23 +14,20 @@ from urllib.parse import quote_plus
 
 tz = pytz.timezone("Europe/Amsterdam")
 
-from sib_tools.conscribo.groups import add_relations_to_group, find_group_id_by_name
-from sib_tools.conscribo.relations import create_relation_member
-from sib_tools.email.extract_form_fields import form_to_canonical
-from sib_tools.aws.auth import get_ses_client
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import formatdate
+from sib_tools.conscribo.groups import add_relations_to_group, find_group_id_by_name  # noqa: E402
+from sib_tools.conscribo.relations import create_relation_member  # noqa: E402
+from sib_tools.aws.auth import get_ses_client  # noqa: E402
+from email.mime.multipart import MIMEMultipart  # noqa: E402
+from email.mime.text import MIMEText  # noqa: E402
+from email.utils import formatdate  # noqa: E402
 
-from sib_tools.email.extract_form_fields import (
-    extract_fields_from_mail,
+from sib_tools.email.extract_form_fields import (  # noqa: E402
     extract_fields_from_mail_message,
     form_to_canonical,
-    get_html_and_plain_from_mail_message,
 )
-from .dkim_verify import DKIMDetailsVerified, DKIMVerifiedMail, verify_dkim_signature
-from datetime import datetime, timezone
-import re
+from .dkim_verify import DKIMDetailsVerified, DKIMVerifiedMail  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
+import re  # noqa: E402
 
 logger = logging.getLogger("incoming_email.log")
 logger.setLevel(logging.DEBUG)
@@ -46,13 +41,13 @@ logger.addHandler(stream_handler)
 
 
 def send_registration_notification(
-    canonical: dict,
+    canonical: dict[str, Any],
     conscribo_id: str,
     groups_added: list[str],
     original_msg_id: str | None = None,
     original_subject: str | None = None,
     iban_included: bool = True,
-):
+) -> None:
     """Notify info@sib-utrecht.nl that a registration was processed.
     If original_msg_id is provided, include reply-threading headers.
     """
@@ -129,7 +124,7 @@ def send_registration_notification(
         logger.error(f"Failed to send registration notification: {e}")
 
 
-def process_registration_email(dkim_result: DKIMVerifiedMail):
+def process_registration_email(dkim_result: DKIMVerifiedMail) -> None:
     fields = extract_fields_from_mail_message(dkim_result.email)
     if not fields:
         logger.error("No fields extracted from registration email")
@@ -167,7 +162,7 @@ def process_registration_email(dkim_result: DKIMVerifiedMail):
 
         canonical["newsletter_permission"] = (
             perm == "1"
-            or ("agree" in perm and not "disagree" in perm)
+            or ("agree" in perm and "disagree" not in perm)
             or perm == "yes"
             or perm == "ja"
             or perm == "true"
@@ -212,7 +207,7 @@ def process_registration_email(dkim_result: DKIMVerifiedMail):
     logger.info("Registration email processed successfully")
 
 
-def process_deregistration_email(dkim_result: DKIMDetailsVerified):
+def process_deregistration_email(dkim_result: DKIMDetailsVerified) -> None:
     raise NotImplementedError("Deregistration email processing is not implemented yet")
 
     # for part in dkim_result.email.walk():

@@ -1,20 +1,19 @@
-import json
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from email import message_from_file
 import re
 import uuid
-from email.message import EmailMessage, Message
+from email.message import Message
 from sib_tools.canonical.canonical_key import get_register_form_to_key
 from typing import Any
 
-def extract_fields_from_mail(path_to_eml):
+def extract_fields_from_mail(path_to_eml: str) -> dict[str, str] | None:
     msg = message_from_file(open(path_to_eml, 'r', encoding='utf-8'))
     return extract_fields_from_mail_message(msg)
 
-def get_html_and_plain_from_mail_message(msg : Message):
-    html_message = None
-    text_message = None
+def get_html_and_plain_from_mail_message(msg: Message) -> tuple[str | None, str | None]:
+    html_payload: bytes | None = None
+    text_payload: bytes | None = None
     main_part = next(msg.walk())
     for subpart in main_part.walk():
         if subpart.get_content_type() == 'text/html':
@@ -24,7 +23,7 @@ def get_html_and_plain_from_mail_message(msg : Message):
             payload = subpart.get_payload(decode=True)
             if not isinstance(payload, bytes):
                 raise ValueError("Expected bytes for HTML payload")
-            html_message = payload
+            html_payload = payload
 
         if subpart.get_content_type() == 'text/plain':
             assert "UTF-8" in subpart['Content-Type'], 'Unexpected Content-Type for text/plain'
@@ -34,18 +33,20 @@ def get_html_and_plain_from_mail_message(msg : Message):
             if not isinstance(payload, bytes):
                 raise ValueError("Expected bytes for text payload")
             
-            text_message = payload
+            text_payload = payload
 
-    if html_message is not None:
-        print(f"Html message length: {len(html_message)}")
-        html_message = html_message.decode('utf-8')
-    if text_message is not None:
-        print(f"Text message length: {len(text_message)}")
-        text_message = text_message.decode('utf-8')
+    html_message: str | None = None
+    text_message: str | None = None
+    if html_payload is not None:
+        print(f"Html message length: {len(html_payload)}")
+        html_message = html_payload.decode('utf-8')
+    if text_payload is not None:
+        print(f"Text message length: {len(text_payload)}")
+        text_message = text_payload.decode('utf-8')
 
     return html_message, text_message
 
-def extract_fields_from_mail_message(msg : Message):
+def extract_fields_from_mail_message(msg: Message) -> dict[str, str] | None:
     html_message, text_message = get_html_and_plain_from_mail_message(msg)
 
     # msg.get_body(preferencelist=('related', 'html', 'plain'))
@@ -60,7 +61,6 @@ def extract_fields_from_mail_message(msg : Message):
                 continue
             tag.string = f"\n{secure_bold_marker}\n{tag.text}\n"
         parts = soup.text.split(secure_bold_marker)
-        preamble = parts[0]
         fields_contents = [
             part.strip().split("\n")
             for part in parts[1:]
@@ -75,8 +75,9 @@ def extract_fields_from_mail_message(msg : Message):
     if text_message is not None:
         print(f"Text message length: {len(text_message)}")
         open('member-admin/add-to-conscribo/sample2.txt', 'w', encoding="utf-8").write(text_message)
+    return None
 
-def form_to_canonical(fields : dict[str, str]) -> dict:
+def form_to_canonical(fields: dict[str, str]) -> dict[str, Any]:
     to_canonical = get_register_form_to_key()
     canonical : dict[str, str | dict[str, Any] | Any] = dict()
     agreements : dict[str, str] = dict()

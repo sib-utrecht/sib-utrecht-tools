@@ -1,8 +1,6 @@
-from .auth import grist_get, grist_put, grist_post
+from .auth import grist_get, grist_put
 from .constants import relations_doc
 import json
-import datetime
-from time import sleep
 
 table_name = ""
 
@@ -11,7 +9,7 @@ table_name = ""
 # print("\n")
 # print(json.dumps(orgs))
 
-def main():
+def main() -> None:
 
     recs = grist_get(f"/docs/{relations_doc}/tables/Laposta/records")
     print(json.dumps(recs, indent=2))

@@ -2,8 +2,8 @@ import argparse
 from argparse import ArgumentParser, Namespace
 import json
 
-def add_parse_conscribo_query(parser: ArgumentParser):
-    def handle_conscribo_query(args: Namespace):
+def add_parse_conscribo_query(parser: ArgumentParser) -> None:
+    def handle_conscribo_query(args: Namespace) -> None:
         from .conscribo.auth import conscribo_get, conscribo_post
 
         if args.method == "get":
@@ -36,7 +36,7 @@ def add_parse_conscribo_query(parser: ArgumentParser):
 
     parser.set_defaults(func=handle_conscribo_query)
 
-def add_parse_args(parser: ArgumentParser):
+def add_parse_args(parser: ArgumentParser) -> ArgumentParser:
     parser.set_defaults(func=lambda args: parser.print_help())
     # parser.add_argument(
     #     "service",

@@ -3,9 +3,8 @@ Sync Conscribo members to Google Contacts, only considering contacts with label 
 """
 
 from sib_tools.google.auth import get_credentials
-from googleapiclient.discovery import build
-import logging
-import json
+from googleapiclient.discovery import build, Resource
+from typing import Any, cast
 
 CONTACTS_SCOPES = [
     "https://www.googleapis.com/auth/contacts",
@@ -15,28 +14,34 @@ CONTACTS_SCOPES = [
 GOOGLE_CONTACTS_MEMBER_LABEL = "Member"
 
 
-def contact_to_canonical(contact):
-    primary_email = next((
+def contact_to_canonical(contact: dict[str, Any]) -> dict[str, Any]:
+    primary_email_entry = next((
         email for email in contact.get("emailAddresses", [])
         if email.get("metadata", {}).get("primary")
-    ), {}).get("value")
+    ), None)
+    primary_email = (
+        primary_email_entry.get("value")
+        if isinstance(primary_email_entry, dict)
+        else None
+    )
 
-    dummy_email = next((
+    dummy_email_entry = next((
         email for email in contact.get("emailAddresses", [])
         if email.get("type") == "Dummy"
-    ), {}).get("value")
+    ), None)
+    dummy_email = dummy_email_entry.get("value") if isinstance(dummy_email_entry, dict) else None
 
     user_defined_map = {
         ud.get("key"): ud.get("value")
         for ud in contact.get("userDefined", [])
     }
 
-    primary_name = next((
+    primary_name: dict[str, Any] = next((
         name for name in contact.get("names", [])
         if name.get("metadata", {}).get("primary")
     ), {})
 
-    primary_birthday = next((
+    primary_birthday: dict[str, Any] = next((
         b for b in contact.get("birthdays", [])
         if b.get("metadata", {}).get("primary")
     ), {})
@@ -78,7 +83,7 @@ def contact_to_canonical(contact):
         }
     }
 
-def get_contact_group(service, group_name):
+def get_contact_group(service: Resource, group_name: str) -> dict[str, Any] | None:
     """
     Get a contact group by name.
     """
@@ -86,10 +91,10 @@ def get_contact_group(service, group_name):
     groups = groups_result.get("contactGroups", [])
     for group in groups:
         if group.get("name") == group_name:
-            return group
+            return cast("dict[str, Any]", group)
     return None
 
-def list_google_contacts(label_name=GOOGLE_CONTACTS_MEMBER_LABEL, raw=False, limit=None, offset=0):
+def list_google_contacts(label_name: str = GOOGLE_CONTACTS_MEMBER_LABEL, raw: bool = False, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
     creds = get_credentials(CONTACTS_SCOPES)
     service = build("people", "v1", credentials=creds)
 

@@ -1,12 +1,13 @@
-import argparse
 from argparse import ArgumentParser, Namespace
-import sys
 from sib_tools.conscribo.relations import list_relations_alumnus, list_relations_members, list_relations_active_members
 import json
-import beaupy
+import beaupy  # pyright: ignore[reportMissingTypeStubs]
 from unidecode import unidecode
 from time import sleep
 from datetime import datetime, date, timezone
+from typing import TypedDict, NotRequired
+
+from sib_tools.conscribo.types import ConscriboTransaction, ConscriboTransactionRow
 
 
 from sib_tools.conscribo.finance import (
@@ -29,7 +30,7 @@ from sib_tools.sib_app.wp_old_users import fetch_users
 #  ./sib-tools.sh list conscribo-transactions 2025-01-01 2025-07-07
 
 
-def handle_list_alumnus(args: Namespace):
+def handle_list_alumnus(args: Namespace) -> None:
     alumni = list_relations_alumnus()
     if args.conscribo_id:
         filtered = [
@@ -41,7 +42,7 @@ def handle_list_alumnus(args: Namespace):
         print()
 
 
-def handle_list_members(args: Namespace):
+def handle_list_members(args: Namespace) -> None:
     members = list_relations_members()
     if args.conscribo_id:
         filtered = [
@@ -53,7 +54,7 @@ def handle_list_members(args: Namespace):
         print()
 
 
-def handle_list_education(args: Namespace):
+def handle_list_education(args: Namespace) -> None:
     """List educational institution counts among members."""
     active_date = args.date or date.today().isoformat()
 
@@ -63,7 +64,7 @@ def handle_list_education(args: Namespace):
     members = list_relations_active_members(date=active_date)
 
     # Count occurrences of educational institutions
-    education_counts = {}
+    education_counts: dict[str, int] = {}
     total_members = len(members)
 
     institution_mapper = {
@@ -85,15 +86,15 @@ def handle_list_education(args: Namespace):
     # Sort by count (descending) then by name
     sorted_education = sorted(education_counts.items(), key=lambda x: (-x[1], x[0]))
 
-    print(f"Educational Institution Statistics")
-    print(f"=================================")
+    print("Educational Institution Statistics")
+    print("=================================")
     print(f"Total members: {total_members}")
     print(f"Unique educational institutions: {len(education_counts)}")
     print()
 
     if args.raw:
         # Print raw JSON output
-        result = {
+        result: dict[str, int | dict[str, int]] = {
             "total_members": total_members,
             "unique_institutions": len(education_counts),
             "institution_counts": dict(sorted_education),
@@ -115,7 +116,16 @@ def handle_list_education(args: Namespace):
             print(",".join(columns))
             
             # Create a list of members with their institutions for sorting
-            members_with_institutions = []
+            class _MemberWithInstitution(TypedDict):
+                institution: str
+                first_name: str
+                last_name: str
+                date_of_birth: str
+                study: str
+                institution_count: int
+                number: NotRequired[int]
+
+            members_with_institutions: list[_MemberWithInstitution] = []
             for member in members:
                 institution = member.get("institution") or "(empty)"
                 first_name = member.get("first_name") or ""
@@ -142,11 +152,11 @@ def handle_list_education(args: Namespace):
             )
             
             # Print the CSV data
-            institution_group = None
+            institution_group: str | None = None
             count_for_institution = 0
 
-            for member in members_with_institutions:
-                institution = member.get("institution")
+            for row in members_with_institutions:
+                institution = row["institution"]
 
                 if institution != institution_group:
                     count_for_institution = 0
@@ -154,15 +164,14 @@ def handle_list_education(args: Namespace):
 
                 count_for_institution += 1
 
-                member["number"] = count_for_institution
+                row["number"] = count_for_institution
                 
                 data = [
-                    member.get(col, "")
+                    str(row.get(col, "") or "")
                     for col in columns
                 ]
 
                 for k, v in list(enumerate(data)):
-                    v = str(v or "")
                     # Escape any quotes
                     v = v.replace('"', '""')
 
@@ -184,15 +193,15 @@ def handle_list_education(args: Namespace):
     print()
 
 
-def handle_list_accounts(args: Namespace):
+def handle_list_accounts(args: Namespace) -> None:
     print_list_accounts(
         date=args.date,
         raw=args.raw,
     )
 
 
-def handle_list_transactions(args: Namespace):
-    account_id = args.account_id
+def handle_list_transactions(args: Namespace) -> None:
+    account_id: str | None = args.account_id
     if not account_id:
         answer = beaupy.confirm(
             "No account ID supplied. Would you like to select one interactively?"
@@ -224,10 +233,10 @@ def handle_list_transactions(args: Namespace):
         print("No more results available.")
 
 
-def handle_list_balance_diff(args: Namespace):
+def handle_list_balance_diff(args: Namespace) -> None:
     print(f"Calculating balance difference from {args.start_date} to {args.end_date}")
-    debet_per_account = dict()
-    credit_per_account = dict()
+    debet_per_account: dict[str, float] = dict()
+    credit_per_account: dict[str, float] = dict()
     account_id = None
     fetch_date = datetime.now(timezone.utc).isoformat()
 
@@ -240,25 +249,28 @@ def handle_list_balance_diff(args: Namespace):
             account_id,
             limit=limit,
             offset=offset,
-        )["transactions"].values()
+        )["transactions"]
 
         for tx in transactions:
-            transactionId = tx["transactionId"]
-            date = tx["date"]
-            tx_description = tx.get("description", "")
+            tx: ConscriboTransaction
 
-            for rowId, row in tx.get("transactionRows", {}).items():
-                account = row["accountNr"]
-                row_description = row.get("description", "")
+            for row in tx.get("transactionRows", []):
+                row: ConscriboTransactionRow
+                account = row.get("accountNr")
+                side = row.get("side")
+                amount = row.get("amount")
 
-                if row["side"] == "debet":
-                    debet_per_account[account] = debet_per_account.get(
-                        account, 0
-                    ) + float(row["amount"])
-                elif row["side"] == "credit":
+                if account is None or side is None or amount is None:
+                    continue
+
+                if side == "debet":
+                    debet_per_account[account] = debet_per_account.get(account, 0) + float(
+                        amount
+                    )
+                elif side == "credit":
                     credit_per_account[account] = credit_per_account.get(
                         account, 0
-                    ) + float(row["amount"])
+                    ) + float(amount)
 
         if len(transactions) < limit:
             print("No more transactions available.")
@@ -306,7 +318,7 @@ def handle_list_balance_diff(args: Namespace):
     # Print a tree with the details
     tree = build_account_options(accounts)
 
-    included_accounts = set()
+    included_accounts: set[str] = set()
     for accountNr, label, prefix in tree:
         credit = credit_per_account.get(accountNr, 0)
         debet = debet_per_account.get(accountNr, 0)
@@ -348,21 +360,21 @@ def handle_list_balance_diff(args: Namespace):
     print("Done")
 
 
-def handle_list_google_groups_directory(args: Namespace):
+def handle_list_google_groups_directory(args: Namespace) -> None:
     """List Google Groups using the Directory API and print as JSON."""
     groups = list_groups_directory_api()
     print(json.dumps(groups, indent=2))
     print()
 
 
-def handle_list_google_groups_settings(args: Namespace):
+def handle_list_google_groups_settings(args: Namespace) -> None:
     """List Google Groups using the Groups Settings API and print as JSON."""
     groups = list_groups_settings_api()
     print(json.dumps(groups, indent=2))
     print()
 
 
-def handle_list_google_groups_members(args: Namespace):
+def handle_list_google_groups_members(args: Namespace) -> None:
     emails = args.email or ["members@sib-utrecht.nl", "alumni@sib-utrecht.nl"]
     if isinstance(emails, str):
         emails = [emails]
@@ -388,7 +400,7 @@ def handle_list_google_groups_members(args: Namespace):
     print()
 
 
-def handle_list_google_contacts(args: Namespace):
+def handle_list_google_contacts(args: Namespace) -> None:
     """
     List Google Contacts with a specific label.
     """
@@ -406,15 +418,18 @@ def handle_list_google_contacts(args: Namespace):
     print()
 
 
-def handle_list_sib_app_users(args: Namespace):
+def handle_list_sib_app_users(args: Namespace) -> None:
     """List users from SIB App (WordPress) via the sib_app API."""
     users = fetch_users(args.min_wp_user_id)
     print(json.dumps(users, indent=2))
     print()
 
 
-def add_parse_args(parser: ArgumentParser):
-    parser.set_defaults(func=lambda args: parser.print_help())
+def add_parse_args(parser: ArgumentParser) -> ArgumentParser:
+    def _print_help(_: Namespace) -> None:
+        parser.print_help()
+
+    parser.set_defaults(func=_print_help)
     subparser = parser.add_subparsers(
         description="What resource to list members from", dest="resource"
     )

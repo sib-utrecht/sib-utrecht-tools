@@ -1,21 +1,9 @@
-from time import sleep
 import logging
-import sys
-import re
-import requests
-from typing import TYPE_CHECKING
+from typing import Any
 
-from . import auth
-from .relations import list_relations_persoon, update_relation, list_relations_alumnus
-from .groups import get_group_members
-from . import groups
+from .relations import list_relations_persoon, list_relations_alumnus
 from .check_numbering import check_relation_number_correct
-from dataclasses import dataclass
-from .check_address import check_address
 from .check_numbering import is_external_number
-
-if TYPE_CHECKING:
-    from logging import Logger
 
 should_be_nonempty = [
     "conscribo_id",
@@ -34,8 +22,8 @@ should_be_nonempty = [
 ]
 
 
-def check_relations_for_empty_fields(relations, logger: 'Logger'):
-    members_per_empty_fields = {}
+def check_relations_for_empty_fields(relations: list[dict[str, Any]], logger: logging.Logger) -> None:
+    members_per_empty_fields: dict[str, list[str]] = {}
 
     for relation in relations:
         if is_external_number(relation["conscribo_id"]):
@@ -52,18 +40,18 @@ def check_relations_for_empty_fields(relations, logger: 'Logger'):
     for field, selectors in sorted(
         members_per_empty_fields.items(), key=lambda x: should_be_nonempty.index(x[0])
     ):
-        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning("\x1b[33mProblem found: \x1b[0m")
         logger.info(f"  Found {len(selectors)} members with empty '{field}':")
         for selector in selectors:
             logger.info(f"    - {selector}")
         logger.info("")
 
 
-def check_relation_fields_nonempty(relation, logger: 'Logger', report=True):
+def check_relation_fields_nonempty(relation: dict[str, Any], logger: logging.Logger, report: bool = True) -> list[str]:
     empty_fields = [field for field in should_be_nonempty if not relation.get(field)]
 
     if report and len(empty_fields) > 0:
-        logger.warning(f"\x1b[33mProblem found: \x1b[0m")
+        logger.warning("\x1b[33mProblem found: \x1b[0m")
         logger.warning(
             f"  Member \x1b[93m'{relation['other']['selector']}'\x1b[0m has no {', '.join(empty_fields)}."
         )
@@ -72,7 +60,7 @@ def check_relation_fields_nonempty(relation, logger: 'Logger', report=True):
     return empty_fields
 
 
-def check_basic(logger: 'Logger'):
+def check_basic(logger: logging.Logger) -> None:
     logger.info("\x1b[94mPreparing...\x1b[0m")
 
     personen = list_relations_persoon()
@@ -84,10 +72,7 @@ def check_basic(logger: 'Logger'):
 
     logger.info("\x1b[94mPreparation done.\x1b[0m\n")
 
-    correct = 0
-    wrong = 0
-
-    personen_by_membership_end = {}
+    personen_by_membership_end: dict[str, list[dict[str, Any]]] = {}
 
     check_relations_for_empty_fields(personen, logger)
 
@@ -108,7 +93,7 @@ def check_basic(logger: 'Logger'):
     for membership_end, entry_members in sorted(
         personen_by_membership_end.items(), key=lambda x: x[0]
     ):
-        logger.info(f"\x1b[94mInfo:\x1b[0m")
+        logger.info("\x1b[94mInfo:\x1b[0m")
         logger.info(
             f"  Found {len(entry_members)} members with membership end \x1b[94m{membership_end}\x1b[0m:"
         )

@@ -4,14 +4,12 @@ This sync allows you to set the members of a specific Conscribo group
 based on a list of canonical members.
 """
 
-import json
 import logging
 import sys
 from typing import List, Dict, Any
 
 from ..conscribo.groups import set_group_members, get_group_members_cached
 from ..conscribo.relations import list_relations_active_members, list_relations_active_alumni
-from ..canonical import canonical_key
 from ..utils import print_change_count, print_header
 
 

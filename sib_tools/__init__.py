@@ -1,1 +1,1 @@
-from .canonical import canonical_key
+from .canonical import canonical_key as canonical_key

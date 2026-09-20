@@ -1,28 +1,19 @@
-import keyring.credentials
-import requests
-import json
-import keyring
-from getpass import getpass
-from ..canonical import canonical_key
-from . import auth
-from .auth import conscribo_post, conscribo_get
-from .relations import list_relations_persoon, update_relation
-from ..grist.auth import grist_patch, grist_delete, grist_get, relations_doc, grist_post
+from typing import Any
+from .auth import conscribo_get
+from .types import ConscriboEntityGroupsResponse
+from ..grist.auth import grist_get, relations_doc
 # from ..grist.list import relations_doc
-from time import sleep
 from uuid import uuid4
 
 
 table_name = "Conscribo_Memberships"
 
 
-records : list[dict] = grist_get(
+records : list[dict[str, Any]] = grist_get(
     f"/docs/{relations_doc}/tables/{table_name}/records")["records"]
 
 
-ans = conscribo_get(
-    f"/relations/groups/"
-)
+ans = conscribo_get("/relations/groups/", return_type=ConscriboEntityGroupsResponse)
 entity_groups = ans["entityGroups"]
 
 
@@ -33,24 +24,24 @@ lookup_dict = {
 
 up_to_date_token = str(uuid4())
 
-to_add = []
-to_remove = []
+to_add: list[dict[str, object]] = []
+to_remove: list[dict[str, object]] = []
 
 for group in entity_groups:
     group_id = group["id"]
     group_name = group["name"]
 
     for member in group["members"]:
-        entity_id = member["entity_id"]
+        entity_id = member["entityId"]
 
         existing_record = lookup_dict.get(f"{group_id}:{entity_id}", None)
 
         if existing_record is None:
-            to_add = {
+            to_add.append({
                 "Group_id": group_id,
                 "Conscribo_id": entity_id,
                 # "is_tracked": True
-            }
+            })
             continue
 
         existing_record["up_to_date_token"] = up_to_date_token
@@ -60,7 +51,7 @@ for record in records:
     if record.get("up_to_date_token", None) == up_to_date_token:
         continue
 
-    to_remove = record
+    to_remove.append(record)
 
 
 # grist_post(
